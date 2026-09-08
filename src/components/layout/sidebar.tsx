@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLATFORM_INFO, PLATFORM_ORDER } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
+import { AppLogo } from "@/components/layout/app-logo";
 
 export function Sidebar({
   open,
@@ -46,9 +48,7 @@ export function Sidebar({
       >
         <div className="mb-4 flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-violet-900/30">
-              CM
-            </div>
+            <AppLogo className="h-9 w-9 shrink-0 text-sm" />
             <div>
               <p className="text-sm font-semibold leading-tight text-[var(--ink-0)]">
                 Club de Monetización
@@ -96,7 +96,7 @@ export function Sidebar({
                 className="flex h-4 w-4 items-center justify-center rounded text-[11px]"
                 style={{ background: `${info.color}22`, color: info.color }}
               >
-                {info.emoji}
+                <PlatformIcon platform={platform} className="h-2.5 w-2.5" />
               </span>
               {info.label}
             </NavLink>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { AnimatedBackground } from "@/components/layout/animated-background";
+import { AppLogo } from "@/components/layout/app-logo";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -11,9 +12,7 @@ export default async function LoginPage() {
       <AnimatedBackground type="PARTICLES" color="#0b0f19" accent="#8b5cf6" />
 
       <div className="glass-panel-strong animate-fade-in w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-2xl font-bold text-white shadow-lg shadow-violet-900/40">
-          CM
-        </div>
+        <AppLogo className="mx-auto mb-5 h-14 w-14 text-2xl" />
         <h1 className="text-xl font-semibold text-[var(--ink-0)]">
           Club de Monetización
         </h1>

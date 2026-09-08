@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getPlatformSummary } from "@/lib/data";
 import { PLATFORM_INFO, PLATFORM_ORDER } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 
 export default async function TablerosPage() {
   const { taskCounts, projectCounts } = await getPlatformSummary();
@@ -33,7 +34,7 @@ export default async function TablerosPage() {
                   className="flex h-11 w-11 items-center justify-center rounded-xl text-xl"
                   style={{ background: `${info.color}22` }}
                 >
-                  {info.emoji}
+                  <PlatformIcon platform={platform} className="h-6 w-6" />
                 </span>
                 <ArrowRight className="h-4 w-4 text-[var(--ink-3)] transition group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
               </div>

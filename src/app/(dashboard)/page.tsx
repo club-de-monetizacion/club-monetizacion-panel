@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getDashboardData } from "@/lib/data";
 import { MiniTaskRow } from "@/components/board/mini-task-row";
 import { PLATFORM_INFO } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -115,7 +116,7 @@ export default async function DashboardPage() {
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm"
                   style={{ background: `${info.color}22` }}
                 >
-                  {info.emoji}
+                  <PlatformIcon platform={p.platform} className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-[var(--ink-0)]">{p.name}</p>

@@ -2,6 +2,7 @@ import { Calendar, Link2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORM_INFO, PRIORITY_INFO } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { formatDate, cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/lib/data";
 
@@ -33,7 +34,7 @@ export function MiniTaskRow({
         <div className="mt-0.5 flex items-center gap-1.5">
           {task.platform && (
             <Badge color={PLATFORM_INFO[task.platform].color}>
-              {PLATFORM_INFO[task.platform].emoji}
+              <PlatformIcon platform={task.platform} className="h-3 w-3" />
             </Badge>
           )}
           <Badge color={PRIORITY_INFO[task.priority].color}>

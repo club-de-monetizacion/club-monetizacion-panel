@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PLATFORM_INFO } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { toggleArchiveProject, deleteProject } from "@/app/actions/projects";
 import type { Platform } from "@prisma/client";
 
@@ -91,7 +92,8 @@ export function ProjectCard({
           className="rounded-full px-2 py-0.5"
           style={{ background: `${info.color}22`, color: info.color }}
         >
-          {info.emoji} {info.label}
+          <PlatformIcon platform={project.platform} className="inline-block h-3 w-3 align-[-1px]" />{" "}
+          {info.label}
         </Link>
         <span>{project._count.tasks} tareas</span>
       </div>

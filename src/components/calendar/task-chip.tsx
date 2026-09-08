@@ -1,5 +1,6 @@
 import { PLATFORM_INFO, PRIORITY_INFO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import type { TaskWithRelations } from "@/lib/data";
 
 export function TaskChip({
@@ -28,7 +29,7 @@ export function TaskChip({
       style={{ backgroundColor: `${color}22`, color }}
     >
       {task.type === "CONTENIDO" && task.platform && (
-        <span className="shrink-0">{PLATFORM_INFO[task.platform].emoji}</span>
+        <PlatformIcon platform={task.platform} className="h-3 w-3 shrink-0" />
       )}
       <span className="truncate">{task.title}</span>
     </button>

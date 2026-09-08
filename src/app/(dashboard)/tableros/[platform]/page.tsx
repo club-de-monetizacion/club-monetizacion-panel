@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardToolbar } from "@/components/board/board-toolbar";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import type { Platform } from "@prisma/client";
 
 const SLUGS = [
@@ -57,7 +58,7 @@ export default async function PlatformBoardPage({
             className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
             style={{ background: `${info.color}22` }}
           >
-            {info.emoji}
+            <PlatformIcon platform={platform} className="h-6 w-6" />
           </span>
           <div>
             <h2 className="text-lg font-semibold text-[var(--ink-0)]">{info.label}</h2>

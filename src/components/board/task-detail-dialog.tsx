@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Link2, Loader2, Trash2, Send, X } from "lucide-react";
+import { Camera, Check, Link2, Loader2, Save, Trash2, Send, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,13 @@ export function TaskDetailDialog({
   const [isPending, startTransition] = useTransition();
   const [commentBody, setCommentBody] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+
+  const isDirty =
+    title !== task.title ||
+    description !== (task.description ?? "") ||
+    notes !== (task.notes ?? "") ||
+    driveLink !== (task.driveLink ?? "");
 
   function saveField(field: string, value: string) {
     setFieldError(null);
@@ -72,6 +79,29 @@ export function TaskDetailDialog({
         return;
       }
       router.refresh();
+    });
+  }
+
+  function handleSaveChanges() {
+    if (!title.trim()) {
+      setFieldError("El título no puede estar vacío");
+      return;
+    }
+    setFieldError(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("title", title);
+      fd.set("description", description);
+      fd.set("notes", notes);
+      fd.set("driveLink", driveLink);
+      const result = await updateTask(task.id, fd);
+      if (result?.error) {
+        setFieldError(result.error);
+        return;
+      }
+      setJustSaved(true);
+      router.refresh();
+      setTimeout(() => setJustSaved(false), 2000);
     });
   }
 
@@ -125,10 +155,12 @@ export function TaskDetailDialog({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => title.trim() && title !== task.title && saveField("title", title)}
           className="focus-ring w-full rounded-lg bg-transparent pr-8 text-lg font-semibold text-[var(--ink-0)] outline-none"
         />
         {fieldError && <p className="mt-1 text-xs text-red-400">{fieldError}</p>}
+        {isDirty && !fieldError && (
+          <p className="mt-1 text-xs text-[var(--ink-3)]">Tienes cambios sin guardar.</p>
+        )}
 
         {isContent && !isSkoolUpdate && (
           <div className="mt-3">
@@ -234,7 +266,6 @@ export function TaskDetailDialog({
                     : "https://drive.google.com/…"
                 }
                 onChange={(e) => setDriveLink(e.target.value)}
-                onBlur={() => saveField("driveLink", driveLink)}
               />
               {task.driveLink && (
                 <a
@@ -347,7 +378,6 @@ export function TaskDetailDialog({
               value={notes}
               rows={3}
               onChange={(e) => setNotes(e.target.value)}
-              onBlur={() => saveField("notes", notes)}
               className="mt-1.5"
               placeholder="Indicaciones o avisos adicionales para este video…"
             />
@@ -369,7 +399,6 @@ export function TaskDetailDialog({
             value={description}
             rows={4}
             onChange={(e) => setDescription(e.target.value)}
-            onBlur={() => saveField("description", description)}
             className="mt-1.5"
             placeholder="Añade detalles, instrucciones o contexto…"
           />
@@ -415,6 +444,23 @@ export function TaskDetailDialog({
               <Send className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+
+        <div className="mt-5 border-t border-[var(--panel-border)] pt-4">
+          <Button
+            className="w-full"
+            onClick={handleSaveChanges}
+            disabled={isPending || !isDirty}
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : justSaved ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {justSaved ? "Guardado" : "Guardar cambios"}
+          </Button>
         </div>
 
         <div className="mt-5 flex items-center justify-between border-t border-[var(--panel-border)] pt-4">

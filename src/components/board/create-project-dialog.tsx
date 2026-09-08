@@ -22,6 +22,7 @@ import {
 import { ColorPicker } from "@/components/profile/color-picker";
 import { createProject } from "@/app/actions/projects";
 import { PLATFORM_INFO, PLATFORM_ORDER, ACCENT_PRESETS } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import type { Platform } from "@prisma/client";
 
 export function CreateProjectDialog({
@@ -87,7 +88,10 @@ export function CreateProjectDialog({
               <SelectContent>
                 {PLATFORM_ORDER.map((p) => (
                   <SelectItem key={p} value={p}>
-                    {PLATFORM_INFO[p].emoji} {PLATFORM_INFO[p].label}
+                    <span className="flex items-center gap-1.5">
+                      <PlatformIcon platform={p} className="h-3.5 w-3.5" />
+                      {PLATFORM_INFO[p].label}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

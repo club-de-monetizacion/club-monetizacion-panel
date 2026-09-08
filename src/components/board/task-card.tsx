@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ProcessingBadge } from "@/components/board/processing-badge";
 import { CONTENT_STAGE_INFO, PRIORITY_INFO, PLATFORM_INFO } from "@/lib/constants";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { formatDate, cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/lib/data";
 
@@ -62,7 +63,7 @@ export function TaskCard({
                 background: platformInfo ? `${platformInfo.color}18` : undefined,
               }}
             >
-              {platformInfo?.emoji}
+              {task.platform && <PlatformIcon platform={task.platform} className="h-8 w-8" />}
             </div>
           )}
           {isProcessing && (
@@ -81,7 +82,9 @@ export function TaskCard({
             {PRIORITY_INFO[task.priority].label}
           </Badge>
           {task.type === "CONTENIDO" && !isProcessing && task.platform && (
-            <Badge color={platformInfo!.color}>{platformInfo!.emoji}</Badge>
+            <Badge color={platformInfo!.color}>
+              <PlatformIcon platform={task.platform} className="h-3 w-3" />
+            </Badge>
           )}
           {task.project && (
             <Badge className="bg-[var(--panel-strong)] text-[var(--ink-2)]">
