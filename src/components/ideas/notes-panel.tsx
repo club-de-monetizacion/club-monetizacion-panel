@@ -26,6 +26,10 @@ export function NotesPanel({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Text boxes, titles, and shapes are whiteboard-only elements — this list
+  // is only meant for actual note-like ideas.
+  const notes = ideas.filter((idea) => idea.kind === "STICKY");
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
@@ -67,7 +71,7 @@ export function NotesPanel({
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {ideas.map((idea) => (
+        {notes.map((idea) => (
           <div key={idea.id} className="glass-panel-strong flex items-start gap-2 rounded-lg p-3">
             <span
               className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
@@ -109,7 +113,7 @@ export function NotesPanel({
             </div>
           </div>
         ))}
-        {ideas.length === 0 && (
+        {notes.length === 0 && (
           <p className="px-1 py-2 text-sm text-[var(--ink-3)] sm:col-span-2 lg:col-span-3">
             Aún no hay ideas anotadas.
           </p>

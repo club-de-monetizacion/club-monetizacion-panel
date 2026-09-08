@@ -3,24 +3,30 @@
 import { useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
-import { StickyBoard, type StickyItem } from "@/components/ideas/sticky-board";
+import { BoardCanvas, type BoardItem } from "@/components/ideas/board-canvas";
 import { updateIdeaBody } from "@/app/actions/ideas";
 import {
   createIdeaNode,
+  createIdeaNodeConnection,
   deleteIdeaNode,
+  deleteIdeaNodeConnection,
   moveIdeaNode,
   recolorIdeaNode,
+  resizeIdeaNode,
   updateIdeaNodeBody,
 } from "@/app/actions/idea-nodes";
 import type { IdeaWithNodes } from "@/lib/data";
 
-function nodeToItem(node: IdeaWithNodes["nodes"][number]): StickyItem {
+function nodeToItem(node: IdeaWithNodes["nodes"][number]): BoardItem {
   return {
     id: node.id,
+    kind: node.kind,
     body: node.body,
     color: node.color,
     x: node.x,
     y: node.y,
+    width: node.width,
+    height: node.height,
     createdById: node.createdById,
     authorName: node.createdBy.name,
   };
@@ -69,23 +75,40 @@ export function IdeaDetailDialog({
             placeholder="Escribe la idea…"
           />
           <p className="mt-1 text-[11px] text-[var(--ink-3)]">
-            De {idea.createdBy.name} · usa la pizarra de abajo para desarrollarla con más notas.
+            De {idea.createdBy.name} · usa la pizarra de abajo para desarrollarla con más notas,
+            textos, formas y flechas.
           </p>
         </div>
         <div className="min-h-0 flex-1">
-          <StickyBoard
+          <BoardCanvas
             items={idea.nodes.map(nodeToItem)}
+            edges={idea.nodeConnections.map((c) => ({
+              id: c.id,
+              sourceId: c.sourceId,
+              targetId: c.targetId,
+            }))}
             currentUserId={currentUserId}
             isAdmin={isAdmin}
-            addLabel="Nueva nota"
-            onCreate={async (x, y) => {
-              const result = await createIdeaNode(idea.id, x, y);
+            onCreate={async (kind, x, y) => {
+              const result = await createIdeaNode(idea.id, x, y, kind);
               return result?.node ? nodeToItem(result.node) : null;
             }}
             onEdit={(id, body) => void updateIdeaNodeBody(id, body)}
             onRecolor={(id, color) => void recolorIdeaNode(id, color)}
             onMove={(id, x, y) => void moveIdeaNode(id, x, y)}
+            onResize={(id, width, height) => void resizeIdeaNode(id, width, height)}
             onDelete={(id) => void deleteIdeaNode(id)}
+            onConnect={async (sourceId, targetId) => {
+              const result = await createIdeaNodeConnection(idea.id, sourceId, targetId);
+              return result?.connection
+                ? {
+                    id: result.connection.id,
+                    sourceId: result.connection.sourceId,
+                    targetId: result.connection.targetId,
+                  }
+                : null;
+            }}
+            onDeleteEdge={(id) => void deleteIdeaNodeConnection(id)}
           />
         </div>
       </DialogContent>

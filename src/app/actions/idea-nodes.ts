@@ -4,21 +4,48 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
+import type { BoardElementKind } from "@prisma/client";
 
 const bodySchema = z.object({
-  body: z.string().trim().min(1, "Escribe algo antes de guardar").max(2000),
+  body: z.string().trim().max(2000),
 });
 
-/** Adds a sticky note to a specific idea's own whiteboard. */
-export async function createIdeaNode(ideaId: string, x: number, y: number, body = "Nueva nota") {
+const KIND_DEFAULTS: Record<BoardElementKind, { body: string; width: number; height: number }> = {
+  STICKY: { body: "Nueva nota", width: 224, height: 160 },
+  TEXT: { body: "Texto", width: 220, height: 100 },
+  TITLE: { body: "Título", width: 280, height: 64 },
+  SHAPE_RECTANGLE: { body: "", width: 200, height: 130 },
+  SHAPE_CIRCLE: { body: "", width: 150, height: 150 },
+  SHAPE_LINE: { body: "", width: 200, height: 60 },
+  SHAPE_CROSS: { body: "", width: 120, height: 120 },
+};
+
+/** Adds an element to a specific idea's own whiteboard. */
+export async function createIdeaNode(
+  ideaId: string,
+  x: number,
+  y: number,
+  kind: BoardElementKind = "STICKY",
+  body?: string
+) {
   const session = await requireSession();
-  const parsed = bodySchema.safeParse({ body });
+  const defaults = KIND_DEFAULTS[kind];
+  const parsed = bodySchema.safeParse({ body: body ?? defaults.body });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
   const node = await prisma.ideaNode.create({
-    data: { ideaId, x, y, body: parsed.data.body, createdById: session.user.id },
+    data: {
+      ideaId,
+      x,
+      y,
+      kind,
+      width: defaults.width,
+      height: defaults.height,
+      body: parsed.data.body,
+      createdById: session.user.id,
+    },
     include: { createdBy: { select: { id: true, name: true, image: true } } },
   });
 
@@ -41,6 +68,14 @@ export async function moveIdeaNode(id: string, x: number, y: number) {
   await prisma.ideaNode.update({ where: { id }, data: { x, y } });
 }
 
+export async function resizeIdeaNode(id: string, width: number, height: number) {
+  await requireSession();
+  await prisma.ideaNode.update({
+    where: { id },
+    data: { width: Math.round(width), height: Math.round(height) },
+  });
+}
+
 export async function recolorIdeaNode(id: string, color: string) {
   await requireSession();
   await prisma.ideaNode.update({ where: { id }, data: { color } });
@@ -55,5 +90,25 @@ export async function deleteIdeaNode(id: string) {
   }
 
   await prisma.ideaNode.delete({ where: { id } });
+  revalidatePath("/ideas");
+}
+
+export async function createIdeaNodeConnection(
+  ideaId: string,
+  sourceId: string,
+  targetId: string
+) {
+  await requireSession();
+  if (sourceId === targetId) return { error: "No puedes conectar un elemento consigo mismo" };
+  const connection = await prisma.ideaNodeConnection.create({
+    data: { ideaId, sourceId, targetId },
+  });
+  revalidatePath("/ideas");
+  return { success: true, connection };
+}
+
+export async function deleteIdeaNodeConnection(id: string) {
+  await requireSession();
+  await prisma.ideaNodeConnection.delete({ where: { id } }).catch(() => null);
   revalidatePath("/ideas");
 }

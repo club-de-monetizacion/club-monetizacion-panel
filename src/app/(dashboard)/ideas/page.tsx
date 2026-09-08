@@ -1,12 +1,12 @@
 import { auth } from "@/auth";
-import { getIdeas } from "@/lib/data";
+import { getIdeaConnections, getIdeas } from "@/lib/data";
 import { IdeasClient } from "@/components/ideas/ideas-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function IdeasPage() {
   const session = await auth();
-  const ideas = await getIdeas();
+  const [ideas, connections] = await Promise.all([getIdeas(), getIdeaConnections()]);
   const isAdmin = session?.user.role === "ADMIN";
   const currentUserId = session?.user.id ?? "";
 
@@ -19,7 +19,12 @@ export default async function IdeasPage() {
         </p>
       </div>
 
-      <IdeasClient ideas={ideas} currentUserId={currentUserId} isAdmin={isAdmin} />
+      <IdeasClient
+        ideas={ideas}
+        connections={connections}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

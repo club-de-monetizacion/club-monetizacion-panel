@@ -58,6 +58,17 @@ enum BackgroundType {
   SOLID
 }
 
+/** The kind of a whiteboard element on an idea's canvas. */
+enum BoardElementKind {
+  STICKY
+  TEXT
+  TITLE
+  SHAPE_RECTANGLE
+  SHAPE_CIRCLE
+  SHAPE_LINE
+  SHAPE_CROSS
+}
+
 model User {
   id               String    @id @default(cuid())
   name             String?
@@ -242,32 +253,71 @@ model QuickLink {
 
 /** A quick idea the team jotted down to revisit later. */
 model Idea {
-  id        String   @id @default(cuid())
-  body      String   @db.Text
-  color     String   @default("#fef08a")
-  x         Float    @default(0)
-  y         Float    @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String           @id @default(cuid())
+  body      String           @db.Text
+  color     String           @default("#fef08a")
+  kind      BoardElementKind @default(STICKY)
+  x         Float            @default(0)
+  y         Float            @default(0)
+  width     Float            @default(224)
+  height    Float            @default(160)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   createdById String
   createdBy   User       @relation(fields: [createdById], references: [id])
   nodes       IdeaNode[]
+
+  nodeConnections IdeaNodeConnection[]
+  connectionsFrom IdeaConnection[]     @relation("IdeaConnFrom")
+  connectionsTo   IdeaConnection[]     @relation("IdeaConnTo")
 }
 
-/** A sticky note on an idea's own whiteboard, used to develop it further. */
-model IdeaNode {
+/** An arrow connecting two ideas on the shared Pizarra board. */
+model IdeaConnection {
   id        String   @id @default(cuid())
-  body      String   @db.Text
-  color     String   @default("#fef08a")
-  x         Float    @default(0)
-  y         Float    @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  sourceId String
+  source   Idea   @relation("IdeaConnFrom", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId String
+  target   Idea   @relation("IdeaConnTo", fields: [targetId], references: [id], onDelete: Cascade)
+}
+
+/** An element (sticky note, text, title, or shape) on an idea's own
+ * whiteboard, used to develop it further. */
+model IdeaNode {
+  id        String           @id @default(cuid())
+  body      String           @db.Text
+  color     String           @default("#fef08a")
+  kind      BoardElementKind @default(STICKY)
+  x         Float            @default(0)
+  y         Float            @default(0)
+  width     Float            @default(224)
+  height    Float            @default(160)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   ideaId String
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id])
+
+  connectionsFrom IdeaNodeConnection[] @relation("IdeaNodeConnFrom")
+  connectionsTo   IdeaNodeConnection[] @relation("IdeaNodeConnTo")
+}
+
+/** An arrow connecting two elements within a single idea's own whiteboard. */
+model IdeaNodeConnection {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  ideaId String
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  sourceId String
+  source   IdeaNode @relation("IdeaNodeConnFrom", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId String
+  target   IdeaNode @relation("IdeaNodeConnTo", fields: [targetId], references: [id], onDelete: Cascade)
 }

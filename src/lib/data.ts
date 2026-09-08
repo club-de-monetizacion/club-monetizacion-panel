@@ -26,11 +26,18 @@ export function getIdeas() {
         orderBy: { createdAt: "asc" },
         include: { createdBy: { select: ideaMemberSelect } },
       },
+      nodeConnections: { orderBy: { createdAt: "asc" } },
     },
   });
 }
 
 export type IdeaWithNodes = Awaited<ReturnType<typeof getIdeas>>[number];
+
+/** All arrows on the shared top-level Pizarra board (connecting ideas to
+ * each other) — fetched flat since that board renders every idea together. */
+export function getIdeaConnections() {
+  return prisma.ideaConnection.findMany({ orderBy: { createdAt: "asc" } });
+}
 
 export function getTeamMembers() {
   return prisma.user.findMany({

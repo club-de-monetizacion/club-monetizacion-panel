@@ -7,13 +7,16 @@ import { IdeaBoard } from "@/components/ideas/idea-board";
 import { IdeaDetailDialog } from "@/components/ideas/idea-detail-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { IdeaWithNodes } from "@/lib/data";
+import type { IdeaConnection } from "@prisma/client";
 
 export function IdeasClient({
   ideas,
+  connections,
   currentUserId,
   isAdmin,
 }: {
   ideas: IdeaWithNodes[];
+  connections: IdeaConnection[];
   currentUserId: string;
   isAdmin: boolean;
 }) {
@@ -52,6 +55,11 @@ export function IdeasClient({
         <TabsContent value="pizarra" className="mt-5">
           <IdeaBoard
             ideas={ideas}
+            connections={connections.map((c) => ({
+              id: c.id,
+              sourceId: c.sourceId,
+              targetId: c.targetId,
+            }))}
             currentUserId={currentUserId}
             isAdmin={isAdmin}
             onOpenIdea={setOpenIdeaId}
