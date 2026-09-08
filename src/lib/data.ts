@@ -15,6 +15,13 @@ export function getQuickLinks() {
   });
 }
 
+export function getIdeas() {
+  return prisma.idea.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { createdBy: { select: { id: true, name: true, image: true } } },
+  });
+}
+
 export function getTeamMembers() {
   return prisma.user.findMany({
     orderBy: [{ role: "asc" }, { name: "asc" }],

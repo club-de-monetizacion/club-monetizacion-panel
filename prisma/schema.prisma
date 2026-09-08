@@ -81,6 +81,7 @@ model User {
   comments         Comment[]
   cannedResponses  CannedResponse[]
   quickLinks       QuickLink[]
+  ideas            Idea[]
 }
 
 model Account {
@@ -223,4 +224,14 @@ model QuickLink {
 
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])
+}
+
+/** A quick idea the team jotted down to revisit later. */
+model Idea {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
 }
