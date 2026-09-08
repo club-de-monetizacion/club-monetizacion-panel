@@ -93,12 +93,32 @@ export function TaskDetailDialog({
       fd.set("title", title);
       fd.set("description", description);
       fd.set("notes", notes);
-      fd.set("driveLink", driveLink);
       const result = await updateTask(task.id, fd);
       if (result?.error) {
         setFieldError(result.error);
         return;
       }
+
+      // Saved separately: an invalid link shouldn't block the fields above
+      // from saving, and its own error needs to point at what's wrong.
+      const trimmedLink = driveLink.trim();
+      const normalizedLink =
+        trimmedLink && !/^https?:\/\//i.test(trimmedLink)
+          ? `https://${trimmedLink}`
+          : trimmedLink;
+      if (normalizedLink !== (task.driveLink ?? "")) {
+        const fdLink = new FormData();
+        fdLink.set("driveLink", normalizedLink);
+        const linkResult = await updateTask(task.id, fdLink);
+        if (linkResult?.error) {
+          setDriveLink(normalizedLink);
+          setFieldError(linkResult.error);
+          router.refresh();
+          return;
+        }
+        setDriveLink(normalizedLink);
+      }
+
       setJustSaved(true);
       router.refresh();
       setTimeout(() => setJustSaved(false), 2000);
@@ -447,6 +467,9 @@ export function TaskDetailDialog({
         </div>
 
         <div className="mt-5 border-t border-[var(--panel-border)] pt-4">
+          {fieldError && (
+            <p className="mb-2 text-xs text-red-400">{fieldError}</p>
+          )}
           <Button
             className="w-full"
             onClick={handleSaveChanges}
