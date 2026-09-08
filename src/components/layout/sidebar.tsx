@@ -10,21 +10,25 @@ import {
   Settings,
   CalendarDays,
   Lightbulb,
+  ClipboardCheck,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLATFORM_INFO, PLATFORM_ORDER } from "@/lib/constants";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { AppLogo } from "@/components/layout/app-logo";
+import type { Role } from "@prisma/client";
 
 export function Sidebar({
   open,
   onClose,
   collapsed,
+  role,
 }: {
   open: boolean;
   onClose: () => void;
   collapsed?: boolean;
+  role?: Role;
 }) {
   const pathname = usePathname();
 
@@ -127,6 +131,15 @@ export function Sidebar({
         >
           Equipo
         </NavLink>
+        {role === "ADMIN" && (
+          <NavLink
+            href="/tareas-diarias-soporte"
+            icon={<ClipboardCheck className="h-4 w-4" />}
+            active={isActive("/tareas-diarias-soporte")}
+          >
+            Tareas diarias Soporte
+          </NavLink>
+        )}
 
         <div className="mt-auto pt-4">
           <NavLink

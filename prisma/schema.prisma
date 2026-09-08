@@ -95,6 +95,8 @@ model User {
   quickLinks       QuickLink[]
   ideas            Idea[]
   ideaNodes        IdeaNode[]
+  dailyTaskItems   DailyTaskItem[]
+  dailyTaskLogs    DailyTaskLog[]
 }
 
 model Account {
@@ -321,4 +323,40 @@ model IdeaNodeConnection {
   source   IdeaNode @relation("IdeaNodeConnFrom", fields: [sourceId], references: [id], onDelete: Cascade)
   targetId String
   target   IdeaNode @relation("IdeaNodeConnTo", fields: [targetId], references: [id], onDelete: Cascade)
+}
+
+/** A recurring daily task template owned by one team member (e.g. someone
+ * on support). Not date-scoped itself — "today done or not" is derived from
+ * whether a DailyTaskLog exists for today, which is what gives the natural
+ * daily reset without needing a cron job. */
+model DailyTaskItem {
+  id        String   @id @default(cuid())
+  label     String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  logs DailyTaskLog[]
+
+  @@index([userId])
+}
+
+/** One completion record for one task on one calendar day. Its mere
+ * existence means "done that day" — checking a box creates it, unchecking
+ * deletes it — so history simply accumulates as time passes. */
+model DailyTaskLog {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  completedAt DateTime @default(now())
+
+  itemId String
+  item   DailyTaskItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, date])
+  @@index([userId, date])
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Platform } from "@prisma/client";
+import { todayUTC } from "@/lib/daily-tasks";
 
 export function getCannedResponses() {
   return prisma.cannedResponse.findMany({
@@ -37,6 +38,39 @@ export type IdeaWithNodes = Awaited<ReturnType<typeof getIdeas>>[number];
  * each other) — fetched flat since that board renders every idea together. */
 export function getIdeaConnections() {
   return prisma.ideaConnection.findMany({ orderBy: { createdAt: "asc" } });
+}
+
+/** One support member's own daily checklist, with today's completion log
+ * (if any) included per item so the UI can tell done vs. pending. */
+export function getMyDailyTasks(userId: string) {
+  const date = todayUTC();
+  return prisma.dailyTaskItem.findMany({
+    where: { userId },
+    orderBy: { position: "asc" },
+    include: { logs: { where: { date } } },
+  });
+}
+
+export type DailyTaskWithTodayLog = Awaited<ReturnType<typeof getMyDailyTasks>>[number];
+
+/** For the admin monitoring view: every support member with their full
+ * daily checklist and today's completion status per item. */
+export function getSupportDailyOverview() {
+  const date = todayUTC();
+  return prisma.user.findMany({
+    where: { role: "SOPORTE" },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      dailyTaskItems: {
+        orderBy: { position: "asc" },
+        include: { logs: { where: { date } } },
+      },
+    },
+  });
 }
 
 export function getTeamMembers() {

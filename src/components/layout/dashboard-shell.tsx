@@ -16,6 +16,7 @@ function titleFromPathname(pathname: string) {
   if (pathname.startsWith("/soporte")) return "Soporte";
   if (pathname.startsWith("/proyectos")) return "Proyectos";
   if (pathname.startsWith("/equipo")) return "Equipo";
+  if (pathname.startsWith("/tareas-diarias-soporte")) return "Tareas diarias Soporte";
   if (pathname.startsWith("/perfil")) return "Mi perfil";
   if (pathname.startsWith("/tableros/")) {
     const slug = pathname.split("/")[2]?.toUpperCase() as Platform | undefined;
@@ -72,7 +73,12 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen w-full">
-      <Sidebar open={open} onClose={() => setOpen(false)} collapsed={collapsed} />
+      <Sidebar
+        open={open}
+        onClose={() => setOpen(false)}
+        collapsed={collapsed}
+        role={user.role}
+      />
       <div className="flex min-h-screen w-full flex-1 flex-col">
         <Topbar
           title={title}
