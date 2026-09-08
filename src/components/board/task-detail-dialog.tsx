@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Link2, Loader2, Trash2, Send } from "lucide-react";
+import { Camera, Link2, Loader2, Trash2, Send, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -171,16 +171,34 @@ export function TaskDetailDialog({
             <Label htmlFor="dueDate">
               {isContent ? "Fecha de publicación" : "Fecha límite"}
             </Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={dueDate}
-              onChange={(e) => {
-                setDueDate(e.target.value);
-                saveField("dueDate", e.target.value);
-              }}
-              className="mt-1.5"
-            />
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                  saveField("dueDate", e.target.value);
+                }}
+              />
+              {dueDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDueDate("");
+                    saveField("dueDate", "");
+                  }}
+                  className="focus-ring shrink-0 rounded-md p-2 text-[var(--ink-3)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)]"
+                  aria-label="Quitar fecha"
+                  title="Sin asignar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {!dueDate && (
+              <p className="mt-1 text-[11px] text-[var(--ink-3)]">Sin asignar</p>
+            )}
           </div>
           <div>
             <Label htmlFor="driveLink">Enlace de Drive</Label>

@@ -161,6 +161,9 @@ export function CreateTaskDialog({
                 {isContent ? "Fecha de publicación" : "Fecha límite"}
               </Label>
               <Input id="dueDate" name="dueDate" type="date" className="mt-1.5" />
+              <p className="mt-1 text-[11px] text-[var(--ink-3)]">
+                Déjalo vacío para &ldquo;Sin asignar&rdquo;
+              </p>
             </div>
             <div>
               <Label htmlFor="driveLink">Enlace de Drive</Label>

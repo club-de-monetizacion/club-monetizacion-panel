@@ -12,11 +12,17 @@ export function initials(name?: string | null, email?: string | null) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+/**
+ * Due dates are stored as UTC-midnight "date only" values (see
+ * src/lib/calendar.ts), so formatting must read UTC fields too — otherwise
+ * a viewer west of UTC sees every date shifted back by one day.
+ */
 export function formatDate(date: Date | string | null | undefined) {
   if (!date) return null;
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("es-ES", {
     day: "2-digit",
     month: "short",
+    timeZone: "UTC",
   }).format(d);
 }
