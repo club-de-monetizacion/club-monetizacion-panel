@@ -19,6 +19,17 @@ export function MyTasksPanel({
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
 
+  // Keeps the open detail dialog's task in sync with fresh server data (new
+  // comments/attachments/etc.) once the page revalidates and hands down a
+  // new `tasks` array.
+  const [syncedTasksRef, setSyncedTasksRef] = useState(tasks);
+  if (syncedTasksRef !== tasks) {
+    setSyncedTasksRef(tasks);
+    if (selectedTask) {
+      setSelectedTask(tasks.find((t) => t.id === selectedTask.id) ?? null);
+    }
+  }
+
   return (
     <div className="glass-panel mb-5 rounded-2xl p-4">
       <div className="mb-1 flex items-center justify-between px-1">

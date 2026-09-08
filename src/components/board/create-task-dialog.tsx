@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,7 @@ export function CreateTaskDialog({
 }) {
   const router = useRouter();
   const isContent = type === "CONTENIDO";
+  const isSkoolUpdate = platform === "SKOOL_UPDATES";
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [priority, setPriority] = useState("MEDIA");
@@ -107,11 +108,15 @@ export function CreateTaskDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogTitle>{isContent ? "Nuevo video" : "Nueva tarea"}</DialogTitle>
+        <DialogTitle>
+          {isSkoolUpdate ? "Nueva actualización" : isContent ? "Nuevo video" : "Nueva tarea"}
+        </DialogTitle>
         <DialogDescription>
-          {isContent
-            ? "Añade una pieza de contenido al tablero"
-            : "Añade una tarea de soporte"}
+          {isSkoolUpdate
+            ? "Registra una actualización pendiente para una clase"
+            : isContent
+              ? "Añade una pieza de contenido al tablero"
+              : "Añade una tarea de soporte"}
         </DialogDescription>
 
         <form action={handleSubmit} className="mt-4 space-y-4">
@@ -120,7 +125,7 @@ export function CreateTaskDialog({
             <Input id="title" name="title" required autoFocus className="mt-1.5" />
           </div>
 
-          {isContent && (
+          {isContent && !isSkoolUpdate && (
             <div>
               <Label className="mb-1.5 block">Portada</Label>
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[var(--panel-strong)]">
@@ -132,18 +137,31 @@ export function CreateTaskDialog({
                     Sin portada
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => coverInputRef.current?.click()}
-                  className="focus-ring absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
-                  aria-label="Subir portada"
-                >
-                  {uploadingCover ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
+                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  {coverImage && (
+                    <button
+                      type="button"
+                      onClick={() => setCoverImage("")}
+                      className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur hover:bg-black/80"
+                      aria-label="Quitar portada"
+                      title="Quitar portada"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => coverInputRef.current?.click()}
+                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+                    aria-label="Subir portada"
+                  >
+                    {uploadingCover ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 <input
                   ref={coverInputRef}
                   type="file"
@@ -166,12 +184,18 @@ export function CreateTaskDialog({
               </p>
             </div>
             <div>
-              <Label htmlFor="driveLink">Enlace de Drive</Label>
+              <Label htmlFor="driveLink">
+                {isSkoolUpdate ? "Link de la clase" : "Enlace de Drive"}
+              </Label>
               <Input
                 id="driveLink"
                 name="driveLink"
                 type="url"
-                placeholder="https://drive.google.com/…"
+                placeholder={
+                  isSkoolUpdate
+                    ? "https://www.skool.com/…"
+                    : "https://drive.google.com/…"
+                }
                 className="mt-1.5"
               />
             </div>
@@ -233,6 +257,11 @@ export function CreateTaskDialog({
           <div>
             <Label htmlFor="description">Descripción</Label>
             <Textarea id="description" name="description" rows={3} className="mt-1.5" />
+            {isSkoolUpdate && (
+              <p className="mt-1 text-[11px] text-[var(--ink-3)]">
+                Podrás adjuntar capturas y documentos una vez creada.
+              </p>
+            )}
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -243,7 +272,7 @@ export function CreateTaskDialog({
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isContent ? "Crear video" : "Crear tarea"}
+              {isSkoolUpdate ? "Crear actualización" : isContent ? "Crear video" : "Crear tarea"}
             </Button>
           </div>
         </form>

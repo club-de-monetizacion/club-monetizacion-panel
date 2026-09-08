@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProcessingBadge } from "@/components/board/processing-badge";
+import { AttachmentsSection } from "@/components/board/attachments-section";
 import { updateTask, deleteTask, addComment } from "@/app/actions/tasks";
 import { CONTENT_STAGE_INFO, CONTENT_STAGE_ORDER, PRIORITY_INFO } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
@@ -42,6 +43,7 @@ export function TaskDetailDialog({
 }) {
   const router = useRouter();
   const isContent = task.type === "CONTENIDO";
+  const isSkoolUpdate = task.platform === "SKOOL_UPDATES";
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState(task.title);
@@ -127,7 +129,7 @@ export function TaskDetailDialog({
         />
         {fieldError && <p className="mt-1 text-xs text-red-400">{fieldError}</p>}
 
-        {isContent && (
+        {isContent && !isSkoolUpdate && (
           <div className="mt-3">
             <Label className="mb-1.5 block">Portada</Label>
             <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[var(--panel-strong)]">
@@ -143,18 +145,34 @@ export function TaskDetailDialog({
                   Sin portada
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                className="focus-ring absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
-                aria-label="Cambiar portada"
-              >
-                {uploadingCover ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
+              <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                {coverPreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverPreview("");
+                      saveField("coverImage", "");
+                    }}
+                    className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur hover:bg-black/80"
+                    aria-label="Quitar portada"
+                    title="Quitar portada"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+                  aria-label="Cambiar portada"
+                >
+                  {uploadingCover ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               <input
                 ref={coverInputRef}
                 type="file"
@@ -201,13 +219,19 @@ export function TaskDetailDialog({
             )}
           </div>
           <div>
-            <Label htmlFor="driveLink">Enlace de Drive</Label>
+            <Label htmlFor="driveLink">
+              {isSkoolUpdate ? "Link de la clase" : "Enlace de Drive"}
+            </Label>
             <div className="mt-1.5 flex items-center gap-1.5">
               <Input
                 id="driveLink"
                 type="url"
                 value={driveLink}
-                placeholder="https://drive.google.com/…"
+                placeholder={
+                  isSkoolUpdate
+                    ? "https://www.skool.com/…"
+                    : "https://drive.google.com/…"
+                }
                 onChange={(e) => setDriveLink(e.target.value)}
                 onBlur={() => saveField("driveLink", driveLink)}
               />
@@ -327,6 +351,10 @@ export function TaskDetailDialog({
               placeholder="Indicaciones o avisos adicionales para este video…"
             />
           </div>
+        )}
+
+        {isSkoolUpdate && (
+          <AttachmentsSection taskId={task.id} attachments={task.attachments} />
         )}
 
         <div className="mt-3">

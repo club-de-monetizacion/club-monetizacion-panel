@@ -30,6 +30,20 @@ export function CalendarGrid({
   const [dayAgenda, setDayAgenda] = useState<{ key: string; date: Date } | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
 
+  // Keeps the open detail dialog's task in sync with fresh server data (new
+  // comments/attachments/etc.) once the page revalidates and hands down a
+  // new `tasksByDate` object.
+  const [syncedTasksRef, setSyncedTasksRef] = useState(tasksByDate);
+  if (syncedTasksRef !== tasksByDate) {
+    setSyncedTasksRef(tasksByDate);
+    if (selectedTask) {
+      const fresh = Object.values(tasksByDate)
+        .flat()
+        .find((t) => t.id === selectedTask.id);
+      setSelectedTask(fresh ?? null);
+    }
+  }
+
   useEffect(() => {
     // Reads the viewer's own clock/timezone on mount so the "today" ring
     // matches their real calendar day; deferred to an effect (rather than a

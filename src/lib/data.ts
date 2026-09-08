@@ -68,6 +68,9 @@ const taskInclude = {
     orderBy: { createdAt: "asc" as const },
     include: { author: { select: { id: true, name: true, image: true } } },
   },
+  attachments: {
+    orderBy: { createdAt: "asc" as const },
+  },
 };
 
 export type TaskWithRelations = Awaited<ReturnType<typeof getContentTasks>>[number];

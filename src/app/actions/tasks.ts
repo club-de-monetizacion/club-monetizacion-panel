@@ -34,7 +34,7 @@ const baseTaskSchema = z.object({
     .or(z.literal("")),
   projectId: z.string().trim().optional().or(z.literal("")),
   platform: z
-    .enum(["SKOOL", "YOUTUBE", "TIKTOK", "INSTAGRAM", "FACEBOOK"])
+    .enum(["SKOOL", "SKOOL_UPDATES", "YOUTUBE", "TIKTOK", "INSTAGRAM", "FACEBOOK"])
     .optional()
     .or(z.literal("")),
   stage: z

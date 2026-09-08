@@ -77,6 +77,17 @@ export function KanbanBoard({
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
   const [createColumn, setCreateColumn] = useState<string | null>(null);
+
+  // Keeps the open detail dialog's task in sync with fresh server data (new
+  // comments/attachments/etc. don't change the board signature above, but
+  // `initialTasks` is still a new array every time the page revalidates).
+  const [syncedTasksRef, setSyncedTasksRef] = useState(initialTasks);
+  if (syncedTasksRef !== initialTasks) {
+    setSyncedTasksRef(initialTasks);
+    if (selectedTask) {
+      setSelectedTask(initialTasks.find((t) => t.id === selectedTask.id) ?? null);
+    }
+  }
   const [showArchived, setShowArchived] = useState(false);
 
   const sensors = useSensors(

@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, Link2, MessageSquare, StickyNote } from "lucide-react";
+import { Calendar, Link2, MessageSquare, Paperclip, StickyNote } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ProcessingBadge } from "@/components/board/processing-badge";
@@ -105,6 +105,12 @@ export function TaskCard({
             )}
             {task.driveLink && <Link2 className="h-3 w-3" />}
             {task.notes && <StickyNote className="h-3 w-3" />}
+            {task.attachments.length > 0 && (
+              <span className="flex items-center gap-0.5 text-[11px]">
+                <Paperclip className="h-3 w-3" />
+                {task.attachments.length}
+              </span>
+            )}
             {task.comments.length > 0 && (
               <span className="flex items-center gap-1 text-[11px]">
                 <MessageSquare className="h-3 w-3" />

@@ -163,10 +163,29 @@ model Task {
   createdBy   User          @relation("CreatedTasks", fields: [createdById], references: [id])
 
   comments    Comment[]
+  attachments Attachment[]
 
   @@index([type, status])
   @@index([platform, stage])
   @@index([assigneeId])
+}
+
+enum AttachmentKind {
+  IMAGE
+  DOCUMENT
+}
+
+/** A screenshot or document attached to a task (e.g. a Skool update). */
+model Attachment {
+  id        String         @id @default(cuid())
+  kind      AttachmentKind
+  name      String
+  dataUrl   String         @db.Text
+  size      Int
+  createdAt DateTime       @default(now())
+
+  taskId    String
+  task      Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Comment {

@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 const projectSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto").max(120),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
-  platform: z.enum(["SKOOL", "YOUTUBE", "TIKTOK", "INSTAGRAM", "FACEBOOK"]),
+  platform: z.enum(["SKOOL", "SKOOL_UPDATES", "YOUTUBE", "TIKTOK", "INSTAGRAM", "FACEBOOK"]),
   driveLink: z
     .string()
     .trim()
