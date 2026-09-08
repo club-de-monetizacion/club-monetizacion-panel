@@ -88,6 +88,9 @@ const taskInclude = {
   attachments: {
     orderBy: { createdAt: "asc" as const },
   },
+  checklistItems: {
+    orderBy: { position: "asc" as const },
+  },
 };
 
 export type TaskWithRelations = Awaited<ReturnType<typeof getContentTasks>>[number];

@@ -164,12 +164,25 @@ model Task {
   createdById String
   createdBy   User          @relation("CreatedTasks", fields: [createdById], references: [id])
 
-  comments    Comment[]
-  attachments Attachment[]
+  comments       Comment[]
+  attachments    Attachment[]
+  checklistItems ChecklistItem[]
 
   @@index([type, status])
   @@index([platform, stage])
   @@index([assigneeId])
+}
+
+/** A manually managed to-do item on a task, e.g. production steps for a video. */
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  label     String
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 enum AttachmentKind {

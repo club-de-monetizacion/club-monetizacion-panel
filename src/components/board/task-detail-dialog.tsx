@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { ProcessingBadge } from "@/components/board/processing-badge";
 import { AttachmentsSection } from "@/components/board/attachments-section";
+import { ChecklistSection } from "@/components/board/checklist-section";
 import { updateTask, deleteTask, addComment } from "@/app/actions/tasks";
 import { CONTENT_STAGE_INFO, CONTENT_STAGE_ORDER, PRIORITY_INFO } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
@@ -355,6 +356,10 @@ export function TaskDetailDialog({
 
         {isSkoolUpdate && (
           <AttachmentsSection taskId={task.id} attachments={task.attachments} />
+        )}
+
+        {isContent && (
+          <ChecklistSection taskId={task.id} items={task.checklistItems} />
         )}
 
         <div className="mt-3">
