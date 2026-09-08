@@ -12,12 +12,13 @@ import { formatDate } from "@/lib/utils";
 type Idea = {
   id: string;
   body: string;
+  color: string;
   createdAt: Date;
   createdById: string;
   createdBy: { id: string; name: string | null; image: string | null };
 };
 
-export function IdeasPanel({
+export function NotesPanel({
   ideas,
   currentUserId,
   isAdmin,
@@ -56,19 +57,7 @@ export function IdeasPanel({
   }
 
   return (
-    <div className="glass-panel mb-5 rounded-2xl p-4">
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--ink-0)]">💡 Ideas del equipo</h3>
-          <p className="text-xs text-[var(--ink-3)]">
-            Anota cualquier idea que se les ocurra, para revisarla después.
-          </p>
-        </div>
-        <span className="rounded-full bg-[var(--panel-strong)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
-          {ideas.length}
-        </span>
-      </div>
-
+    <div>
       <form onSubmit={handleSubmit} className="mb-4 flex gap-2">
         <Textarea
           value={body}
@@ -86,6 +75,10 @@ export function IdeasPanel({
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {ideas.map((idea) => (
           <div key={idea.id} className="glass-panel-strong flex items-start gap-2 rounded-lg p-3">
+            <span
+              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: idea.color }}
+            />
             <Avatar
               src={idea.createdBy.image}
               name={idea.createdBy.name}
