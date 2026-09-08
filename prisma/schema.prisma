@@ -16,6 +16,7 @@ enum Role {
 
 enum Platform {
   SKOOL
+  SKOOL_UPDATES
   YOUTUBE
   TIKTOK
   INSTAGRAM
@@ -78,6 +79,8 @@ model User {
   createdTasks     Task[]    @relation("CreatedTasks")
   createdProjects  Project[]
   comments         Comment[]
+  cannedResponses  CannedResponse[]
+  quickLinks       QuickLink[]
 }
 
 model Account {
@@ -176,4 +179,29 @@ model Comment {
 
   authorId  String
   author    User     @relation(fields: [authorId], references: [id])
+}
+
+/** Canned answers the support team can copy-paste into a conversation. */
+model CannedResponse {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+}
+
+/** Frequently-needed links (docs, forms, dashboards) kept handy to copy. */
+model QuickLink {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
 }

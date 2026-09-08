@@ -1,6 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import type { Platform } from "@prisma/client";
 
+export function getCannedResponses() {
+  return prisma.cannedResponse.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { createdBy: { select: { id: true, name: true } } },
+  });
+}
+
+export function getQuickLinks() {
+  return prisma.quickLink.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { createdBy: { select: { id: true, name: true } } },
+  });
+}
+
 export function getTeamMembers() {
   return prisma.user.findMany({
     orderBy: [{ role: "asc" }, { name: "asc" }],

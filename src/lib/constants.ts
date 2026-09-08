@@ -12,6 +12,7 @@ export const PLATFORM_INFO: Record<
   { label: string; color: string; emoji: string }
 > = {
   SKOOL: { label: "Skool", color: "#3B82F6", emoji: "🎓" },
+  SKOOL_UPDATES: { label: "Actualizaciones Skool", color: "#0EA5E9", emoji: "📢" },
   YOUTUBE: { label: "YouTube", color: "#EF4444", emoji: "▶️" },
   TIKTOK: { label: "TikTok", color: "#e2e8f0", emoji: "🎵" },
   INSTAGRAM: { label: "Instagram", color: "#EC4899", emoji: "📸" },
@@ -20,6 +21,7 @@ export const PLATFORM_INFO: Record<
 
 export const PLATFORM_ORDER: Platform[] = [
   "SKOOL",
+  "SKOOL_UPDATES",
   "YOUTUBE",
   "TIKTOK",
   "INSTAGRAM",

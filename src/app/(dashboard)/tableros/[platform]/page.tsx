@@ -16,7 +16,14 @@ import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardToolbar } from "@/components/board/board-toolbar";
 import type { Platform } from "@prisma/client";
 
-const SLUGS = ["skool", "youtube", "tiktok", "instagram", "facebook"] as const;
+const SLUGS = [
+  "skool",
+  "skool_updates",
+  "youtube",
+  "tiktok",
+  "instagram",
+  "facebook",
+] as const;
 
 export default async function PlatformBoardPage({
   params,
