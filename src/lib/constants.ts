@@ -26,21 +26,31 @@ export const PLATFORM_ORDER: Platform[] = [
   "FACEBOOK",
 ];
 
-export const CONTENT_STAGE_INFO: Record<ContentStage, { label: string }> = {
+export const CONTENT_STAGE_INFO: Record<
+  ContentStage,
+  { label: string; processing?: boolean }
+> = {
   IDEA: { label: "Idea" },
-  GRABACION: { label: "Grabación" },
-  EDICION: { label: "Edición" },
-  REVISION: { label: "Revisión" },
-  PROGRAMADO: { label: "Programado" },
+  PLANEADO: { label: "Planeado" },
+  GRABADO: { label: "Grabado" },
+  EDITANDO: { label: "Editando", processing: true },
+  EDITADO: { label: "Editado" },
   PUBLICADO: { label: "Publicado" },
 };
 
-export const CONTENT_STAGE_ORDER: ContentStage[] = [
+/** Columns shown on the working board — published videos are archived out of
+ * the active pipeline to keep it clean; they're reachable via the archive
+ * toggle and can still be re-opened from the task detail's stage selector. */
+export const CONTENT_STAGE_ACTIVE_ORDER: ContentStage[] = [
   "IDEA",
-  "GRABACION",
-  "EDICION",
-  "REVISION",
-  "PROGRAMADO",
+  "PLANEADO",
+  "GRABADO",
+  "EDITANDO",
+  "EDITADO",
+];
+
+export const CONTENT_STAGE_ORDER: ContentStage[] = [
+  ...CONTENT_STAGE_ACTIVE_ORDER,
   "PUBLICADO",
 ];
 

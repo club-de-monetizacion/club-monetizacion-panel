@@ -60,8 +60,17 @@ export type TaskWithRelations = Awaited<ReturnType<typeof getContentTasks>>[numb
 
 export function getContentTasks(platform: Platform) {
   return prisma.task.findMany({
-    where: { type: "CONTENIDO", platform },
+    where: { type: "CONTENIDO", platform, stage: { not: "PUBLICADO" } },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    include: taskInclude,
+  });
+}
+
+/** Published videos, kept out of the active board to stay clean. */
+export function getPublishedTasks(platform: Platform) {
+  return prisma.task.findMany({
+    where: { type: "CONTENIDO", platform, stage: "PUBLICADO" },
+    orderBy: [{ dueDate: "desc" }, { updatedAt: "desc" }],
     include: taskInclude,
   });
 }
@@ -108,7 +117,11 @@ export async function getDashboardData(userId: string) {
     totalMembers,
   ] = await Promise.all([
     prisma.task.findMany({
-      where: { assigneeId: userId, status: { not: "COMPLETADA" } },
+      where: {
+        assigneeId: userId,
+        status: { not: "COMPLETADA" },
+        stage: { not: "PUBLICADO" },
+      },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
       take: 6,
       include: taskInclude,
@@ -126,6 +139,7 @@ export async function getDashboardData(userId: string) {
     prisma.task.findMany({
       where: {
         status: { not: "COMPLETADA" },
+        stage: { not: "PUBLICADO" },
         dueDate: { not: null },
       },
       orderBy: { dueDate: "asc" },

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { createTask } from "@/app/actions/tasks";
 import { PRIORITY_INFO } from "@/lib/constants";
+import { fileToCompressedDataUrl } from "@/lib/image";
 import type { Platform, TaskType } from "@prisma/client";
 
 type Member = { id: string; name: string | null; email: string };
@@ -46,11 +47,38 @@ export function CreateTaskDialog({
   projects?: ProjectOption[];
 }) {
   const router = useRouter();
+  const isContent = type === "CONTENIDO";
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const [priority, setPriority] = useState("MEDIA");
   const [assigneeId, setAssigneeId] = useState<string>("none");
   const [projectId, setProjectId] = useState<string>("none");
+  const [coverImage, setCoverImage] = useState<string>("");
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Selecciona un archivo de imagen");
+      return;
+    }
+    setUploadingCover(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, {
+        width: 480,
+        height: 270,
+        quality: 0.8,
+      });
+      setCoverImage(dataUrl);
+    } catch {
+      setError("No se pudo procesar la imagen");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -63,6 +91,7 @@ export function CreateTaskDialog({
     formData.set("assigneeId", assigneeId === "none" ? "" : assigneeId);
     formData.set("projectId", projectId === "none" ? "" : projectId);
     formData.set("priority", priority);
+    if (coverImage) formData.set("coverImage", coverImage);
 
     startTransition(async () => {
       const result = await createTask(formData);
@@ -78,9 +107,9 @@ export function CreateTaskDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogTitle>Nueva tarea</DialogTitle>
+        <DialogTitle>{isContent ? "Nuevo video" : "Nueva tarea"}</DialogTitle>
         <DialogDescription>
-          {type === "CONTENIDO"
+          {isContent
             ? "Añade una pieza de contenido al tablero"
             : "Añade una tarea de soporte"}
         </DialogDescription>
@@ -91,9 +120,58 @@ export function CreateTaskDialog({
             <Input id="title" name="title" required autoFocus className="mt-1.5" />
           </div>
 
-          <div>
-            <Label htmlFor="description">Descripción</Label>
-            <Textarea id="description" name="description" rows={3} className="mt-1.5" />
+          {isContent && (
+            <div>
+              <Label className="mb-1.5 block">Portada</Label>
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[var(--panel-strong)]">
+                {coverImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverImage} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-[var(--ink-3)]">
+                    Sin portada
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="focus-ring absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+                  aria-label="Subir portada"
+                >
+                  {uploadingCover ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="dueDate">
+                {isContent ? "Fecha de publicación" : "Fecha límite"}
+              </Label>
+              <Input id="dueDate" name="dueDate" type="date" className="mt-1.5" />
+            </div>
+            <div>
+              <Label htmlFor="driveLink">Enlace de Drive</Label>
+              <Input
+                id="driveLink"
+                name="driveLink"
+                type="url"
+                placeholder="https://drive.google.com/…"
+                className="mt-1.5"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -130,7 +208,7 @@ export function CreateTaskDialog({
             </div>
           </div>
 
-          {type === "CONTENIDO" && projects && projects.length > 0 && (
+          {isContent && projects && projects.length > 0 && (
             <div>
               <Label>Proyecto</Label>
               <Select value={projectId} onValueChange={setProjectId}>
@@ -149,21 +227,9 @@ export function CreateTaskDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="dueDate">Fecha límite</Label>
-              <Input id="dueDate" name="dueDate" type="date" className="mt-1.5" />
-            </div>
-            <div>
-              <Label htmlFor="driveLink">Enlace de Drive</Label>
-              <Input
-                id="driveLink"
-                name="driveLink"
-                type="url"
-                placeholder="https://drive.google.com/…"
-                className="mt-1.5"
-              />
-            </div>
+          <div>
+            <Label htmlFor="description">Descripción</Label>
+            <Textarea id="description" name="description" rows={3} className="mt-1.5" />
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -174,7 +240,7 @@ export function CreateTaskDialog({
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Crear tarea
+              {isContent ? "Crear video" : "Crear tarea"}
             </Button>
           </div>
         </form>

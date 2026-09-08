@@ -24,10 +24,10 @@ enum Platform {
 
 enum ContentStage {
   IDEA
-  GRABACION
-  EDICION
-  REVISION
-  PROGRAMADO
+  PLANEADO
+  GRABADO
+  EDITANDO
+  EDITADO
   PUBLICADO
 }
 
@@ -137,6 +137,8 @@ model Task {
   id          String        @id @default(cuid())
   title       String
   description String?
+  notes       String?       @db.Text
+  coverImage  String?       @db.Text
   type        TaskType
   status      TaskStatus    @default(PENDIENTE)
   stage       ContentStage?

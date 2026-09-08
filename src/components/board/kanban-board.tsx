@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Archive, ChevronDown } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +18,9 @@ import { KanbanColumn } from "@/components/board/kanban-column";
 import { TaskCard } from "@/components/board/task-card";
 import { TaskDetailDialog } from "@/components/board/task-detail-dialog";
 import { CreateTaskDialog } from "@/components/board/create-task-dialog";
+import { MiniTaskRow } from "@/components/board/mini-task-row";
 import { moveTask } from "@/app/actions/tasks";
+import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/lib/data";
 import type { Platform, TaskType } from "@prisma/client";
 
@@ -28,14 +31,20 @@ export function KanbanBoard({
   columns,
   groupField,
   initialTasks,
+  archivedTasks,
+  archivedLabel = "Publicados",
   members,
   type,
   platform,
   projects,
 }: {
-  columns: { key: string; label: string; color?: string }[];
+  columns: { key: string; label: string; color?: string; processing?: boolean }[];
   groupField: "status" | "stage";
   initialTasks: TaskWithRelations[];
+  /** Tasks kept out of the active board (e.g. already-published videos) but
+   * still reachable so the panel stays clean without losing history. */
+  archivedTasks?: TaskWithRelations[];
+  archivedLabel?: string;
   members: Member[];
   type: TaskType;
   platform?: Platform;
@@ -68,6 +77,7 @@ export function KanbanBoard({
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
   const [createColumn, setCreateColumn] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -147,23 +157,54 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((col) => (
-            <KanbanColumn
-              key={col.key}
-              id={col.key}
-              label={col.label}
-              color={col.color}
-              tasks={board[col.key] ?? []}
-              onTaskClick={setSelectedTask}
-              onAddClick={() => setCreateColumn(col.key)}
-            />
-          ))}
+        <div className="overflow-x-auto pb-2">
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${columns.length}, minmax(190px, 1fr))`,
+            }}
+          >
+            {columns.map((col) => (
+              <KanbanColumn
+                key={col.key}
+                id={col.key}
+                label={col.label}
+                color={col.color}
+                processing={col.processing}
+                tasks={board[col.key] ?? []}
+                onTaskClick={setSelectedTask}
+                onAddClick={() => setCreateColumn(col.key)}
+              />
+            ))}
+          </div>
         </div>
         <DragOverlay>
           {activeTask && <TaskCard task={activeTask} overlay />}
         </DragOverlay>
       </DndContext>
+
+      {archivedTasks && archivedTasks.length > 0 && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setShowArchived((v) => !v)}
+            className="focus-ring flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)]"
+          >
+            <Archive className="h-4 w-4" />
+            {archivedLabel} ({archivedTasks.length})
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform", showArchived && "rotate-180")}
+            />
+          </button>
+          {showArchived && (
+            <div className="glass-panel animate-fade-in mt-2 rounded-xl p-2">
+              {archivedTasks.map((task) => (
+                <MiniTaskRow key={task.id} task={task} onClick={() => setSelectedTask(task)} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {selectedTask && (
         <TaskDetailDialog

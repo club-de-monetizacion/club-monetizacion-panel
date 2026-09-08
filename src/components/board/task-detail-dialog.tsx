@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Link2, Loader2, Trash2, Send } from "lucide-react";
+import { Camera, Link2, Loader2, Trash2, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProcessingBadge } from "@/components/board/processing-badge";
 import { updateTask, deleteTask, addComment } from "@/app/actions/tasks";
-import { PRIORITY_INFO } from "@/lib/constants";
+import { CONTENT_STAGE_INFO, CONTENT_STAGE_ORDER, PRIORITY_INFO } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
+import { fileToCompressedDataUrl } from "@/lib/image";
 import type { TaskWithRelations } from "@/lib/data";
 
 type Member = { id: string; name: string | null; email: string; image?: string | null };
@@ -39,12 +41,18 @@ export function TaskDetailDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const isContent = task.type === "CONTENIDO";
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
+  const [notes, setNotes] = useState(task.notes ?? "");
   const [driveLink, setDriveLink] = useState(task.driveLink ?? "");
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ""
   );
+  const [coverPreview, setCoverPreview] = useState(task.coverImage ?? "");
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [commentBody, setCommentBody] = useState("");
@@ -62,6 +70,29 @@ export function TaskDetailDialog({
       }
       router.refresh();
     });
+  }
+
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFieldError("Selecciona un archivo de imagen");
+      return;
+    }
+    setUploadingCover(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, {
+        width: 480,
+        height: 270,
+        quality: 0.8,
+      });
+      setCoverPreview(dataUrl);
+      saveField("coverImage", dataUrl);
+    } catch {
+      setFieldError("No se pudo procesar la imagen");
+    } finally {
+      setUploadingCover(false);
+    }
   }
 
   function handleDelete() {
@@ -96,7 +127,87 @@ export function TaskDetailDialog({
         />
         {fieldError && <p className="mt-1 text-xs text-red-400">{fieldError}</p>}
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        {isContent && (
+          <div className="mt-3">
+            <Label className="mb-1.5 block">Portada</Label>
+            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[var(--panel-strong)]">
+              {coverPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={coverPreview}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs text-[var(--ink-3)]">
+                  Sin portada
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                className="focus-ring absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+                aria-label="Cambiar portada"
+              >
+                {uploadingCover ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="dueDate">
+              {isContent ? "Fecha de publicación" : "Fecha límite"}
+            </Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => {
+                setDueDate(e.target.value);
+                saveField("dueDate", e.target.value);
+              }}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="driveLink">Enlace de Drive</Label>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <Input
+                id="driveLink"
+                type="url"
+                value={driveLink}
+                placeholder="https://drive.google.com/…"
+                onChange={(e) => setDriveLink(e.target.value)}
+                onBlur={() => saveField("driveLink", driveLink)}
+              />
+              {task.driveLink && (
+                <a
+                  href={task.driveLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="focus-ring rounded-md p-2 text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--accent)]"
+                >
+                  <Link2 className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
             <Label>Responsable</Label>
             <Select
@@ -136,66 +247,69 @@ export function TaskDetailDialog({
           </div>
         </div>
 
-        {projects && projects.length > 0 && (
-          <div className="mt-3">
-            <Label>Proyecto</Label>
-            <Select
-              defaultValue={task.project?.id ?? "none"}
-              onValueChange={(v) => saveField("projectId", v === "none" ? "" : v)}
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue placeholder="Sin proyecto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin proyecto</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="dueDate">Fecha límite</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={dueDate}
-              onChange={(e) => {
-                setDueDate(e.target.value);
-                saveField("dueDate", e.target.value);
-              }}
+          {projects && projects.length > 0 && (
+            <div>
+              <Label>Proyecto</Label>
+              <Select
+                defaultValue={task.project?.id ?? "none"}
+                onValueChange={(v) => saveField("projectId", v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Sin proyecto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin proyecto</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {isContent && (
+            <div>
+              <Label className="mb-1.5 flex items-center gap-1.5">
+                Etapa
+                {task.stage && CONTENT_STAGE_INFO[task.stage].processing && (
+                  <ProcessingBadge compact />
+                )}
+              </Label>
+              <Select
+                defaultValue={task.stage ?? "IDEA"}
+                onValueChange={(v) => saveField("stage", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTENT_STAGE_ORDER.map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {CONTENT_STAGE_INFO[stage].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {isContent && (
+          <div className="mt-3">
+            <Label htmlFor="notes">Notas</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              rows={3}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => saveField("notes", notes)}
               className="mt-1.5"
+              placeholder="Indicaciones o avisos adicionales para este video…"
             />
           </div>
-          <div>
-            <Label htmlFor="driveLink">Enlace de Drive</Label>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <Input
-                id="driveLink"
-                type="url"
-                value={driveLink}
-                placeholder="https://drive.google.com/…"
-                onChange={(e) => setDriveLink(e.target.value)}
-                onBlur={() => saveField("driveLink", driveLink)}
-              />
-              {task.driveLink && (
-                <a
-                  href={task.driveLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="focus-ring rounded-md p-2 text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--accent)]"
-                >
-                  <Link2 className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="mt-3">
           <Label htmlFor="description">Descripción</Label>

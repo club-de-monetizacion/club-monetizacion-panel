@@ -3,10 +3,15 @@ import Link from "next/link";
 import { Link2 } from "lucide-react";
 import {
   getContentTasks,
+  getPublishedTasks,
   getProjectsByPlatform,
   getAssignableMembers,
 } from "@/lib/data";
-import { CONTENT_STAGE_INFO, CONTENT_STAGE_ORDER, PLATFORM_INFO } from "@/lib/constants";
+import {
+  CONTENT_STAGE_ACTIVE_ORDER,
+  CONTENT_STAGE_INFO,
+  PLATFORM_INFO,
+} from "@/lib/constants";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardToolbar } from "@/components/board/board-toolbar";
 import type { Platform } from "@prisma/client";
@@ -24,15 +29,17 @@ export default async function PlatformBoardPage({
   const platform = slug.toUpperCase() as Platform;
   const info = PLATFORM_INFO[platform];
 
-  const [tasks, projects, members] = await Promise.all([
+  const [tasks, published, projects, members] = await Promise.all([
     getContentTasks(platform),
+    getPublishedTasks(platform),
     getProjectsByPlatform(platform),
     getAssignableMembers(),
   ]);
 
-  const columns = CONTENT_STAGE_ORDER.map((stage) => ({
+  const columns = CONTENT_STAGE_ACTIVE_ORDER.map((stage) => ({
     key: stage,
     label: CONTENT_STAGE_INFO[stage].label,
+    processing: CONTENT_STAGE_INFO[stage].processing,
   }));
 
   return (
@@ -79,6 +86,8 @@ export default async function PlatformBoardPage({
         columns={columns}
         groupField="stage"
         initialTasks={tasks}
+        archivedTasks={published}
+        archivedLabel="Publicados"
         members={members}
         type="CONTENIDO"
         platform={platform}

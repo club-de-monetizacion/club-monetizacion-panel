@@ -9,22 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateProfile } from "@/app/actions/profile";
-
-async function fileToCompressedDataUrl(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const size = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-
-  const scale = Math.max(size / bitmap.width, size / bitmap.height);
-  const w = bitmap.width * scale;
-  const h = bitmap.height * scale;
-  ctx.drawImage(bitmap, (size - w) / 2, (size - h) / 2, w, h);
-
-  return canvas.toDataURL("image/jpeg", 0.85);
-}
+import { fileToCompressedDataUrl } from "@/lib/image";
 
 export function ProfileForm({
   initialName,

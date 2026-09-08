@@ -5,12 +5,24 @@ import { PLATFORM_INFO, PRIORITY_INFO } from "@/lib/constants";
 import { formatDate, cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/lib/data";
 
-export function MiniTaskRow({ task }: { task: TaskWithRelations }) {
+export function MiniTaskRow({
+  task,
+  onClick,
+}: {
+  task: TaskWithRelations;
+  onClick?: () => void;
+}) {
   const isOverdue =
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "COMPLETADA";
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--panel)]">
+    <div
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--panel)]",
+        onClick && "cursor-pointer"
+      )}
+    >
       {task.assignee ? (
         <Avatar src={task.assignee.image} name={task.assignee.name} size={28} />
       ) : (

@@ -8,6 +8,16 @@ import { revalidatePath } from "next/cache";
 const baseTaskSchema = z.object({
   title: z.string().trim().min(2, "El título es muy corto").max(200),
   description: z.string().trim().max(4000).optional().or(z.literal("")),
+  notes: z.string().trim().max(4000).optional().or(z.literal("")),
+  coverImage: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || v.startsWith("data:image/"), {
+      error: "La portada no es válida",
+    })
+    .refine((v) => v.length < 900_000, { error: "La portada es demasiado grande" })
+    .optional()
+    .or(z.literal("")),
   type: z.enum(["SOPORTE", "CONTENIDO"]),
   status: z
     .enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADA"])
@@ -28,7 +38,7 @@ const baseTaskSchema = z.object({
     .optional()
     .or(z.literal("")),
   stage: z
-    .enum(["IDEA", "GRABACION", "EDICION", "REVISION", "PROGRAMADO", "PUBLICADO"])
+    .enum(["IDEA", "PLANEADO", "GRABADO", "EDITANDO", "EDITADO", "PUBLICADO"])
     .optional()
     .or(z.literal("")),
 });
@@ -45,6 +55,8 @@ function readTaskForm(formData: FormData) {
   return {
     title: get("title") ?? undefined,
     description: get("description") ?? undefined,
+    notes: get("notes") ?? undefined,
+    coverImage: get("coverImage") ?? undefined,
     type: get("type") ?? undefined,
     status: get("status") ?? undefined,
     priority: get("priority") || undefined,
@@ -79,6 +91,8 @@ export async function createTask(formData: FormData) {
     data: {
       title: data.title,
       description: data.description || null,
+      notes: data.notes || null,
+      coverImage: data.coverImage || null,
       type: data.type,
       status,
       stage: data.type === "CONTENIDO" ? stage : null,
@@ -116,6 +130,11 @@ export async function updateTask(taskId: string, formData: FormData) {
       ...(data.description !== undefined
         ? { description: data.description || null }
         : {}),
+      ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
+      ...(data.coverImage !== undefined
+        ? { coverImage: data.coverImage || null }
+        : {}),
+      ...(data.stage !== undefined ? { stage: data.stage || null } : {}),
       ...(data.priority !== undefined ? { priority: data.priority } : {}),
       ...(data.dueDate !== undefined
         ? { dueDate: data.dueDate ? new Date(data.dueDate) : null }
