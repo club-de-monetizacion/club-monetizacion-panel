@@ -1,8 +1,6 @@
 import { auth } from "@/auth";
 import { getIdeas } from "@/lib/data";
-import { NotesPanel } from "@/components/ideas/notes-panel";
-import { IdeaBoard } from "@/components/ideas/idea-board";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IdeasClient } from "@/components/ideas/ideas-client";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +19,7 @@ export default async function IdeasPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="notas">
-        <TabsList>
-          <TabsTrigger value="notas">Notas</TabsTrigger>
-          <TabsTrigger value="pizarra">Pizarra</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="notas" className="mt-5">
-          <NotesPanel ideas={ideas} currentUserId={currentUserId} isAdmin={isAdmin} />
-        </TabsContent>
-
-        <TabsContent value="pizarra" className="mt-5">
-          <IdeaBoard ideas={ideas} currentUserId={currentUserId} isAdmin={isAdmin} />
-        </TabsContent>
-      </Tabs>
+      <IdeasClient ideas={ideas} currentUserId={currentUserId} isAdmin={isAdmin} />
     </div>
   );
 }

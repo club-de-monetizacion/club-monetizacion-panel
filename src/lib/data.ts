@@ -15,12 +15,22 @@ export function getQuickLinks() {
   });
 }
 
+const ideaMemberSelect = { id: true, name: true, image: true } as const;
+
 export function getIdeas() {
   return prisma.idea.findMany({
     orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { id: true, name: true, image: true } } },
+    include: {
+      createdBy: { select: ideaMemberSelect },
+      nodes: {
+        orderBy: { createdAt: "asc" },
+        include: { createdBy: { select: ideaMemberSelect } },
+      },
+    },
   });
 }
+
+export type IdeaWithNodes = Awaited<ReturnType<typeof getIdeas>>[number];
 
 export function getTeamMembers() {
   return prisma.user.findMany({

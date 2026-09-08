@@ -2,30 +2,24 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Maximize2, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { createIdea, deleteIdea } from "@/app/actions/ideas";
 import { formatDate } from "@/lib/utils";
-
-type Idea = {
-  id: string;
-  body: string;
-  color: string;
-  createdAt: Date;
-  createdById: string;
-  createdBy: { id: string; name: string | null; image: string | null };
-};
+import type { IdeaWithNodes } from "@/lib/data";
 
 export function NotesPanel({
   ideas,
   currentUserId,
   isAdmin,
+  onOpenIdea,
 }: {
-  ideas: Idea[];
+  ideas: IdeaWithNodes[];
   currentUserId: string;
   isAdmin: boolean;
+  onOpenIdea: (id: string) => void;
 }) {
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -89,18 +83,30 @@ export function NotesPanel({
               <p className="whitespace-pre-wrap text-sm text-[var(--ink-1)]">{idea.body}</p>
               <p className="mt-1 text-[11px] text-[var(--ink-3)]">
                 {idea.createdBy.name} · {formatDate(idea.createdAt)}
+                {idea.nodes.length > 0 && ` · ${idea.nodes.length} en la pizarra`}
               </p>
             </div>
-            {(idea.createdById === currentUserId || isAdmin) && (
+            <div className="flex shrink-0 items-start gap-1">
               <button
                 type="button"
-                onClick={() => handleDelete(idea.id)}
-                className="focus-ring shrink-0 rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--panel)] hover:text-red-400"
-                aria-label="Eliminar idea"
+                onClick={() => onOpenIdea(idea.id)}
+                className="focus-ring rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)]"
+                aria-label="Desarrollar idea"
+                title="Desarrollar idea"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Maximize2 className="h-3.5 w-3.5" />
               </button>
-            )}
+              {(idea.createdById === currentUserId || isAdmin) && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(idea.id)}
+                  className="focus-ring rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--panel)] hover:text-red-400"
+                  aria-label="Eliminar idea"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {ideas.length === 0 && (
