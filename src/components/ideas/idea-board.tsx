@@ -63,8 +63,8 @@ export function IdeaBoard({
         currentUserId={currentUserId}
         isAdmin={isAdmin}
         onOpen={onOpenIdea}
-        onCreate={async (kind, x, y) => {
-          const result = await createIdeaAt(x, y, kind);
+        onCreate={async (kind, x, y, body, width, height) => {
+          const result = await createIdeaAt(x, y, kind, body, width, height);
           return result?.idea ? ideaToItem(result.idea) : null;
         }}
         onEdit={(id, body) => void updateIdeaBody(id, body)}

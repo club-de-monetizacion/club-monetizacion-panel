@@ -63,6 +63,7 @@ enum BoardElementKind {
   STICKY
   TEXT
   TITLE
+  IMAGE
   SHAPE_RECTANGLE
   SHAPE_CIRCLE
   SHAPE_LINE

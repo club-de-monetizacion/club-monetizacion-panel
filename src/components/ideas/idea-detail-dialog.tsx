@@ -89,8 +89,8 @@ export function IdeaDetailDialog({
             }))}
             currentUserId={currentUserId}
             isAdmin={isAdmin}
-            onCreate={async (kind, x, y) => {
-              const result = await createIdeaNode(idea.id, x, y, kind);
+            onCreate={async (kind, x, y, body, width, height) => {
+              const result = await createIdeaNode(idea.id, x, y, kind, body, width, height);
               return result?.node ? nodeToItem(result.node) : null;
             }}
             onEdit={(id, body) => void updateIdeaNodeBody(id, body)}
