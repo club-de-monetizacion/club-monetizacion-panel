@@ -9,6 +9,7 @@ import type { Platform, Role } from "@prisma/client";
 
 function titleFromPathname(pathname: string) {
   if (pathname === "/") return "Inicio";
+  if (pathname.startsWith("/calendario")) return "Calendario";
   if (pathname.startsWith("/soporte")) return "Soporte";
   if (pathname.startsWith("/proyectos")) return "Proyectos";
   if (pathname.startsWith("/equipo")) return "Equipo";

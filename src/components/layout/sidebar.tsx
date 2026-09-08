@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Users,
   Settings,
+  CalendarDays,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,13 @@ export function Sidebar({
 
         <NavLink href="/" icon={<Home className="h-4 w-4" />} active={isActive("/")}>
           Inicio
+        </NavLink>
+        <NavLink
+          href="/calendario"
+          icon={<CalendarDays className="h-4 w-4" />}
+          active={isActive("/calendario")}
+        >
+          Calendario
         </NavLink>
 
         <p className="mb-1 mt-4 px-2.5 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-3)]">

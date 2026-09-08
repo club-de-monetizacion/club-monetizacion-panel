@@ -74,6 +74,14 @@ export function getSupportTasks() {
   });
 }
 
+export function getTasksInRange(start: Date, end: Date) {
+  return prisma.task.findMany({
+    where: { dueDate: { gte: start, lte: end } },
+    orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+    include: taskInclude,
+  });
+}
+
 export async function getPlatformSummary() {
   const [taskCounts, projectCounts] = await Promise.all([
     prisma.task.groupBy({
