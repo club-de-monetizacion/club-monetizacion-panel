@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Menu, LogOut, Settings, User } from "lucide-react";
+import { Menu, LogOut, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import {
@@ -18,21 +18,39 @@ import type { Role } from "@prisma/client";
 export function Topbar({
   title,
   onMenuClick,
+  collapsed,
+  onToggleCollapsed,
   user,
 }: {
   title: string;
   onMenuClick: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
   user: { name?: string | null; email?: string | null; image?: string | null; role: Role };
 }) {
   return (
     <header className="glass-panel sticky top-0 z-20 flex h-16 items-center justify-between gap-3 px-4 md:px-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <button
           onClick={onMenuClick}
           className="focus-ring rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel)] md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
+        {onToggleCollapsed && (
+          <button
+            onClick={onToggleCollapsed}
+            className="focus-ring hidden rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)] md:flex"
+            aria-label={collapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
+            title={collapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-[18px] w-[18px]" />
+            ) : (
+              <PanelLeftClose className="h-[18px] w-[18px]" />
+            )}
+          </button>
+        )}
         <h1 className="text-base font-semibold text-[var(--ink-0)] md:text-lg">
           {title}
         </h1>

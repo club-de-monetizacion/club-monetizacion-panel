@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, User } from "lucide-react";
+import { auth } from "@/auth";
 import { getAssignableMembers, getProjects, getTasksInRange } from "@/lib/data";
 import {
   MONTH_LABELS,
@@ -8,6 +9,7 @@ import {
   shiftMonth,
 } from "@/lib/calendar";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
+import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -17,19 +19,27 @@ function parseParam(value: string | undefined, fallback: number) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function monthHref(year: number, month: number, mine: boolean) {
+  const params = new URLSearchParams({ year: String(year), month: String(month) });
+  if (mine) params.set("mine", "1");
+  return `/calendario?${params.toString()}`;
+}
+
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; month?: string }>;
+  searchParams: Promise<{ year?: string; month?: string; mine?: string }>;
 }) {
   const params = await searchParams;
+  const session = await auth();
   const now = new Date();
   const year = parseParam(params.year, now.getUTCFullYear());
   const month = parseParam(params.month, now.getUTCMonth());
+  const mine = params.mine === "1";
 
   const { weeks, gridStart, gridEnd } = getMonthGrid(year, month);
   const [tasks, members, projects] = await Promise.all([
-    getTasksInRange(gridStart, gridEnd),
+    getTasksInRange(gridStart, gridEnd, mine ? session?.user.id : undefined),
     getAssignableMembers(),
     getProjects(),
   ]);
@@ -53,28 +63,42 @@ export default async function CalendarPage({
             Todo lo que está programado, ordenado por fecha.
           </p>
         </div>
-        <div className="glass-panel flex items-center gap-1 rounded-lg p-1">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/calendario?year=${prev.year}&month=${prev.month}`}
-            className="focus-ring rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
+            href={monthHref(year, month, !mine)}
+            className={cn(
+              "focus-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+              mine
+                ? "bg-[var(--accent)] text-white"
+                : "glass-panel text-[var(--ink-2)] hover:text-[var(--ink-0)]"
+            )}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <User className="h-3.5 w-3.5" />
+            Solo mis tareas
           </Link>
-          <span className="min-w-[9rem] px-2 text-center text-sm font-medium text-[var(--ink-0)]">
-            {MONTH_LABELS[month]} {year}
-          </span>
-          <Link
-            href={`/calendario?year=${next.year}&month=${next.month}`}
-            className="focus-ring rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/calendario"
-            className="focus-ring ml-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
-          >
-            Hoy
-          </Link>
+          <div className="glass-panel flex items-center gap-1 rounded-lg p-1">
+            <Link
+              href={monthHref(prev.year, prev.month, mine)}
+              className="focus-ring rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+            <span className="min-w-[9rem] px-2 text-center text-sm font-medium text-[var(--ink-0)]">
+              {MONTH_LABELS[month]} {year}
+            </span>
+            <Link
+              href={monthHref(next.year, next.month, mine)}
+              className="focus-ring rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={monthHref(now.getUTCFullYear(), now.getUTCMonth(), mine)}
+              className="focus-ring ml-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-strong)] hover:text-[var(--ink-0)]"
+            >
+              Hoy
+            </Link>
+          </div>
         </div>
       </div>
 

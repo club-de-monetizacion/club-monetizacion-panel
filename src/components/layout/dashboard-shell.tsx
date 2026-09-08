@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { PLATFORM_INFO } from "@/lib/constants";
 import type { Platform, Role } from "@prisma/client";
+
+const SIDEBAR_COLLAPSED_KEY = "ccm-sidebar-collapsed";
 
 function titleFromPathname(pathname: string) {
   if (pathname === "/") return "Inicio";
@@ -35,14 +37,49 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // Starts expanded on every render (server included) and only reads the
+  // saved preference after mount, so hydration never has to reconcile a
+  // client-only value against the server's markup.
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const title = titleFromPathname(pathname ?? "/");
 
+  useEffect(() => {
+    // Client-only read of the viewer's saved preference; deferred to an
+    // effect (rather than a useState initializer) so server and client
+    // render the same markup on hydration and only diverge afterwards.
+    try {
+      const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsed(saved);
+    } catch {
+      // localStorage unavailable (private mode, etc.) — keep it expanded.
+    }
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // Ignore — the preference just won't persist this session.
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="flex min-h-screen w-full">
-      <Sidebar open={open} onClose={() => setOpen(false)} />
+      <Sidebar open={open} onClose={() => setOpen(false)} collapsed={collapsed} />
       <div className="flex min-h-screen w-full flex-1 flex-col">
-        <Topbar title={title} onMenuClick={() => setOpen(true)} user={user} />
+        <Topbar
+          title={title}
+          onMenuClick={() => setOpen(true)}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
+          user={user}
+        />
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>

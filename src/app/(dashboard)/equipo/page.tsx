@@ -1,10 +1,21 @@
 import { auth } from "@/auth";
-import { getTeamMembers } from "@/lib/data";
+import {
+  getAssignableMembers,
+  getMyPendingTasks,
+  getProjects,
+  getTeamMembers,
+} from "@/lib/data";
 import { TeamMemberRow } from "@/components/team/team-member-row";
+import { MyTasksPanel } from "@/components/team/my-tasks-panel";
 
 export default async function TeamPage() {
   const session = await auth();
-  const members = await getTeamMembers();
+  const [members, myTasks, assignableMembers, projects] = await Promise.all([
+    getTeamMembers(),
+    session?.user.id ? getMyPendingTasks(session.user.id) : Promise.resolve([]),
+    getAssignableMembers(),
+    getProjects(),
+  ]);
   const isAdmin = session?.user.role === "ADMIN";
 
   return (
@@ -16,6 +27,8 @@ export default async function TeamPage() {
           {isAdmin && " Puedes cambiar el rol de cada miembro."}
         </p>
       </div>
+
+      <MyTasksPanel tasks={myTasks} members={assignableMembers} projects={projects} />
 
       <div className="space-y-2.5">
         {members.map((member) => (

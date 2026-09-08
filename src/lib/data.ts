@@ -83,10 +83,29 @@ export function getSupportTasks() {
   });
 }
 
-export function getTasksInRange(start: Date, end: Date) {
+export function getTasksInRange(start: Date, end: Date, assigneeId?: string) {
   return prisma.task.findMany({
-    where: { dueDate: { gte: start, lte: end } },
+    where: {
+      dueDate: { gte: start, lte: end },
+      ...(assigneeId ? { assigneeId } : {}),
+    },
     orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+    include: taskInclude,
+  });
+}
+
+/** Every task assigned to a user that isn't finished yet (completed
+ * support tickets and published videos are excluded), regardless of type
+ * or platform. */
+export function getMyPendingTasks(userId: string) {
+  return prisma.task.findMany({
+    where: {
+      assigneeId: userId,
+      status: { not: "COMPLETADA" },
+      stage: { not: "PUBLICADO" },
+    },
+    orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+    take: 30,
     include: taskInclude,
   });
 }
