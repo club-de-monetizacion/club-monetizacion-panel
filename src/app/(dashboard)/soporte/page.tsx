@@ -74,7 +74,7 @@ export default async function SupportPage() {
 
         {isSupport && (
           <TabsContent value="diarias" className="mt-5">
-            <DailyTasksPanel items={dailyTasks} />
+            <DailyTasksPanel items={dailyTasks} userId={session!.user.id} />
           </TabsContent>
         )}
       </Tabs>

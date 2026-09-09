@@ -58,6 +58,13 @@ enum BackgroundType {
   SOLID
 }
 
+/** How often a daily task item is scheduled to show up on the checklist. */
+enum TaskRecurrence {
+  DAILY
+  WEEKLY
+  ONCE
+}
+
 /** The kind of a whiteboard element on an idea's canvas. */
 enum BoardElementKind {
   STICKY
@@ -330,10 +337,15 @@ model IdeaNodeConnection {
  * whether a DailyTaskLog exists for today, which is what gives the natural
  * daily reset without needing a cron job. */
 model DailyTaskItem {
-  id        String   @id @default(cuid())
-  label     String
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
+  id         String         @id @default(cuid())
+  label      String
+  position   Int            @default(0)
+  recurrence TaskRecurrence @default(DAILY)
+  /** Used when recurrence = WEEKLY. JS getUTCDay() convention: 0=Sun..6=Sat. */
+  weekdays   Int[]          @default([])
+  /** Used when recurrence = ONCE — the single day this task is scheduled for. */
+  onDate     DateTime?      @db.Date
+  createdAt  DateTime       @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

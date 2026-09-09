@@ -31,3 +31,29 @@ export async function ensureDefaultDailyTasks(userId: string) {
     data: DEFAULT_DAILY_TASKS.map((label, position) => ({ label, position, userId })),
   });
 }
+
+/** Every task item (with its recurrence rule) plus every completion log
+ * within the given UTC month, for the calendar view's per-day percentage. */
+export async function getDailyTaskHistoryRaw(userId: string, year: number, month: number) {
+  const start = new Date(Date.UTC(year, month, 1));
+  const end = new Date(Date.UTC(year, month + 1, 0));
+
+  const [items, logs] = await Promise.all([
+    prisma.dailyTaskItem.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        recurrence: true,
+        weekdays: true,
+        onDate: true,
+        createdAt: true,
+      },
+    }),
+    prisma.dailyTaskLog.findMany({
+      where: { userId, date: { gte: start, lte: end } },
+      select: { itemId: true, date: true },
+    }),
+  ]);
+
+  return { items, logs, start, end };
+}
