@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Lightbulb,
   ClipboardCheck,
+  ClipboardList,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,13 @@ export function Sidebar({
           active={isActive("/ideas")}
         >
           Ideas
+        </NavLink>
+        <NavLink
+          href="/tareas-personales"
+          icon={<ClipboardList className="h-4 w-4" />}
+          active={isActive("/tareas-personales")}
+        >
+          Tareas personales
         </NavLink>
 
         <p className="mb-1 mt-4 px-2.5 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-3)]">

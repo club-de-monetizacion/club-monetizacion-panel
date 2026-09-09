@@ -31,7 +31,11 @@ export default async function SupportDailyTasksOverviewPage() {
                 <p className="truncate text-xs text-[var(--ink-3)]">{member.email}</p>
               </div>
             </div>
-            <DailyTasksPanel items={member.dailyTaskItems} userId={member.id} />
+            <DailyTasksPanel
+              items={member.dailyTaskItems}
+              userId={member.id}
+              category="SUPPORT"
+            />
           </div>
         ))}
         {members.length === 0 && (

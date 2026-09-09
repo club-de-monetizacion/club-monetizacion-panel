@@ -65,6 +65,13 @@ enum TaskRecurrence {
   ONCE
 }
 
+/** SUPPORT is the shared support checklist (visible to admins in the
+ * monitoring page); PERSONAL is private to its owner and never shown there. */
+enum TaskCategory {
+  SUPPORT
+  PERSONAL
+}
+
 /** The kind of a whiteboard element on an idea's canvas. */
 enum BoardElementKind {
   STICKY
@@ -340,6 +347,7 @@ model DailyTaskItem {
   id         String         @id @default(cuid())
   label      String
   position   Int            @default(0)
+  category   TaskCategory   @default(SUPPORT)
   recurrence TaskRecurrence @default(DAILY)
   /** Used when recurrence = WEEKLY. JS getUTCDay() convention: 0=Sun..6=Sat. */
   weekdays   Int[]          @default([])

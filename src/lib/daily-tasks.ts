@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { TaskCategory } from "@prisma/client";
 
 /** Seeded onto a support member's list the first time they open the tab. */
 export const DEFAULT_DAILY_TASKS = [
@@ -23,24 +24,34 @@ export function todayUTC() {
 }
 
 /** Idempotent: only seeds the default list the very first time a user has
- * zero daily tasks, so it's safe to call on every page load. */
+ * zero SUPPORT daily tasks, so it's safe to call on every page load. */
 export async function ensureDefaultDailyTasks(userId: string) {
-  const count = await prisma.dailyTaskItem.count({ where: { userId } });
+  const count = await prisma.dailyTaskItem.count({ where: { userId, category: "SUPPORT" } });
   if (count > 0) return;
   await prisma.dailyTaskItem.createMany({
-    data: DEFAULT_DAILY_TASKS.map((label, position) => ({ label, position, userId })),
+    data: DEFAULT_DAILY_TASKS.map((label, position) => ({
+      label,
+      position,
+      userId,
+      category: "SUPPORT",
+    })),
   });
 }
 
 /** Every task item (with its recurrence rule) plus every completion log
  * within the given UTC month, for the calendar view's per-day percentage. */
-export async function getDailyTaskHistoryRaw(userId: string, year: number, month: number) {
+export async function getDailyTaskHistoryRaw(
+  userId: string,
+  year: number,
+  month: number,
+  category: TaskCategory
+) {
   const start = new Date(Date.UTC(year, month, 1));
   const end = new Date(Date.UTC(year, month + 1, 0));
 
   const [items, logs] = await Promise.all([
     prisma.dailyTaskItem.findMany({
-      where: { userId },
+      where: { userId, category },
       select: {
         id: true,
         recurrence: true,

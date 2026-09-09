@@ -13,6 +13,7 @@ function titleFromPathname(pathname: string) {
   if (pathname === "/") return "Inicio";
   if (pathname.startsWith("/calendario")) return "Calendario";
   if (pathname.startsWith("/ideas")) return "Ideas";
+  if (pathname.startsWith("/tareas-personales")) return "Tareas personales";
   if (pathname.startsWith("/soporte")) return "Soporte";
   if (pathname.startsWith("/proyectos")) return "Proyectos";
   if (pathname.startsWith("/equipo")) return "Equipo";

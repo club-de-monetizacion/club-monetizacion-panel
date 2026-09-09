@@ -45,13 +45,23 @@ export function getIdeaConnections() {
 export function getMyDailyTasks(userId: string) {
   const date = todayUTC();
   return prisma.dailyTaskItem.findMany({
-    where: { userId },
+    where: { userId, category: "SUPPORT" },
     orderBy: { position: "asc" },
     include: { logs: { where: { date } } },
   });
 }
 
 export type DailyTaskWithTodayLog = Awaited<ReturnType<typeof getMyDailyTasks>>[number];
+
+/** A user's own private personal/work checklist — never shown to admins. */
+export function getMyPersonalTasks(userId: string) {
+  const date = todayUTC();
+  return prisma.dailyTaskItem.findMany({
+    where: { userId, category: "PERSONAL" },
+    orderBy: { position: "asc" },
+    include: { logs: { where: { date } } },
+  });
+}
 
 /** For the admin monitoring view: every support member with their full
  * daily checklist and today's completion status per item. */
@@ -66,6 +76,7 @@ export function getSupportDailyOverview() {
       email: true,
       image: true,
       dailyTaskItems: {
+        where: { category: "SUPPORT" },
         orderBy: { position: "asc" },
         include: { logs: { where: { date } } },
       },

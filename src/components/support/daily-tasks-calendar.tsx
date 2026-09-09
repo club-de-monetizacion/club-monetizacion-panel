@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { fetchDailyTaskHistory } from "@/app/actions/daily-tasks";
 import { isItemActiveOnDate, sameUTCDate } from "@/lib/daily-task-recurrence";
 import { cn } from "@/lib/utils";
+import type { TaskCategory } from "@prisma/client";
 
 const WEEKDAY_HEADER = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MONTH_LABEL = [
@@ -58,7 +59,13 @@ function pctColor(pct: number | null) {
   return "bg-[var(--panel-strong)] text-[var(--ink-3)]";
 }
 
-export function DailyTasksCalendar({ userId }: { userId: string }) {
+export function DailyTasksCalendar({
+  userId,
+  category,
+}: {
+  userId: string;
+  category: TaskCategory;
+}) {
   const now = new Date();
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth());
@@ -69,7 +76,7 @@ export function DailyTasksCalendar({ userId }: { userId: string }) {
   useEffect(() => {
     let cancelled = false;
     startTransition(async () => {
-      const result = await fetchDailyTaskHistory(userId, year, month);
+      const result = await fetchDailyTaskHistory(userId, year, month, category);
       if (cancelled) return;
       setItems(result.items as unknown as HistoryItem[]);
       setLogs(result.logs as unknown as HistoryLog[]);
@@ -77,7 +84,7 @@ export function DailyTasksCalendar({ userId }: { userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [userId, year, month]);
+  }, [userId, year, month, category]);
 
   function changeMonth(delta: number) {
     const next = new Date(Date.UTC(year, month + delta, 1));

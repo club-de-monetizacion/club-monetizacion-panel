@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth-helpers";
 import { todayUTC, getDailyTaskHistoryRaw } from "@/lib/daily-tasks";
 import { revalidatePath } from "next/cache";
-import type { TaskRecurrence } from "@prisma/client";
+import type { TaskCategory, TaskRecurrence } from "@prisma/client";
 
 const labelSchema = z.string().trim().min(1, "Escribe algo").max(200);
 
@@ -15,11 +15,18 @@ function assertCanManage(ownerId: string, session: { user: { id: string; role: s
   }
 }
 
+function revalidateAll() {
+  revalidatePath("/soporte");
+  revalidatePath("/tareas-diarias-soporte");
+  revalidatePath("/tareas-personales");
+}
+
 export async function createDailyTaskItem(
   label: string,
   recurrence: TaskRecurrence,
   weekdays: number[],
   onDate: string | null,
+  category: TaskCategory,
   targetUserId?: string
 ) {
   const session = await requireSession();
@@ -31,21 +38,52 @@ export async function createDailyTaskItem(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  const count = await prisma.dailyTaskItem.count({ where: { userId: ownerId } });
+  const count = await prisma.dailyTaskItem.count({ where: { userId: ownerId, category } });
   const item = await prisma.dailyTaskItem.create({
     data: {
       label: parsed.data,
       position: count,
       userId: ownerId,
+      category,
       recurrence,
       weekdays: recurrence === "WEEKLY" ? weekdays : [],
       onDate: recurrence === "ONCE" && onDate ? new Date(onDate) : null,
     },
   });
 
-  revalidatePath("/soporte");
-  revalidatePath("/tareas-diarias-soporte");
+  revalidateAll();
   return { success: true, item };
+}
+
+export async function updateDailyTaskItem(
+  id: string,
+  label: string,
+  recurrence: TaskRecurrence,
+  weekdays: number[],
+  onDate: string | null
+) {
+  const session = await requireSession();
+  const item = await prisma.dailyTaskItem.findUnique({ where: { id } });
+  if (!item) return { error: "No encontrada" };
+  assertCanManage(item.userId, session);
+
+  const parsed = labelSchema.safeParse(label);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  await prisma.dailyTaskItem.update({
+    where: { id },
+    data: {
+      label: parsed.data,
+      recurrence,
+      weekdays: recurrence === "WEEKLY" ? weekdays : [],
+      onDate: recurrence === "ONCE" && onDate ? new Date(onDate) : null,
+    },
+  });
+
+  revalidateAll();
+  return { success: true };
 }
 
 export async function deleteDailyTaskItem(id: string) {
@@ -55,8 +93,7 @@ export async function deleteDailyTaskItem(id: string) {
   assertCanManage(item.userId, session);
 
   await prisma.dailyTaskItem.delete({ where: { id } });
-  revalidatePath("/soporte");
-  revalidatePath("/tareas-diarias-soporte");
+  revalidateAll();
 }
 
 export async function toggleDailyTaskToday(itemId: string, done: boolean) {
@@ -75,13 +112,17 @@ export async function toggleDailyTaskToday(itemId: string, done: boolean) {
   } else {
     await prisma.dailyTaskLog.deleteMany({ where: { itemId, date } });
   }
-  revalidatePath("/soporte");
-  revalidatePath("/tareas-diarias-soporte");
+  revalidateAll();
 }
 
-export async function fetchDailyTaskHistory(userId: string, year: number, month: number) {
+export async function fetchDailyTaskHistory(
+  userId: string,
+  year: number,
+  month: number,
+  category: TaskCategory
+) {
   const session = await requireSession();
   assertCanManage(userId, session);
-  const { items, logs } = await getDailyTaskHistoryRaw(userId, year, month);
+  const { items, logs } = await getDailyTaskHistoryRaw(userId, year, month, category);
   return { items, logs };
 }
