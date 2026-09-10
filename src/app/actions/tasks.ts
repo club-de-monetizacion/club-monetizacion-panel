@@ -179,14 +179,26 @@ export async function moveTask(input: z.infer<typeof moveSchema>) {
   await requireSession();
   const { taskId, field, value, orderedIds } = moveSchema.parse(input);
 
+  // Only rewrite the positions that actually changed — dragging one card
+  // used to re-write every card's position in the destination column on
+  // every single move, which multiplies fast when someone reorders several
+  // cards in a row and adds unnecessary load on the DB connection pool.
+  const current = await prisma.task.findMany({
+    where: { id: { in: orderedIds } },
+    select: { id: true, position: true },
+  });
+  const currentPositions = new Map(current.map((t) => [t.id, t.position]));
+  const positionUpdates = orderedIds
+    .map((id, index) => ({ id, index }))
+    .filter(({ id, index }) => currentPositions.get(id) !== index)
+    .map(({ id, index }) => prisma.task.update({ where: { id }, data: { position: index } }));
+
   await prisma.$transaction([
     prisma.task.update({
       where: { id: taskId },
       data: field === "status" ? { status: value as never } : { stage: value as never },
     }),
-    ...orderedIds.map((id, index) =>
-      prisma.task.update({ where: { id }, data: { position: index } })
-    ),
+    ...positionUpdates,
   ]);
 
   revalidatePath("/tableros");
