@@ -137,25 +137,40 @@ export function KanbanBoard({
       : findColumnOf(String(over.id));
     if (!activeCol || !overCol) return;
 
-    setBoard((prev) => {
-      const items = [...prev[overCol]];
-      const activeIndex = items.findIndex((t) => t.id === active.id);
-      const overIndex = items.findIndex((t) => t.id === over.id);
+    const items = [...board[overCol]];
+    const activeIndex = items.findIndex((t) => t.id === active.id);
+    const overIndex = items.findIndex((t) => t.id === over.id);
 
-      let nextItems = items;
-      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-        nextItems = arrayMove(items, activeIndex, overIndex);
-      }
-      const next = { ...prev, [overCol]: nextItems };
+    // Dropped back on its own spot — nothing to persist, and calling the
+    // server here is what caused visible glitches when dragging fast.
+    if (activeCol === overCol && (activeIndex === -1 || activeIndex === overIndex)) {
+      return;
+    }
 
-      void moveTask({
-        taskId: String(active.id),
-        field: groupField,
-        value: overCol,
-        orderedIds: nextItems.map((t) => t.id),
-      }).then(() => router.refresh());
+    let nextItems = items;
+    if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+      nextItems = arrayMove(items, activeIndex, overIndex);
+    }
 
-      return next;
+    // Calling the mutation and its follow-up from inside the setBoard
+    // updater (as before) triggered React's "setState while rendering a
+    // different component" violation — moved out here into the plain event
+    // handler body instead, which is where side effects belong.
+    const prevBoard = board;
+    setBoard((prev) => ({ ...prev, [overCol]: nextItems }));
+
+    // The optimistic state above is already the intended end result, so we
+    // don't force a full page refresh on success — that round-trip was
+    // racing with whatever the user dragged next and snapping cards back
+    // mid-gesture. Only resync from the server if the move actually failed.
+    moveTask({
+      taskId: String(active.id),
+      field: groupField,
+      value: overCol,
+      orderedIds: nextItems.map((t) => t.id),
+    }).catch(() => {
+      setBoard(prevBoard);
+      router.refresh();
     });
   }
 

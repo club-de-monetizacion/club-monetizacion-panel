@@ -106,6 +106,7 @@ model User {
   createdProjects  Project[]
   comments         Comment[]
   cannedResponses  CannedResponse[]
+  faqItems         FaqItem[]
   quickLinks       QuickLink[]
   ideas            Idea[]
   ideaNodes        IdeaNode[]
@@ -248,6 +249,18 @@ model CannedResponse {
   id        String   @id @default(cuid())
   title     String
   body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+}
+
+/** A common support question paired with the answer to copy and send. */
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

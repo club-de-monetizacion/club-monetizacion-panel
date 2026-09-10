@@ -9,6 +9,13 @@ export function getCannedResponses() {
   });
 }
 
+export function getFaqItems() {
+  return prisma.faqItem.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { createdBy: { select: { id: true, name: true } } },
+  });
+}
+
 export function getQuickLinks() {
   return prisma.quickLink.findMany({
     orderBy: { createdAt: "asc" },

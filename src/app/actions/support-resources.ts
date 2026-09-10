@@ -49,6 +49,50 @@ export async function deleteCannedResponse(id: string) {
   revalidatePath("/soporte");
 }
 
+const faqItemSchema = z.object({
+  question: z.string().trim().min(2, "La pregunta es muy corta").max(200),
+  answer: z.string().trim().min(1, "La respuesta no puede estar vacía").max(4000),
+});
+
+export async function createFaqItem(formData: FormData) {
+  const session = await requireSession();
+  const parsed = faqItemSchema.safeParse({
+    question: formData.get("question"),
+    answer: formData.get("answer"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  await prisma.faqItem.create({
+    data: { ...parsed.data, createdById: session.user.id },
+  });
+
+  revalidatePath("/soporte");
+  return { success: true };
+}
+
+export async function updateFaqItem(id: string, formData: FormData) {
+  await requireSession();
+  const parsed = faqItemSchema.safeParse({
+    question: formData.get("question"),
+    answer: formData.get("answer"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  await prisma.faqItem.update({ where: { id }, data: parsed.data });
+  revalidatePath("/soporte");
+  return { success: true };
+}
+
+export async function deleteFaqItem(id: string) {
+  await requireSession();
+  await prisma.faqItem.delete({ where: { id } });
+  revalidatePath("/soporte");
+}
+
 const quickLinkSchema = z.object({
   title: z.string().trim().min(2, "El título es muy corto").max(120),
   url: z.string().trim().min(1, "El enlace es obligatorio").url("Debe ser un enlace válido"),
