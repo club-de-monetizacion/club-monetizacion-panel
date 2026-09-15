@@ -7,6 +7,7 @@ import {
   dateKey,
   getMonthGrid,
   shiftMonth,
+  todayUTC,
 } from "@/lib/calendar";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ export default async function CalendarPage({
 }) {
   const params = await searchParams;
   const session = await auth();
-  const now = new Date();
+  const now = todayUTC();
   const year = parseParam(params.year, now.getUTCFullYear());
   const month = parseParam(params.month, now.getUTCMonth());
   const mine = params.mine === "1";

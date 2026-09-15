@@ -5,6 +5,7 @@
  * fields exclusively so the grid lines up with `dueDate` regardless of the
  * server's local timezone (dev machine vs. Vercel's UTC runtime).
  */
+import { todayInAppZone } from "@/lib/timezone";
 
 export function dateKey(date: Date) {
   const y = date.getUTCFullYear();
@@ -60,7 +61,7 @@ export function shiftMonth(year: number, month: number, delta: number) {
   return { year: d.getUTCFullYear(), month: d.getUTCMonth() };
 }
 
+/** "Today" in the team's own timezone (Guadalajara), not the runtime's. */
 export function todayUTC() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return todayInAppZone();
 }

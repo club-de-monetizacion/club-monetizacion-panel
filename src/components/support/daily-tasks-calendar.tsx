@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { fetchDailyTaskHistory } from "@/app/actions/daily-tasks";
 import { isItemActiveOnDate, sameUTCDate } from "@/lib/daily-task-recurrence";
+import { todayInAppZone } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import type { TaskCategory } from "@prisma/client";
 
@@ -66,7 +67,7 @@ export function DailyTasksCalendar({
   userId: string;
   category: TaskCategory;
 }) {
-  const now = new Date();
+  const now = todayInAppZone();
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth());
   const [items, setItems] = useState<HistoryItem[]>([]);
@@ -96,7 +97,7 @@ export function DailyTasksCalendar({
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   // Monday-first offset: getUTCDay() is 0=Sun..6=Sat.
   const leadingBlanks = (firstOfMonth.getUTCDay() + 6) % 7;
-  const today = new Date();
+  const today = todayInAppZone();
 
   const cells: (Date | null)[] = [
     ...Array(leadingBlanks).fill(null),

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { todayInAppZone } from "@/lib/timezone";
 import type { TaskCategory } from "@prisma/client";
 
 /** Seeded onto a support member's list the first time they open the tab. */
@@ -15,12 +16,12 @@ export const DEFAULT_DAILY_TASKS = [
   "Enviar post de clase en vivo",
 ];
 
-/** UTC-midnight "today", matching the rest of the app's date-only fields
- * (due dates, calendar grid) — used as the shared key between writing a
- * completion log and reading "is this done today". */
+/** "Today" in the team's own timezone (Guadalajara), as a UTC-midnight
+ * Date — matching the rest of the app's date-only fields (due dates,
+ * calendar grid) — used as the shared key between writing a completion log
+ * and reading "is this done today". */
 export function todayUTC() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return todayInAppZone();
 }
 
 /** Idempotent: only seeds the default list the very first time a user has

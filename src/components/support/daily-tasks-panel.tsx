@@ -18,14 +18,12 @@ import {
 } from "@/lib/daily-task-recurrence";
 import { DailyTasksCalendar } from "@/components/support/daily-tasks-calendar";
 import { cn } from "@/lib/utils";
+import { todayInAppZone } from "@/lib/timezone";
 import type { DailyTaskWithTodayLog } from "@/lib/data";
 import type { TaskCategory, TaskRecurrence } from "@prisma/client";
 
 function todayUTCDateInput() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-    .toISOString()
-    .slice(0, 10);
+  return todayInAppZone().toISOString().slice(0, 10);
 }
 
 function dateInputValue(onDate: Date | string | null) {
@@ -233,7 +231,7 @@ export function DailyTasksPanel({
   category: TaskCategory;
 }) {
   const router = useRouter();
-  const today = new Date();
+  const today = todayInAppZone();
   const [view, setView] = useState<"hoy" | "historial">("hoy");
   const [label, setLabel] = useState("");
   const [recurrence, setRecurrence] = useState<TaskRecurrence>("DAILY");
