@@ -60,15 +60,29 @@ export function getMyDailyTasks(userId: string) {
 
 export type DailyTaskWithTodayLog = Awaited<ReturnType<typeof getMyDailyTasks>>[number];
 
-/** A user's own private personal/work checklist — never shown to admins. */
-export function getMyPersonalTasks(userId: string) {
-  const date = todayUTC();
-  return prisma.dailyTaskItem.findMany({
-    where: { userId, category: "PERSONAL" },
-    orderBy: { position: "asc" },
-    include: { logs: { where: { date } } },
-  });
+/** Done tasks fall off the active list and into the archive this long
+ * after being checked — gives a moment to see it land before it's gone. */
+export const PERSONAL_TASK_ARCHIVE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+/** A user's own private "someday" list — quick ideas/tasks they can flesh
+ * out later, check off, and let quietly archive. Never shown to anyone
+ * else, admins included; there is no cross-user query for this model. */
+export async function getMyPersonalTasksBoard(userId: string) {
+  const cutoff = new Date(Date.now() - PERSONAL_TASK_ARCHIVE_AFTER_MS);
+  const [active, archived] = await Promise.all([
+    prisma.personalTask.findMany({
+      where: { userId, OR: [{ done: false }, { doneAt: { gt: cutoff } }] },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.personalTask.findMany({
+      where: { userId, done: true, doneAt: { lte: cutoff } },
+      orderBy: { doneAt: "desc" },
+    }),
+  ]);
+  return { active, archived };
 }
+
+export type PersonalTaskItem = Awaited<ReturnType<typeof getMyPersonalTasksBoard>>["active"][number];
 
 /** For the admin monitoring view: every support member with their full
  * daily checklist and today's completion status per item. */

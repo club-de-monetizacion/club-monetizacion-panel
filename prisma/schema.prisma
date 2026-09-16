@@ -112,6 +112,7 @@ model User {
   ideaNodes        IdeaNode[]
   dailyTaskItems   DailyTaskItem[]
   dailyTaskLogs    DailyTaskLog[]
+  personalTasks    PersonalTask[]
 }
 
 model Account {
@@ -392,4 +393,26 @@ model DailyTaskLog {
 
   @@unique([itemId, date])
   @@index([userId, date])
+}
+
+/** A private "someday" list, entirely separate from the recurring daily
+ * checklist above: jot a quick idea or task down, flesh it out with a
+ * description whenever you get to it, check it off, and it quietly moves
+ * itself to the archive a day later. Owned by exactly one user — no admin
+ * override anywhere in the code that touches this model, unlike
+ * DailyTaskItem's SUPPORT category. "Archived" isn't a stored flag: it's
+ * derived from doneAt so unchecking a task always brings it right back. */
+model PersonalTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, done])
 }
