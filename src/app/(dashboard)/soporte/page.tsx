@@ -6,6 +6,7 @@ import {
   getFaqItems,
   getQuickLinks,
   getMyDailyTasks,
+  getSupportDailyOverview,
 } from "@/lib/data";
 import { ensureDefaultDailyTasks } from "@/lib/daily-tasks";
 import { TASK_STATUS_INFO, TASK_STATUS_ORDER } from "@/lib/constants";
@@ -14,6 +15,7 @@ import { CannedResponsesPanel } from "@/components/support/canned-responses-pane
 import { FaqPanel } from "@/components/support/faq-panel";
 import { QuickLinksPanel } from "@/components/support/quick-links-panel";
 import { DailyTasksPanel } from "@/components/support/daily-tasks-panel";
+import { DailyTasksTeamOverview } from "@/components/support/daily-tasks-team-overview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
@@ -21,19 +23,22 @@ export const dynamic = "force-dynamic";
 export default async function SupportPage() {
   const session = await auth();
   const isSupport = session?.user.role === "SOPORTE";
+  const isAdmin = session?.user.role === "ADMIN";
 
   if (isSupport) {
     await ensureDefaultDailyTasks(session.user.id);
   }
 
-  const [tasks, members, cannedResponses, faqItems, quickLinks, dailyTasks] = await Promise.all([
-    getSupportTasks(),
-    getAssignableMembers(),
-    getCannedResponses(),
-    getFaqItems(),
-    getQuickLinks(),
-    isSupport ? getMyDailyTasks(session.user.id) : Promise.resolve([]),
-  ]);
+  const [tasks, members, cannedResponses, faqItems, quickLinks, dailyTasks, teamDailyTasks] =
+    await Promise.all([
+      getSupportTasks(),
+      getAssignableMembers(),
+      getCannedResponses(),
+      getFaqItems(),
+      getQuickLinks(),
+      isSupport ? getMyDailyTasks(session.user.id) : Promise.resolve([]),
+      isAdmin ? getSupportDailyOverview() : Promise.resolve([]),
+    ]);
 
   const columns = TASK_STATUS_ORDER.map((status) => ({
     key: status,
@@ -55,7 +60,7 @@ export default async function SupportPage() {
           <TabsTrigger value="respuestas">Respuestas rápidas</TabsTrigger>
           <TabsTrigger value="faq">Preguntas frecuentes</TabsTrigger>
           <TabsTrigger value="enlaces">Enlaces importantes</TabsTrigger>
-          {isSupport && <TabsTrigger value="diarias">Tareas diarias</TabsTrigger>}
+          {(isSupport || isAdmin) && <TabsTrigger value="diarias">Tareas diarias</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="tablero" className="mt-5">
@@ -83,6 +88,14 @@ export default async function SupportPage() {
         {isSupport && (
           <TabsContent value="diarias" className="mt-5">
             <DailyTasksPanel items={dailyTasks} userId={session!.user.id} category="SUPPORT" />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="diarias" className="mt-5">
+            <p className="mb-4 text-xs text-[var(--ink-3)]">
+              Revisa y edita el checklist de cada miembro de soporte.
+            </p>
+            <DailyTasksTeamOverview members={teamDailyTasks} />
           </TabsContent>
         )}
       </Tabs>
