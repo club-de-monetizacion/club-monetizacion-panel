@@ -115,6 +115,30 @@ export function Sidebar({
           );
         })}
 
+        {/* El YouTube Planner, traído del Panel de Maestría. Es del equipo entero. */}
+        <NavLink
+          href="/youtube-planner"
+          active={isActive("/youtube-planner")}
+          icon={
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded text-[11px]"
+              style={{ background: "#ff000022", color: "#ff4444" }}
+            >
+              <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="currentColor">
+                <path d="M10 15.5l6-3.5-6-3.5v7z" />
+                <path
+                  d="M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.6 2.6 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8C22 15.2 22 12 22 12s0-3.2-.4-4.8z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+              </svg>
+            </span>
+          }
+        >
+          YouTube Planner
+        </NavLink>
+
         <p className="px-[13px] pt-4 pb-1.5 text-[10px] font-semibold tracking-[0.24em] text-[var(--ink-3)]/70 uppercase">
           Equipo
         </p>
