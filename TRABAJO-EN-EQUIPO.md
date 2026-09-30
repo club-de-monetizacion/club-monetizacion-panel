@@ -76,7 +76,21 @@ Están en el JSON de su Mac. **Hay que pasarlas a Postgres antes de retirar esa 
 con respaldo y comprobando una por una. No se apaga nada hasta que estén aquí y él las
 vea.
 
-## El login: se quita Google, se entra con las cuentas del Club
+## El login: ya se entra con las cuentas del Club  ✅ hecho
+
+**Hecho el 30 sep 2026 en la rama `login-club`, sin fusionar todavía.** Google ya no
+está: `src/auth.ts` usa un proveedor de credenciales que valida contra el panel, la
+pantalla de `/login` pide correo y contraseña, y `src/lib/panel-club.ts` es el único
+sitio que habla con el panel. Las 12 comprobaciones de `pruebas/panel-club.mts` pasan
+contra el panel de verdad, y el proyecto compila.
+
+**Antes de fusionarla a `main`, ojo:** al desplegarla, **todo el mundo deja de entrar
+con Google de golpe** y necesita su cuenta de administrador del panel del Club. Diego
+confirmó el 30 sep 2026 que los cinco del equipo ya están dados de alta ahí. Aun así,
+que lo vea alguien antes de fusionar.
+
+Lo que sigue en pie del diseño original:
+
 
 Decisión de Diego (29 sep 2026). Hoy `src/auth.ts` usa el proveedor de Google y
 `ADMIN_EMAILS` para repartir el rol `ADMIN`. Va a entrar con **el mismo correo y
