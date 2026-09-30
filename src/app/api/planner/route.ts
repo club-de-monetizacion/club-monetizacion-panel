@@ -98,5 +98,44 @@ export async function POST(req: Request) {
     });
   }
 
+  /* La portada de un video de YouTube, a partir de su link. Va por el servidor y no
+     desde el navegador porque i.ytimg.com no permite leer la imagen desde otra
+     página (haría falta CORS), y la herramienta la necesita como datos para poder
+     ponerla en el lienzo. Misma lógica que en el panel del Máster. */
+  if (cuerpo.action === "ytThumb") {
+    const u = String((cuerpo as { url?: string }).url || "");
+    const m = u.match(
+      /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,20})/i
+    );
+    if (!m) {
+      return NextResponse.json(
+        { ok: false, error: "Pega un link de video de YouTube (youtube.com/watch?v=… o youtu.be/…)." },
+        { status: 400 }
+      );
+    }
+    const id = m[1];
+    // De la mejor calidad a la peor: no todos los videos tienen maxres.
+    for (const q of ["maxresdefault", "sddefault", "hqdefault"]) {
+      try {
+        const r = await fetch(`https://i.ytimg.com/vi/${id}/${q}.jpg`, { cache: "no-store" });
+        if (!r.ok) continue;
+        const buf = Buffer.from(await r.arrayBuffer());
+        // YouTube devuelve una imagen gris de 1 KB cuando esa calidad no existe.
+        if (buf.length > 5000) {
+          return NextResponse.json({
+            ok: true,
+            dataUrl: "data:image/jpeg;base64," + buf.toString("base64"),
+          });
+        }
+      } catch {
+        // Se prueba la calidad siguiente.
+      }
+    }
+    return NextResponse.json(
+      { ok: false, error: "No se pudo obtener la portada de ese video — revisa el link." },
+      { status: 404 }
+    );
+  }
+
   return NextResponse.json({ ok: false, error: "Acción desconocida" }, { status: 400 });
 }
