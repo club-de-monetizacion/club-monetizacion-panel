@@ -75,11 +75,11 @@ export function Sidebar({
           Inicio
         </NavLink>
         <NavLink
-          href="/calendario"
-          icon={<CalendarDays className="h-4 w-4" />}
-          active={isActive("/calendario")}
+          href="/tareas-personales"
+          icon={<ClipboardList className="h-4 w-4" />}
+          active={isActive("/tareas-personales")}
         >
-          Calendario
+          Tareas personales
         </NavLink>
         <NavLink
           href="/ideas"
@@ -89,11 +89,11 @@ export function Sidebar({
           Ideas
         </NavLink>
         <NavLink
-          href="/tareas-personales"
-          icon={<ClipboardList className="h-4 w-4" />}
-          active={isActive("/tareas-personales")}
+          href="/calendario"
+          icon={<CalendarDays className="h-4 w-4" />}
+          active={isActive("/calendario")}
         >
-          Tareas personales
+          Calendario
         </NavLink>
 
         <p className="mb-1 mt-4 px-2.5 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-3)]">
