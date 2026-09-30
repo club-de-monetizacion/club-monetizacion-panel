@@ -1,1 +1,2 @@
 @AGENTS.md
+@TRABAJO-EN-EQUIPO.md
