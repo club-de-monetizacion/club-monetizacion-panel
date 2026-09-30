@@ -124,6 +124,7 @@ const nextAuth = NextAuth({
          llave en la cabecera y la comprueba la propia ruta. Si se le exigiera
          sesión aquí, recibiría el HTML del login en vez de sus pendientes. */
       if (ruta.startsWith("/api/pendientes/")) return true;
+      if (ruta === "/api/perfil/foto") return true;
 
       const isOnLogin = ruta.startsWith("/login");
       if (isOnLogin) {
