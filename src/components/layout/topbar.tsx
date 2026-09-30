@@ -40,7 +40,7 @@ export function Topbar({
         {onToggleCollapsed && (
           <button
             onClick={onToggleCollapsed}
-            className="focus-ring hidden rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)] md:flex"
+            className="solo-escritorio focus-ring items-center rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)]"
             aria-label={collapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
             title={collapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
           >

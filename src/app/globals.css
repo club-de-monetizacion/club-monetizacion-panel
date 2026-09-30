@@ -387,3 +387,11 @@ h1, h2, h3 {
     pointer-events: none;
   }
 }
+
+/* El botón de recoger el menú: `hidden md:flex` dejaba de verse porque la variante
+   para escritorio tampoco llegaba al CSS compilado. Con clase propia se ve siempre
+   de tableta hacia arriba, que es donde el menú se puede recoger. */
+.solo-escritorio { display: none; }
+@media (min-width: 768px) {
+  .solo-escritorio { display: inline-flex; }
+}
