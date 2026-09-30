@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { RecogeElMenu } from "@/components/layout/recoge-el-menu";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "YouTube Planner" };
@@ -18,12 +19,15 @@ export default async function YoutubePlannerPage() {
 
   return (
     <div className="animate-fade-in -mx-1">
+      {/* El menú se recoge mientras se esté aquí: con él abierto la herramienta se
+          queda estrecha y se pone en su modo de teléfono. */}
+      <RecogeElMenu />
       {/* Se le da todo el alto que queda bajo la cabecera: la herramienta trae su
           propio menú y sus columnas, y con poco alto no se puede trabajar. */}
       <iframe
         src="/planner/planner.html"
         title="YouTube Planner"
-        className="h-[calc(100vh-112px)] min-h-[620px] w-full rounded-2xl border border-[var(--linea)] bg-[var(--azul-hondo)]"
+        className="h-[calc(100vh-104px)] min-h-[640px] w-full rounded-2xl border border-[var(--linea)] bg-[var(--azul-hondo)]"
       />
     </div>
   );

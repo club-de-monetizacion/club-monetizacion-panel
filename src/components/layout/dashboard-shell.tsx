@@ -60,6 +60,26 @@ export function DashboardShell({
     }
   }, []);
 
+  /* Las pantallas que necesitan todo el ancho (el YouTube Planner) piden recoger el
+     menú con un evento al abrirse, y lo devuelven al salir. Ver RecogeElMenu. */
+  useEffect(() => {
+    const alPedir = (e: Event) => {
+      const quiere = (e as CustomEvent<{ recoger?: boolean }>).detail?.recoger;
+      if (typeof quiere !== "boolean") return;
+      setCollapsed(quiere);
+      if (!quiere) {
+        // Al salir se vuelve a lo que la persona tenía guardado.
+        try {
+          setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1");
+        } catch {
+          setCollapsed(false);
+        }
+      }
+    };
+    window.addEventListener("ccm:menu", alPedir);
+    return () => window.removeEventListener("ccm:menu", alPedir);
+  }, []);
+
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
