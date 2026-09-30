@@ -216,7 +216,7 @@ export function TaskDetailDialog({
                 <button
                   type="button"
                   onClick={() => coverInputRef.current?.click()}
-                  className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+                  className="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-[#1a1200] shadow-lg"
                   aria-label="Cambiar portada"
                 >
                   {uploadingCover ? (

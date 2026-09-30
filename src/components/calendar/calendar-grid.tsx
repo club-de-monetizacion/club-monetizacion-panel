@@ -92,7 +92,7 @@ export function CalendarGrid({
                     className={cn(
                       "flex h-5 w-5 items-center justify-center rounded-full text-[11px]",
                       isToday
-                        ? "bg-[var(--accent)] font-semibold text-white"
+                        ? "bg-[var(--accent)] font-semibold text-[#1a1200]"
                         : "text-[var(--ink-2)]"
                     )}
                   >

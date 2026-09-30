@@ -83,7 +83,7 @@ export default async function LoginPage({
 
           <button
             type="submit"
-            className="focus-ring flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white shadow-lg transition hover:brightness-110 active:scale-[0.99]"
+            className="focus-ring flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[#1a1200] shadow-lg transition hover:brightness-110 active:scale-[0.99]"
           >
             Entrar
           </button>

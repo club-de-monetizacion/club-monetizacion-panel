@@ -70,7 +70,7 @@ export default async function CalendarPage({
             className={cn(
               "focus-ring flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
               mine
-                ? "bg-[var(--accent)] text-white"
+                ? "bg-[var(--accent)] text-[#1a1200]"
                 : "glass-panel text-[var(--ink-2)] hover:text-[var(--ink-0)]"
             )}
           >

@@ -73,7 +73,7 @@ export function ProfileForm({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="focus-ring absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg"
+            className="focus-ring absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-[#1a1200] shadow-lg"
             aria-label="Cambiar foto"
           >
             {uploading ? (

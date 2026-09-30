@@ -86,7 +86,7 @@ function RecurrenceFields({ recurrence, setRecurrence, weekdays, toggleWeekday, 
               className={cn(
                 "rounded-md px-2 py-1 text-xs font-medium transition",
                 weekdays.includes(day)
-                  ? "bg-[var(--accent)] text-white"
+                  ? "bg-[var(--accent)] text-[#1a1200]"
                   : "bg-[var(--panel-strong)] text-[var(--ink-2)] hover:text-[var(--ink-0)]"
               )}
             >
@@ -155,7 +155,7 @@ function TaskRow({
             type="button"
             onClick={handleSave}
             disabled={!label.trim() || (recurrence === "WEEKLY" && weekdays.length === 0)}
-            className="focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] py-1.5 text-xs font-medium text-white disabled:opacity-50"
+            className="focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] py-1.5 text-xs font-medium text-[#1a1200] disabled:opacity-50"
           >
             <Check className="h-3.5 w-3.5" />
             Guardar
@@ -184,7 +184,7 @@ function TaskRow({
           className={cn(
             "focus-ring flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
             isDone
-              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+              ? "border-[var(--accent)] bg-[var(--accent)] text-[#1a1200]"
               : "border-[var(--panel-border)] text-transparent hover:border-[var(--accent)]"
           )}
           aria-label={isDone ? "Marcar como pendiente" : "Marcar como cumplida"}
@@ -295,7 +295,7 @@ export function DailyTasksPanel({
           onClick={() => setView("hoy")}
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition",
-            view === "hoy" ? "bg-[var(--accent)] text-white" : "text-[var(--ink-2)] hover:text-[var(--ink-0)]"
+            view === "hoy" ? "bg-[var(--accent)] text-[#1a1200]" : "text-[var(--ink-2)] hover:text-[var(--ink-0)]"
           )}
         >
           <ListChecks className="h-3.5 w-3.5" />
@@ -306,7 +306,7 @@ export function DailyTasksPanel({
           onClick={() => setView("historial")}
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition",
-            view === "historial" ? "bg-[var(--accent)] text-white" : "text-[var(--ink-2)] hover:text-[var(--ink-0)]"
+            view === "historial" ? "bg-[var(--accent)] text-[#1a1200]" : "text-[var(--ink-2)] hover:text-[var(--ink-0)]"
           )}
         >
           <Calendar className="h-3.5 w-3.5" />
