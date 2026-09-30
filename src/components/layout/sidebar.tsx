@@ -48,7 +48,9 @@ export function Sidebar({
         className={cn(
           "glass-panel-strong fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col gap-1 overflow-y-auto p-4 transition-all duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
-          collapsed && "md:w-0 md:min-w-0 md:overflow-hidden md:border-0 md:p-0 md:opacity-0"
+          /* `menu-recogido` está en globals.css: las variantes md: de Tailwind no
+             llegaban al CSS compilado y el botón no hacía nada. */
+          collapsed && "menu-recogido"
         )}
       >
         <div className="mb-4 flex items-center justify-between px-1">

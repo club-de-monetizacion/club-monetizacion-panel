@@ -370,3 +370,20 @@ h1, h2, h3 {
   border-color: var(--oro);
   box-shadow: 0 0 0 3px rgba(201, 160, 64, 0.16), 0 0 22px rgba(201, 160, 64, 0.18);
 }
+
+/* ══════════ EL MENÚ RECOGIDO ══════════
+   Las variantes de Tailwind que traía el armazón (`md:w-0 md:p-0 md:opacity-0`)
+   no llegaron al CSS compilado, así que el botón de recoger el menú no hacía nada.
+   Con una clase propia no depende de que se generen. En pantalla pequeña el menú
+   ya sale de la vista por su lado, así que esto solo actúa de tableta hacia arriba. */
+@media (min-width: 768px) {
+  .menu-recogido {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border-width: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none;
+  }
+}
