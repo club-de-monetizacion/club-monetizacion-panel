@@ -3,6 +3,7 @@ import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
 import { AnimatedBackground } from "@/components/layout/animated-background";
 import { AppLogo } from "@/components/layout/app-logo";
+import { CampoClave } from "@/components/layout/campo-clave";
 
 /**
  * Se entra con la misma cuenta del panel del Club: los accesos se dan y se quitan en
@@ -69,48 +70,7 @@ export default async function LoginPage({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-xs font-medium text-[var(--ink-2)]"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)]"
-            />
-          </div>
-
-          {/* Diego no tiene contraseña de equipo: entra con su clave maestra y su PIN,
-              igual que en el panel. Va escondido porque solo le sirve a él. */}
-          <details className="group">
-            <summary className="cursor-pointer list-none text-xs text-[var(--ink-3)] transition hover:text-[var(--ink-2)]">
-              Entrar con la clave maestra
-            </summary>
-            <div className="mt-2">
-              <label
-                htmlFor="pin"
-                className="mb-1.5 block text-xs font-medium text-[var(--ink-2)]"
-              >
-                PIN
-              </label>
-              <input
-                id="pin"
-                name="pin"
-                type="password"
-                autoComplete="off"
-                className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)]"
-              />
-              <p className="mt-1.5 text-xs text-[var(--ink-3)]">
-                Solo para el dueño: arriba va la clave maestra y aquí el PIN del panel.
-              </p>
-            </div>
-          </details>
+          <CampoClave />
 
           {error ? (
             <p
@@ -127,10 +87,26 @@ export default async function LoginPage({
           >
             Entrar
           </button>
+
+          {/* Solo para Diego: él no tiene contraseña de equipo, entra al panel con su
+              clave maestra y su PIN. Va al final y escondido porque a nadie más le
+              sirve, y su contenido se envía con el mismo formulario. */}
+          <details className="pt-1">
+            <summary className="cursor-pointer list-none text-xs text-[var(--ink-3)] transition hover:text-[var(--ink-2)]">
+              Soy Diego · entrar con la clave maestra
+            </summary>
+            <div className="mt-3">
+              <CampoClave
+                id="pin"
+                name="pin"
+                label="PIN del panel"
+                autoComplete="off"
+                ayuda="Arriba va tu clave maestra y aquí el PIN. Luego pulsa Entrar."
+              />
+            </div>
+          </details>
         </form>
 
-        {/* La recuperación vive en el panel, que es quien tiene las contraseñas.
-            Esta app no puede restablecer ninguna. */}
         <p className="mt-5 text-center text-sm">
           <a
             href="https://panel.clubdemonetizacion.com/?olvide=1"
@@ -138,11 +114,6 @@ export default async function LoginPage({
           >
             ¿Olvidaste tu contraseña?
           </a>
-        </p>
-
-        <p className="mt-4 text-center text-xs text-[var(--ink-3)]">
-          Es la misma contraseña del panel del Club. Si no puedes entrar, pídele
-          acceso a Diego.
         </p>
       </div>
     </div>
