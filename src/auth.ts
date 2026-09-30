@@ -155,6 +155,26 @@ const nextAuth = NextAuth({
       if (token.panelTok && Date.now() - (token.panelVisto ?? 0) > REVALIDAR_CADA_MS) {
         const estado = await sigueValida(token.panelTok);
         token.panelVisto = Date.now();
+
+        /* Y de paso se recargan las preferencias: el token guardaba los colores de
+           cuando se entró, así que un cambio de identidad (o de color en el perfil)
+           no se veía hasta volver a entrar. */
+        const fresco = await prisma.user.findUnique({
+          where: { email: token.email },
+          select: {
+            accentColor: true, backgroundType: true,
+            backgroundColor: true, particlesEnabled: true,
+            name: true, image: true,
+          },
+        });
+        if (fresco) {
+          token.accentColor = fresco.accentColor;
+          token.backgroundType = fresco.backgroundType;
+          token.backgroundColor = fresco.backgroundColor;
+          token.particlesEnabled = fresco.particlesEnabled;
+          token.name = fresco.name;
+          token.picture = fresco.image;
+        }
         if (!estado.ok && estado.caducada) return null;
         if (estado.ok) {
           const papel = papelDelRol(estado.rol);
