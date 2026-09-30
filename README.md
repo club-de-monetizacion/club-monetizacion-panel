@@ -2,13 +2,13 @@
 
 Panel de control estilo Notion para el equipo: tareas de soporte, tableros de
 contenido (Skool, YouTube, TikTok, Instagram, Facebook), proyectos vinculados
-a Google Drive, inicio de sesión con Google y perfiles personalizables con
+a Google Drive, inicio de sesión con las cuentas del Club y perfiles personalizables con
 fondo animado.
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack) + TypeScript + Tailwind CSS v4
-- **Auth.js / NextAuth v5** con proveedor de Google
+- **Auth.js / NextAuth v5** con credenciales validadas contra el panel del Club
 - **Prisma** + PostgreSQL
 - **@dnd-kit** para los tableros Kanban con arrastrar y soltar
 - Componentes propios sobre **Radix UI** (sin dependencias de diseño externas)
@@ -19,24 +19,34 @@ fondo animado.
 - Una base de datos PostgreSQL. Recomendado: [Neon](https://neon.tech) o
   [Vercel Postgres](https://vercel.com/storage/postgres) (ambos tienen un
   plan gratuito y funcionan de inmediato con Vercel).
-- Un proyecto en [Google Cloud Console](https://console.cloud.google.com)
-  para las credenciales de inicio de sesión con Google.
+- Nada más: el inicio de sesión lo valida el panel del Club, que ya está en marcha.
 
-## 2. Configurar Google OAuth
+## 2. El inicio de sesión
 
-1. Ve a [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-2. Crea un proyecto (o usa uno existente).
-3. Ve a **Pantalla de consentimiento de OAuth**, elige "Externo" (o "Interno"
-   si tienes Google Workspace) y completa el nombre de la app.
-4. Ve a **Credenciales → Crear credenciales → ID de cliente de OAuth**.
-   - Tipo de aplicación: **Aplicación web**.
-   - Orígenes autorizados de JavaScript:
-     - `http://localhost:3000` (desarrollo local)
-     - `https://tu-dominio.vercel.app` (producción, ajusta al dominio real)
-   - URI de redirección autorizados:
-     - `http://localhost:3000/api/auth/callback/google`
-     - `https://tu-dominio.vercel.app/api/auth/callback/google`
-5. Copia el **Client ID** y **Client Secret**.
+Se entra con **el mismo correo y contraseña del panel del Club**
+(`panel.clubdemonetizacion.com`), y solo los administradores. No hay nada que
+configurar: el panel ya está en marcha y esta app solo le pregunta.
+
+Cómo funciona, en corto:
+
+1. El formulario de `/login` manda correo y contraseña al proveedor de credenciales.
+2. `src/lib/panel-club.ts` se los pasa al panel (`action: "entrarEquipo"`) y obedece su
+   respuesta. **Aquí no se guarda ninguna contraseña**: no hay columna para ellas y no
+   se cifra nada.
+3. El papel que devuelve el panel decide el rol: `maestro` y `equipo` son `ADMIN`,
+   `mirar` es solo consulta, cualquier otro **no entra**.
+4. Cada cinco minutos se le vuelve a preguntar al panel si la persona sigue teniendo
+   acceso (`action: "yo"`). Así, quitarle el acceso en el panel surte efecto aquí casi
+   al instante. Si el panel estuviera caído, **no se echa a nadie**.
+
+El panel es un sistema en producción con alumnos que pagaron: desde aquí **solo se
+consulta, nunca se modifica**.
+
+Para comprobar que esta parte sigue funcionando:
+
+```bash
+node --experimental-strip-types pruebas/panel-club.mts
+```
 
 ## 3. Variables de entorno
 
@@ -50,9 +60,8 @@ cp .env.example .env.local
 | --- | --- |
 | `DATABASE_URL` | Cadena de conexión de PostgreSQL |
 | `AUTH_SECRET` | Genera uno con `openssl rand -base64 33` |
-| `AUTH_GOOGLE_ID` | Client ID de Google OAuth |
-| `AUTH_GOOGLE_SECRET` | Client Secret de Google OAuth |
-| `ADMIN_EMAILS` | Correos separados por coma que serán administradores automáticamente |
+| `ADMIN_EMAILS` | Opcional. Salida de emergencia: si el panel estuviera caído, estos correos entran como `ADMIN`. Puede quedar vacía |
+| `PANEL_CLUB_URL` | Opcional. Solo para apuntar a una copia de pruebas del panel |
 
 ## 4. Instalar y preparar la base de datos
 
@@ -80,7 +89,7 @@ puede asignar los roles Soporte, Editor o Miembro al resto del equipo.
 1. Sube este proyecto a un repositorio de GitHub (o GitLab/Bitbucket).
 2. En [vercel.com/new](https://vercel.com/new), importa el repositorio.
 3. En **Environment Variables**, agrega las mismas variables de `.env.local`
-   (con el `DATABASE_URL` de producción y las URLs reales en Google OAuth).
+   (con el `DATABASE_URL` de producción).
 4. Despliega. El script `postinstall` ejecuta `prisma generate`
    automáticamente en cada build.
 5. Ejecuta `npm run db:push` una vez **apuntando a la base de datos de

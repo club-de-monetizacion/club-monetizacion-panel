@@ -1,61 +1,110 @@
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
 import { AnimatedBackground } from "@/components/layout/animated-background";
 import { AppLogo } from "@/components/layout/app-logo";
 
-export default async function LoginPage() {
+/**
+ * Se entra con la misma cuenta del panel del Club: los accesos se dan y se quitan en
+ * un solo sitio. Aquí no se guarda ninguna contraseña (ver `lib/panel-club.ts`).
+ */
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/");
+
+  const { error } = await searchParams;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
       <AnimatedBackground type="PARTICLES" color="#0b0f19" accent="#8b5cf6" />
 
-      <div className="glass-panel-strong animate-fade-in w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl">
+      <div className="glass-panel-strong animate-fade-in w-full max-w-sm rounded-2xl p-8 shadow-2xl">
         <AppLogo className="mx-auto mb-5 h-14 w-14 text-2xl" />
-        <h1 className="text-xl font-semibold text-[var(--ink-0)]">
+        <h1 className="text-center text-xl font-semibold text-[var(--ink-0)]">
           Club de Monetización
         </h1>
-        <p className="mt-1.5 text-sm text-[var(--ink-2)]">
-          Panel de control del equipo. Inicia sesión con tu cuenta de Google
-          para continuar.
+        <p className="mt-1.5 text-center text-sm text-[var(--ink-2)]">
+          Entra con la misma cuenta del panel del Club.
         </p>
 
         <form
-          className="mt-7"
-          action={async () => {
+          className="mt-7 space-y-3"
+          action={async (formData: FormData) => {
             "use server";
-            await signIn("google", { redirectTo: "/" });
+            try {
+              await signIn("credentials", {
+                email: formData.get("email"),
+                password: formData.get("password"),
+                redirectTo: "/",
+              });
+            } catch (e) {
+              // `signIn` lanza el redirect de Next cuando sale bien: ese hay que
+              // dejarlo pasar. Solo el fallo de credenciales vuelve al formulario.
+              if (e instanceof AuthError) redirect("/login?error=1");
+              throw e;
+            }
           }}
         >
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1.5 block text-xs font-medium text-[var(--ink-2)]"
+            >
+              Correo
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              autoFocus
+              placeholder="tu@correo.com"
+              className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)] placeholder:text-[var(--ink-3)]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-xs font-medium text-[var(--ink-2)]"
+            >
+              Contraseña
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)]"
+            />
+          </div>
+
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300"
+            >
+              Correo o contraseña incorrectos, o esa cuenta no tiene acceso al panel.
+            </p>
+          ) : null}
+
           <button
             type="submit"
-            className="focus-ring flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-800 shadow-lg transition hover:bg-slate-100 active:scale-[0.99]"
+            className="focus-ring flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white shadow-lg transition hover:brightness-110 active:scale-[0.99]"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Continuar con Google
+            Entrar
           </button>
         </form>
 
-        <p className="mt-6 text-xs text-[var(--ink-3)]">
-          Acceso exclusivo para el equipo del Club de Monetización.
+        <p className="mt-6 text-center text-xs text-[var(--ink-3)]">
+          Es la misma contraseña del panel del Club. Si no puedes entrar, pídele
+          acceso a Diego.
         </p>
       </div>
     </div>
