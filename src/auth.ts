@@ -182,9 +182,9 @@ const nextAuth = NextAuth({
     async session({ session, token }) {
       if (token.id) session.user.id = token.id;
       if (token.role) session.user.role = token.role;
-      session.user.accentColor = token.accentColor ?? "#8b5cf6";
+      session.user.accentColor = token.accentColor ?? "#c9a040";
       session.user.backgroundType = token.backgroundType ?? "PARTICLES";
-      session.user.backgroundColor = token.backgroundColor ?? "#0b0f19";
+      session.user.backgroundColor = token.backgroundColor ?? "#05091a";
       session.user.particlesEnabled = token.particlesEnabled ?? true;
       if (token.name) session.user.name = token.name;
       if (token.picture) session.user.image = token.picture;

@@ -92,9 +92,9 @@ model User {
   image            String?   @db.Text
   role             Role      @default(MIEMBRO)
   bio              String?
-  accentColor      String    @default("#8b5cf6")
+  accentColor      String    @default("#c9a040")
   backgroundType   BackgroundType @default(PARTICLES)
-  backgroundColor  String    @default("#0b0f19")
+  backgroundColor  String    @default("#05091a")
   particlesEnabled Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

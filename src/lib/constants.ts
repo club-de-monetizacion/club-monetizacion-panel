@@ -110,6 +110,8 @@ export const BACKGROUND_TYPE_INFO: Record<
 };
 
 export const ACCENT_PRESETS = [
+  "#c9a040", // el dorado del Club: el de la casa
+  "#e8c060", // el mismo, más claro
   "#8b5cf6",
   "#6366f1",
   "#3b82f6",
@@ -121,6 +123,7 @@ export const ACCENT_PRESETS = [
 ];
 
 export const BACKGROUND_PRESETS = [
+  "#05091a", // el azul noche del panel del Club
   "#0b0f19",
   "#0f172a",
   "#111827",
