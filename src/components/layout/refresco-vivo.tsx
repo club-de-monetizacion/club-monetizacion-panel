@@ -22,9 +22,15 @@ export function RefrescoVivo({ cada = 8000 }: { cada?: number }) {
   useEffect(() => {
     let reloj: ReturnType<typeof setInterval> | null = null;
 
+    /* Se considera "a la vista" si el navegador lo dice o si la ventana tiene el
+       foco: algunos envoltorios (la app de escritorio, una webview) informan mal de
+       la visibilidad, y con la comprobación estricta no refrescaban nunca. */
+    const aLaVista = () =>
+      document.visibilityState === "visible" || document.hasFocus();
+
     const refresca = () => {
-      if (document.visibilityState !== "visible") return;
-      if (!navigator.onLine) return;
+      if (!aLaVista()) return;
+      if (typeof navigator.onLine === "boolean" && !navigator.onLine) return;
       router.refresh();
     };
 
@@ -39,7 +45,7 @@ export function RefrescoVivo({ cada = 8000 }: { cada?: number }) {
     };
 
     const alCambiarVisibilidad = () => {
-      if (document.visibilityState === "visible") {
+      if (aLaVista()) {
         refresca();     // lo primero que se vea ya está al día
         arranca();
       } else {
@@ -47,7 +53,9 @@ export function RefrescoVivo({ cada = 8000 }: { cada?: number }) {
       }
     };
 
-    if (document.visibilityState === "visible") arranca();
+    // Siempre se arma el reloj: cada vuelta comprueba si está a la vista, y si no,
+    // no pide nada. Así no depende de acertar el estado en el primer momento.
+    arranca();
     document.addEventListener("visibilitychange", alCambiarVisibilidad);
     window.addEventListener("online", refresca);
     window.addEventListener("focus", refresca);
