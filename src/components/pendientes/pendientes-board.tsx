@@ -3,6 +3,8 @@
 import { useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import {
   agregarSubtarea,
+  marcarParaHoy,
+  rotarPrioridad,
   borrarPendiente,
   borrarSubtarea,
   cambiarPlazoPendiente,
@@ -65,7 +67,8 @@ type Retoque =
   | { tipo: "borrar"; id: string }
   | { tipo: "plegar"; id: string; plegadas: boolean }
   | { tipo: "sub"; id: string; hecho: boolean }
-  | { tipo: "tipo"; id: string; valor: PendienteVista["tipo"] };
+  | { tipo: "tipo"; id: string; valor: PendienteVista["tipo"] }
+  | { tipo: "hoy"; id: string; paraHoy: boolean };
 
 /**
  * Lo que se toca se ve al instante y el servidor confirma detrás. Sin esto, cada
@@ -82,6 +85,8 @@ function conRetoque(lista: PendienteVista[], r: Retoque): PendienteVista[] {
       return lista.map((p) => (p.id === r.id ? { ...p, plegadas: r.plegadas } : p));
     case "tipo":
       return lista.map((p) => (p.id === r.id ? { ...p, tipo: r.valor } : p));
+    case "hoy":
+      return lista.map((p) => (p.id === r.id ? { ...p, paraHoy: r.paraHoy } : p));
     case "sub":
       return lista.map((p) => ({
         ...p,
@@ -106,7 +111,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
   const vivos = lista0.filter((p) => !p.hecho);
   const cuenta = {
     todo: vivos.length,
-    hoy: vivos.filter((p) => paraHoy(p.plazo)).length,
+    hoy: vivos.filter((p) => p.paraHoy || paraHoy(p.plazo)).length,
     TAREA: vivos.filter((p) => p.tipo === "TAREA").length,
     IDEA: vivos.filter((p) => p.tipo === "IDEA").length,
     VIDEO: vivos.filter((p) => p.tipo === "VIDEO").length,
@@ -117,7 +122,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
 
   const lista = useMemo(() => {
     let out = lista0.filter((p) => !p.hecho);
-    if (filtro === "hoy") out = out.filter((p) => paraHoy(p.plazo) || vencida(p.plazo));
+    if (filtro === "hoy") out = out.filter((p) => p.paraHoy || paraHoy(p.plazo) || vencida(p.plazo));
     else if (filtro === "plazo") out = out.filter((p) => p.plazo);
     else if (filtro !== "todo") out = out.filter((p) => p.tipo === filtro);
     if (etiqueta) out = out.filter((p) => p.etiquetas.includes(etiqueta));
@@ -132,6 +137,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
     }
     // Primero lo urgente, luego lo que vence antes, luego el orden de la persona.
     return [...out].sort((a, b) => {
+      if (a.paraHoy !== b.paraHoy) return a.paraHoy ? -1 : 1;
       if (b.prioridad !== a.prioridad) return b.prioridad - a.prioridad;
       if (a.plazo && b.plazo) return a.plazo < b.plazo ? -1 : 1;
       if (a.plazo) return -1;
@@ -324,8 +330,8 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
         <div className="glass-panel rounded-2xl p-8 text-center">
           <p className="text-sm text-[var(--ink-2)]">
             {cuenta.todo === 0
-              ? "Nada pendiente. Escribe arriba lo primero que se te ocurra."
-              : "Nada con ese filtro."}
+              ? "No tienes pendientes. Escribe uno arriba."
+              : "Ningún pendiente con ese filtro."}
           </p>
         </div>
       ) : (
@@ -411,6 +417,12 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                         {fechaCorta(p.creado)}
                       </span>
 
+                      {p.paraHoy ? (
+                        <span className="rounded bg-[var(--oro)]/20 px-1.5 py-0.5 text-[var(--oro-claro)]">
+                          ★ hoy
+                        </span>
+                      ) : null}
+
                       {p.plazo ? (
                         <span
                           className={`rounded px-1.5 py-0.5 ${
@@ -456,9 +468,18 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                         </button>
                       ) : null}
 
-                      <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                        <label className="cursor-pointer rounded px-1.5 py-0.5 text-[var(--ink-3)] transition hover:text-[var(--ink-1)]">
-                          Plazo
+                      {/* Los mismos tres de la app de escritorio: la estrella para
+                          hoy, la admiración para la prioridad y la equis para
+                          eliminar. Más el plazo, que allá es la etiqueta del reloj. */}
+                      <div className="ml-auto flex items-center gap-0.5">
+                        <label
+                          title={p.plazo ? "Cambiar el plazo" : "Poner un plazo"}
+                          className="cursor-pointer rounded-md px-1.5 py-1 text-[var(--ink-3)] opacity-0 transition group-hover:opacity-100 hover:bg-white/10 hover:text-[var(--ink-0)]"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.9">
+                            <rect x="3" y="5" width="18" height="16" rx="2.5" />
+                            <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+                          </svg>
                           <input
                             type="date"
                             defaultValue={p.plazo ?? ""}
@@ -470,17 +491,56 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                             className="w-0 opacity-0"
                           />
                         </label>
+
                         <button
                           type="button"
+                          title="Marcar para hoy"
+                          onClick={() =>
+                            arranca(async () => {
+                              retoca({ tipo: "hoy", id: p.id, paraHoy: !p.paraHoy });
+                              await marcarParaHoy(p.id, !p.paraHoy);
+                            })
+                          }
+                          className={`rounded-md px-1.5 py-1 text-[13px] leading-none transition hover:bg-white/10 ${
+                            p.paraHoy
+                              ? "text-[var(--oro-claro)]"
+                              : "text-[var(--ink-3)] opacity-0 group-hover:opacity-100 hover:text-[var(--ink-0)]"
+                          }`}
+                        >
+                          ★
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Prioridad"
+                          onClick={() =>
+                            arranca(async () => {
+                              await rotarPrioridad(p.id);
+                            })
+                          }
+                          className={`rounded-md px-2 py-1 text-[13px] leading-none font-bold transition hover:bg-white/10 ${
+                            p.prioridad === 2
+                              ? "text-[var(--rojo)]"
+                              : p.prioridad === 1
+                                ? "text-[var(--oro-claro)]"
+                                : "text-[var(--ink-3)] opacity-0 group-hover:opacity-100 hover:text-[var(--ink-0)]"
+                          }`}
+                        >
+                          {p.prioridad === 2 ? "!!" : "!"}
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Eliminar"
                           onClick={() =>
                             arranca(async () => {
                               retoca({ tipo: "borrar", id: p.id });
                               await borrarPendiente(p.id);
                             })
                           }
-                          className="rounded px-1.5 py-0.5 text-[var(--ink-3)] transition hover:text-red-300"
+                          className="rounded-md px-1.5 py-1 text-[13px] leading-none text-[var(--ink-3)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--rojo)]/20 hover:text-[var(--rojo)]"
                         >
-                          Borrar
+                          ✕
                         </button>
                       </div>
                     </div>
@@ -533,7 +593,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                             setNuevaSub({ ...nuevaSub, [p.id]: "" });
                             arranca(async () => { await agregarSubtarea(p.id, v); });
                           }}
-                          placeholder="+ un paso"
+                          placeholder="+ Agregar subtarea"
                           className={`focus-ring w-full rounded-lg bg-transparent px-1 py-0.5 text-[13px] text-[var(--ink-1)] placeholder:text-[var(--ink-3)]/70 hover:bg-white/[0.04] ${
                             p.subtareas.length ? "" : "opacity-0 transition group-hover:opacity-100 focus:opacity-100"
                           }`}

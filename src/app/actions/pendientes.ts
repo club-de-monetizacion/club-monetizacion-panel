@@ -113,6 +113,23 @@ export async function cambiarTipoPendiente(id: string, tipo: string) {
   return { success: true };
 }
 
+/** La estrella: marcar para hoy. Igual que en la app de escritorio. */
+export async function marcarParaHoy(id: string, hoy: boolean) {
+  await miPendiente(id);
+  await prisma.personalTask.update({ where: { id }, data: { today: hoy } });
+  refrescar();
+  return { success: true };
+}
+
+/** El botón `!` va rotando: normal → importante → urgente → normal. */
+export async function rotarPrioridad(id: string) {
+  const { fila } = await miPendiente(id);
+  const siguiente = (fila.priority + 1) % 3;
+  await prisma.personalTask.update({ where: { id }, data: { priority: siguiente } });
+  refrescar();
+  return { success: true, prioridad: siguiente };
+}
+
 export async function cambiarPrioridadPendiente(id: string, prioridad: number) {
   await miPendiente(id);
   const n = Math.max(0, Math.min(2, Math.round(prioridad)));
@@ -209,6 +226,7 @@ export type PendienteVista = {
   etiquetas: string[];
   plegadas: boolean;
   creado: string;
+  paraHoy: boolean;
   subtareas: { id: string; texto: string; hecho: boolean }[];
 };
 
@@ -230,6 +248,7 @@ export async function misPendientes(): Promise<PendienteVista[]> {
     etiquetas: f.tags,
     plegadas: f.subsFolded,
     creado: f.createdAt.toISOString(),
+    paraHoy: f.today,
     subtareas: f.subtasks.map((s) => ({ id: s.id, texto: s.title, hecho: s.done })),
   }));
 }

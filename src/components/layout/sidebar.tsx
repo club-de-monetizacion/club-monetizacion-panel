@@ -55,11 +55,11 @@ export function Sidebar({
           <div className="flex items-center gap-2.5">
             <AppLogo className="h-9 w-9 shrink-0 text-sm" />
             <div>
-              <p className="text-sm font-semibold leading-tight text-[var(--ink-0)]">
+              <p className="font-[family-name:var(--font-titulos)] text-[15px] leading-tight font-semibold text-[var(--ink-0)]">
                 Club de Monetización
               </p>
-              <p className="text-[11px] leading-tight text-[var(--ink-3)]">
-                Panel del equipo
+              <p className="text-[10px] leading-tight font-medium tracking-[0.18em] text-[var(--oro)] uppercase">
+                Tareas del equipo
               </p>
             </div>
           </div>
@@ -96,7 +96,7 @@ export function Sidebar({
           Calendario
         </NavLink>
 
-        <p className="mb-1 mt-4 px-2.5 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-3)]">
+        <p className="px-[13px] pt-4 pb-1.5 text-[10px] font-semibold tracking-[0.24em] text-[var(--ink-3)]/70 uppercase">
           Contenido
         </p>
         {PLATFORM_ORDER.map((platform) => {
@@ -115,7 +115,7 @@ export function Sidebar({
           );
         })}
 
-        <p className="mb-1 mt-4 px-2.5 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-3)]">
+        <p className="px-[13px] pt-4 pb-1.5 text-[10px] font-semibold tracking-[0.24em] text-[var(--ink-3)]/70 uppercase">
           Equipo
         </p>
         <NavLink
@@ -194,10 +194,10 @@ function NavLink({
          al servidor. Es lo que hace que la navegación se sienta inmediata. */
       prefetch
       className={cn(
-        "focus-ring flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
+        "focus-ring flex items-center gap-[11px] rounded-xl border border-transparent px-[13px] py-[11px] text-sm font-medium transition-[color,background,border-color] duration-150",
         active
-          ? "bg-[var(--accent-soft)] text-[var(--ink-0)]"
-          : "text-[var(--ink-2)] hover:bg-[var(--panel)] hover:text-[var(--ink-0)]"
+          ? "border-[var(--linea)] bg-[var(--oro)]/[0.08] text-[var(--oro-claro)]"
+          : "text-[var(--ink-2)] hover:bg-white/[0.045] hover:text-[var(--ink-0)]"
       )}
     >
       {icon}

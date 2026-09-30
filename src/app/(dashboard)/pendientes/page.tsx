@@ -19,7 +19,7 @@ export default async function PendientesPage() {
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-[var(--ink-0)]">Pendientes</h2>
         <p className="text-xs text-[var(--ink-3)]">
-          Lo tuyo, al vuelo. Privado: nadie más lo ve.
+          Tus pendientes. Solo tú los ves.
         </p>
       </div>
 

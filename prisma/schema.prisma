@@ -472,6 +472,9 @@ model PersonalTask {
   /// Si las subtareas se ven o están recogidas
   subsFolded Boolean       @default(false)
 
+  /// Marcada para hoy con la estrella, como en la app de escritorio
+  today      Boolean       @default(false)
+
   /// Viene de la app de escritorio: su id de allá, para no importar dos veces
   externalId String?
 
