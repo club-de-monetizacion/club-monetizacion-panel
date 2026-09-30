@@ -129,7 +129,18 @@ export default async function LoginPage({
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-[var(--ink-3)]">
+        {/* La recuperación vive en el panel, que es quien tiene las contraseñas.
+            Esta app no puede restablecer ninguna. */}
+        <p className="mt-5 text-center text-sm">
+          <a
+            href="https://panel.clubdemonetizacion.com/?olvide=1"
+            className="focus-ring rounded text-[var(--ink-2)] underline decoration-white/20 underline-offset-4 transition hover:text-[var(--ink-0)]"
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-[var(--ink-3)]">
           Es la misma contraseña del panel del Club. Si no puedes entrar, pídele
           acceso a Diego.
         </p>
