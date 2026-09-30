@@ -125,7 +125,11 @@ const nextAuth = NextAuth({
         }
         return true;
       }
-      return isLoggedIn;
+      // Sin sesión se manda a /login **sin** el `?callbackUrl=…` que añade Auth.js:
+      // el enlace que se comparte por WhatsApp quedaba kilométrico. Después de
+      // entrar se va a la portada, que es a donde lleva el formulario de todas formas.
+      if (!isLoggedIn) return Response.redirect(new URL("/login", request.nextUrl));
+      return true;
     },
     async signIn({ user }) {
       // El papel ya lo asignó `authorize` con lo que dijo el panel del Club.
