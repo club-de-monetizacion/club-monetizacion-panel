@@ -12,12 +12,17 @@ export function CampoClave({
   label = "Contraseña",
   autoComplete = "current-password",
   ayuda,
+  obligatorio = true,
 }: {
   id?: string;
   name?: string;
   label?: string;
   autoComplete?: string;
   ayuda?: string;
+  /** Un campo obligatorio y escondido (dentro de un `details` cerrado) bloquea el
+      envío del formulario sin avisar: el navegador no puede enfocarlo para pedirlo.
+      Por eso el PIN, que vive escondido, no es obligatorio. */
+  obligatorio?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -34,7 +39,7 @@ export function CampoClave({
           id={id}
           name={name}
           type={visible ? "text" : "password"}
-          required
+          required={obligatorio}
           autoComplete={autoComplete}
           className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 pr-11 text-sm text-[var(--ink-0)]"
         />

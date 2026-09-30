@@ -101,6 +101,7 @@ export default async function LoginPage({
                 name="pin"
                 label="PIN del panel"
                 autoComplete="off"
+                obligatorio={false}
                 ayuda="Arriba va tu clave maestra y aquí el PIN. Luego pulsa Entrar."
               />
             </div>
