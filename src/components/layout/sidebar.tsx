@@ -75,11 +75,11 @@ export function Sidebar({
           Inicio
         </NavLink>
         <NavLink
-          href="/tareas-personales"
+          href="/pendientes"
           icon={<ClipboardList className="h-4 w-4" />}
-          active={isActive("/tareas-personales")}
+          active={isActive("/pendientes")}
         >
-          Tareas personales
+          Pendientes
         </NavLink>
         <NavLink
           href="/ideas"
