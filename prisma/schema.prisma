@@ -44,6 +44,15 @@ enum TaskStatus {
   COMPLETADA
 }
 
+/// Los cuatro tipos de la captura rápida de Pendientes (la app de escritorio de
+/// Diego). No se mezclan con TaskType, que es del tablero del equipo.
+enum KindPendiente {
+  TAREA
+  IDEA
+  VIDEO
+  SKOOL
+}
+
 enum Priority {
   BAJA
   MEDIA
@@ -58,21 +67,27 @@ enum BackgroundType {
   SOLID
 }
 
-/** How often a daily task item is scheduled to show up on the checklist. */
+/**
+ * How often a daily task item is scheduled to show up on the checklist.
+ */
 enum TaskRecurrence {
   DAILY
   WEEKLY
   ONCE
 }
 
-/** SUPPORT is the shared support checklist (visible to admins in the
- * monitoring page); PERSONAL is private to its owner and never shown there. */
+/**
+ * SUPPORT is the shared support checklist (visible to admins in the
+ * monitoring page); PERSONAL is private to its owner and never shown there.
+ */
 enum TaskCategory {
   SUPPORT
   PERSONAL
 }
 
-/** The kind of a whiteboard element on an idea's canvas. */
+/**
+ * The kind of a whiteboard element on an idea's canvas.
+ */
 enum BoardElementKind {
   STICKY
   TEXT
@@ -85,34 +100,34 @@ enum BoardElementKind {
 }
 
 model User {
-  id               String    @id @default(cuid())
+  id               String         @id @default(cuid())
   name             String?
-  email            String    @unique
+  email            String         @unique
   emailVerified    DateTime?
-  image            String?   @db.Text
-  role             Role      @default(MIEMBRO)
+  image            String?        @db.Text
+  role             Role           @default(MIEMBRO)
   bio              String?
-  accentColor      String    @default("#c9a040")
+  accentColor      String         @default("#c9a040")
   backgroundType   BackgroundType @default(PARTICLES)
-  backgroundColor  String    @default("#05091a")
-  particlesEnabled Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  backgroundColor  String         @default("#05091a")
+  particlesEnabled Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  accounts         Account[]
-  sessions         Session[]
-  assignedTasks    Task[]    @relation("AssignedTasks")
-  createdTasks     Task[]    @relation("CreatedTasks")
-  createdProjects  Project[]
-  comments         Comment[]
-  cannedResponses  CannedResponse[]
-  faqItems         FaqItem[]
-  quickLinks       QuickLink[]
-  ideas            Idea[]
-  ideaNodes        IdeaNode[]
-  dailyTaskItems   DailyTaskItem[]
-  dailyTaskLogs    DailyTaskLog[]
-  personalTasks    PersonalTask[]
+  accounts        Account[]
+  sessions        Session[]
+  assignedTasks   Task[]           @relation("AssignedTasks")
+  createdTasks    Task[]           @relation("CreatedTasks")
+  createdProjects Project[]
+  comments        Comment[]
+  cannedResponses CannedResponse[]
+  faqItems        FaqItem[]
+  quickLinks      QuickLink[]
+  ideas           Idea[]
+  ideaNodes       IdeaNode[]
+  dailyTaskItems  DailyTaskItem[]
+  dailyTaskLogs   DailyTaskLog[]
+  personalTasks   PersonalTask[]
 }
 
 model Account {
@@ -151,18 +166,18 @@ model VerificationToken {
 }
 
 model Project {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
   platform    Platform
   driveLink   String?
-  color       String    @default("#6366f1")
-  archived    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  color       String   @default("#6366f1")
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   createdById String
-  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdBy   User   @relation(fields: [createdById], references: [id])
   tasks       Task[]
 
   @@index([platform])
@@ -185,14 +200,14 @@ model Task {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  projectId   String?
-  project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  assigneeId  String?
-  assignee    User?         @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeId String?
+  assignee   User?   @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
 
   createdById String
-  createdBy   User          @relation("CreatedTasks", fields: [createdById], references: [id])
+  createdBy   User   @relation("CreatedTasks", fields: [createdById], references: [id])
 
   comments       Comment[]
   attachments    Attachment[]
@@ -203,7 +218,9 @@ model Task {
   @@index([assigneeId])
 }
 
-/** A manually managed to-do item on a task, e.g. production steps for a video. */
+/**
+ * A manually managed to-do item on a task, e.g. production steps for a video.
+ */
 model ChecklistItem {
   id        String   @id @default(cuid())
   label     String
@@ -220,7 +237,9 @@ enum AttachmentKind {
   DOCUMENT
 }
 
-/** A screenshot or document attached to a task (e.g. a Skool update). */
+/**
+ * A screenshot or document attached to a task (e.g. a Skool update).
+ */
 model Attachment {
   id        String         @id @default(cuid())
   kind      AttachmentKind
@@ -229,8 +248,8 @@ model Attachment {
   size      Int
   createdAt DateTime       @default(now())
 
-  taskId    String
-  task      Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -238,14 +257,16 @@ model Comment {
   body      String
   createdAt DateTime @default(now())
 
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 }
 
-/** Canned answers the support team can copy-paste into a conversation. */
+/**
+ * Canned answers the support team can copy-paste into a conversation.
+ */
 model CannedResponse {
   id        String   @id @default(cuid())
   title     String
@@ -257,7 +278,9 @@ model CannedResponse {
   createdBy   User   @relation(fields: [createdById], references: [id])
 }
 
-/** A common support question paired with the answer to copy and send. */
+/**
+ * A common support question paired with the answer to copy and send.
+ */
 model FaqItem {
   id        String   @id @default(cuid())
   question  String
@@ -269,7 +292,9 @@ model FaqItem {
   createdBy   User   @relation(fields: [createdById], references: [id])
 }
 
-/** Frequently-needed links (docs, forms, dashboards) kept handy to copy. */
+/**
+ * Frequently-needed links (docs, forms, dashboards) kept handy to copy.
+ */
 model QuickLink {
   id          String   @id @default(cuid())
   title       String
@@ -279,10 +304,12 @@ model QuickLink {
   updatedAt   DateTime @updatedAt
 
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdBy   User   @relation(fields: [createdById], references: [id])
 }
 
-/** A quick idea the team jotted down to revisit later. */
+/**
+ * A quick idea the team jotted down to revisit later.
+ */
 model Idea {
   id        String           @id @default(cuid())
   body      String           @db.Text
@@ -304,7 +331,9 @@ model Idea {
   connectionsTo   IdeaConnection[]     @relation("IdeaConnTo")
 }
 
-/** An arrow connecting two ideas on the shared Pizarra board. */
+/**
+ * An arrow connecting two ideas on the shared Pizarra board.
+ */
 model IdeaConnection {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -315,8 +344,10 @@ model IdeaConnection {
   target   Idea   @relation("IdeaConnTo", fields: [targetId], references: [id], onDelete: Cascade)
 }
 
-/** An element (sticky note, text, title, or shape) on an idea's own
- * whiteboard, used to develop it further. */
+/**
+ * An element (sticky note, text, title, or shape) on an idea's own
+ * whiteboard, used to develop it further.
+ */
 model IdeaNode {
   id        String           @id @default(cuid())
   body      String           @db.Text
@@ -339,7 +370,9 @@ model IdeaNode {
   connectionsTo   IdeaNodeConnection[] @relation("IdeaNodeConnTo")
 }
 
-/** An arrow connecting two elements within a single idea's own whiteboard. */
+/**
+ * An arrow connecting two elements within a single idea's own whiteboard.
+ */
 model IdeaNodeConnection {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -353,19 +386,25 @@ model IdeaNodeConnection {
   target   IdeaNode @relation("IdeaNodeConnTo", fields: [targetId], references: [id], onDelete: Cascade)
 }
 
-/** A recurring daily task template owned by one team member (e.g. someone
+/**
+ * A recurring daily task template owned by one team member (e.g. someone
  * on support). Not date-scoped itself — "today done or not" is derived from
  * whether a DailyTaskLog exists for today, which is what gives the natural
- * daily reset without needing a cron job. */
+ * daily reset without needing a cron job.
+ */
 model DailyTaskItem {
   id         String         @id @default(cuid())
   label      String
   position   Int            @default(0)
   category   TaskCategory   @default(SUPPORT)
   recurrence TaskRecurrence @default(DAILY)
-  /** Used when recurrence = WEEKLY. JS getUTCDay() convention: 0=Sun..6=Sat. */
+  /**
+   * Used when recurrence = WEEKLY. JS getUTCDay() convention: 0=Sun..6=Sat.
+   */
   weekdays   Int[]          @default([])
-  /** Used when recurrence = ONCE — the single day this task is scheduled for. */
+  /**
+   * Used when recurrence = ONCE — the single day this task is scheduled for.
+   */
   onDate     DateTime?      @db.Date
   createdAt  DateTime       @default(now())
 
@@ -377,9 +416,11 @@ model DailyTaskItem {
   @@index([userId])
 }
 
-/** One completion record for one task on one calendar day. Its mere
+/**
+ * One completion record for one task on one calendar day. Its mere
  * existence means "done that day" — checking a box creates it, unchecking
- * deletes it — so history simply accumulates as time passes. */
+ * deletes it — so history simply accumulates as time passes.
+ */
 model DailyTaskLog {
   id          String   @id @default(cuid())
   date        DateTime @db.Date
@@ -395,13 +436,20 @@ model DailyTaskLog {
   @@index([userId, date])
 }
 
-/** A private "someday" list, entirely separate from the recurring daily
+/**
+ * A private "someday" list, entirely separate from the recurring daily
  * checklist above: jot a quick idea or task down, flesh it out with a
  * description whenever you get to it, check it off, and it quietly moves
  * itself to the archive a day later. Owned by exactly one user — no admin
  * override anywhere in the code that touches this model, unlike
  * DailyTaskItem's SUPPORT category. "Archived" isn't a stored flag: it's
- * derived from doneAt so unchecking a task always brings it right back. */
+ * derived from doneAt so unchecking a task always brings it right back.
+ */
+/// Los pendientes privados de cada persona: lo que antes era la app de escritorio
+/// "Pendientes" de Diego. Nadie ve los de nadie más.
+///
+/// Los campos de abajo de `doneAt` se añadieron al fusionar esa app: son opcionales
+/// o tienen valor por defecto, así que lo que ya estaba guardado sigue igual.
 model PersonalTask {
   id          String    @id @default(cuid())
   title       String
@@ -411,8 +459,42 @@ model PersonalTask {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  /// tarea, idea, video o skool
+  kind       KindPendiente @default(TAREA)
+  /// 0 normal · 1 importante (!) · 2 urgente (!!)
+  priority   Int           @default(0)
+  /// Para cuándo hay que terminarla. Solo la fecha, sin hora.
+  due        DateTime?
+  /// Las etiquetas libres que se escriben con #
+  tags       String[]      @default([])
+  /// El orden que la persona le dio arrastrando
+  order      Int           @default(0)
+  /// Si las subtareas se ven o están recogidas
+  subsFolded Boolean       @default(false)
+
+  /// Viene de la app de escritorio: su id de allá, para no importar dos veces
+  externalId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  subtasks PersonalSubtask[]
+
+  @@unique([userId, externalId])
   @@index([userId, done])
+  @@index([userId, due])
+}
+
+/// Un paso dentro de un pendiente. Se borran con su pendiente.
+model PersonalSubtask {
+  id        String   @id @default(cuid())
+  title     String
+  done      Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   PersonalTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, order])
 }
