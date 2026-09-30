@@ -475,6 +475,11 @@ model PersonalTask {
   /// Marcada para hoy con la estrella, como en la app de escritorio
   today      Boolean       @default(false)
 
+  /// Cuándo se borró. La fila **no se elimina**: si desapareciera sin rastro, la app
+  /// de escritorio (que todavía la tiene) la volvería a subir en la siguiente
+  /// sincronización. Es la misma marca que usa allá. Se limpian a los 30 días.
+  deletedAt  DateTime?
+
   /// Viene de la app de escritorio: su id de allá, para no importar dos veces
   externalId String?
 
@@ -485,6 +490,7 @@ model PersonalTask {
 
   @@unique([userId, externalId])
   @@index([userId, done])
+  @@index([userId, deletedAt])
   @@index([userId, due])
 }
 

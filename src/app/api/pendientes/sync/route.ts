@@ -83,10 +83,14 @@ export async function POST(req: Request) {
       where: { userId_externalId: { userId, externalId } },
     });
 
-    // Lo borrado en el Mac se borra aquí. Si nunca llegó, no hay nada que hacer.
+    /* Lo borrado en el Mac se marca aquí, no se elimina: la marca es lo que hace
+       que el resto de los aparatos se enteren. Si nunca llegó, nada que hacer. */
     if (it.deleted) {
-      if (ya) {
-        await prisma.personalTask.delete({ where: { id: ya.id } });
+      if (ya && !ya.deletedAt) {
+        await prisma.personalTask.update({
+          where: { id: ya.id },
+          data: { deletedAt: new Date(Number(it.updatedAt) || Date.now()) },
+        });
         borrados++;
       }
       continue;
@@ -98,6 +102,11 @@ export async function POST(req: Request) {
     // Si lo de aquí es más nuevo, se deja: el Mac lo recibirá en la respuesta.
     const suFecha = Number(it.updatedAt) || 0;
     if (ya && suFecha && ya.updatedAt.getTime() > suFecha) continue;
+
+    /* Estaba borrado aquí y el Mac lo manda como vivo: solo revive si su cambio es
+       posterior al borrado. Si no, se respeta el borrado y el Mac lo recibirá en la
+       respuesta. Esto es lo que evitaba que lo borrado volviera solo. */
+    if (ya?.deletedAt && suFecha && ya.deletedAt.getTime() > suFecha) continue;
 
     const datos = {
       title: texto,
@@ -111,6 +120,7 @@ export async function POST(req: Request) {
       doneAt: it.doneAt ? new Date(it.doneAt) : null,
       userId,
       externalId,
+      deletedAt: null,   // llega como vivo desde el Mac
     };
 
     const subs = (Array.isArray(it.subs) ? it.subs : [])
@@ -131,11 +141,20 @@ export async function POST(req: Request) {
     guardados++;
   }
 
-  // Y de vuelta: lo que cambió aquí desde la última vez, en el formato del Mac.
+  /* Y de vuelta: lo que cambió aquí desde la última vez, **incluido lo borrado**.
+     Sin los borrados, el Mac los volvía a subir en la siguiente ronda y lo que se
+     quitaba aquí reaparecía solo. */
   const salen = await prisma.personalTask.findMany({
     where: { userId, ...(desde ? { updatedAt: { gt: new Date(desde) } } : {}) },
     include: { subtasks: { orderBy: { order: "asc" } } },
   });
+
+  /* Los tombstones viejos se van: a los 30 días ya no queda ningún aparato que
+     pueda resucitar esa fila, y acumularlas engorda la tabla para siempre. */
+  const hace30dias = new Date(Date.now() - 30 * 86400000);
+  await prisma.personalTask
+    .deleteMany({ where: { userId, deletedAt: { lt: hace30dias } } })
+    .catch(() => undefined);
 
   return NextResponse.json({
     ok: true,
@@ -156,7 +175,8 @@ export async function POST(req: Request) {
       createdAt: f.createdAt.getTime(),
       doneAt: f.doneAt ? f.doneAt.getTime() : null,
       updatedAt: f.updatedAt.getTime(),
-      deleted: false,
+      deleted: !!f.deletedAt,
+      deletedAt: f.deletedAt ? f.deletedAt.getTime() : null,
     })),
   });
 }
@@ -172,6 +192,6 @@ export async function GET(req: Request) {
     select: { name: true, email: true },
   });
   if (!p) return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 401 });
-  const cuantos = await prisma.personalTask.count({ where: { userId } });
+  const cuantos = await prisma.personalTask.count({ where: { userId, deletedAt: null } });
   return NextResponse.json({ ok: true, nombre: p.name, correo: p.email, pendientes: cuantos });
 }

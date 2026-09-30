@@ -29,7 +29,9 @@ function refrescar() {
 async function miPendiente(id: string) {
   const session = await requireSession();
   const fila = await prisma.personalTask.findUnique({ where: { id } });
-  if (!fila || fila.userId !== session.user.id) throw new Error("No encontrado");
+  if (!fila || fila.userId !== session.user.id || fila.deletedAt) {
+    throw new Error("No encontrado");
+  }
   return { fila, userId: session.user.id };
 }
 
@@ -50,7 +52,7 @@ export async function crearPendiente(texto: string, tipo: string = "TAREA", plaz
 
   // Lo nuevo va arriba: el orden más bajo es el primero de la lista.
   const primero = await prisma.personalTask.aggregate({
-    where: { userId: session.user.id, done: false },
+    where: { userId: session.user.id, done: false, deletedAt: null },
     _min: { order: true },
   });
 
@@ -147,16 +149,22 @@ export async function cambiarPlazoPendiente(id: string, plazo: string | null) {
 
 export async function borrarPendiente(id: string) {
   await miPendiente(id);
-  // Las subtareas se van con él (onDelete: Cascade en el esquema).
-  await prisma.personalTask.delete({ where: { id } });
+  /* Se marca, no se elimina: si la fila desapareciera sin rastro, la app de
+     escritorio (que todavía la tiene) la volvería a subir en la siguiente
+     sincronización. Es el mismo criterio que allá. */
+  await prisma.personalTask.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
   refrescar();
   return { success: true };
 }
 
 export async function limpiarHechos() {
   const session = await requireSession();
-  const { count } = await prisma.personalTask.deleteMany({
-    where: { userId: session.user.id, done: true },
+  const { count } = await prisma.personalTask.updateMany({
+    where: { userId: session.user.id, done: true, deletedAt: null },
+    data: { deletedAt: new Date() },
   });
   refrescar();
   return { success: true, borrados: count };
@@ -233,7 +241,7 @@ export type PendienteVista = {
 export async function misPendientes(): Promise<PendienteVista[]> {
   const session = await requireSession();
   const filas = await prisma.personalTask.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, deletedAt: null },
     include: { subtasks: { orderBy: { order: "asc" } } },
     orderBy: [{ done: "asc" }, { order: "asc" }, { createdAt: "desc" }],
   });
