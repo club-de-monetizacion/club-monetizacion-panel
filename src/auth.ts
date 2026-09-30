@@ -18,10 +18,13 @@ const adminEmails = (process.env.ADMIN_EMAILS ?? "")
 
 /**
  * Cada cuánto se le vuelve a preguntar al panel si la persona sigue teniendo acceso.
- * Preguntar en cada petición sería lo más seguro y lo más lento; cinco minutos es el
- * punto medio: «Quitar acceso» en el panel surte efecto casi al instante.
+ *
+ * Esa pregunta va dentro de una navegación, así que se paga en la pantalla: con cinco
+ * minutos, la primera navegación de cada rato tardaba dos segundos. Con un cuarto de
+ * hora se paga cuatro veces menos y «Quitar acceso» sigue surtiendo efecto pronto.
+ * El tope de espera del panel son 2 s (ver `lib/panel-club.ts`).
  */
-const REVALIDAR_CADA_MS = 5 * 60 * 1000;
+const REVALIDAR_CADA_MS = 15 * 60 * 1000;
 
 declare module "next-auth" {
   interface Session {

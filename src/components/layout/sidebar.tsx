@@ -190,6 +190,9 @@ function NavLink({
   return (
     <Link
       href={href}
+      /* Se adelanta la página al pasar el ratón por encima, así el clic ya no espera
+         al servidor. Es lo que hace que la navegación se sienta inmediata. */
+      prefetch
       className={cn(
         "focus-ring flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
         active

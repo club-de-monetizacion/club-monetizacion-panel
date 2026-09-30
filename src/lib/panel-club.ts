@@ -14,6 +14,14 @@ const PANEL =
 /** Un panel lento no puede dejar el login colgado. */
 const ESPERA_MAX_MS = 10_000;
 
+/**
+ * Para revalidar una sesión ya abierta el tope es mucho más corto: esa llamada va
+ * dentro de una navegación, así que cada segundo que tarde el panel es un segundo
+ * que la persona mira una pantalla en blanco. Si no contesta a tiempo, no se echa a
+ * nadie: se deja la sesión como está y se reintenta en la siguiente.
+ */
+const ESPERA_REVALIDA_MS = 2_000;
+
 /** Los papeles que reparte el panel. `mirar` es de solo consulta. */
 export type RolPanel = "maestro" | "equipo" | "mirar";
 
@@ -21,7 +29,10 @@ export type Entrada =
   | { ok: true; tok: string; nombre: string | null; rol: RolPanel }
   | { ok: false; error: string };
 
-async function pide(cuerpo: Record<string, unknown>): Promise<{
+async function pide(
+  cuerpo: Record<string, unknown>,
+  esperaMs: number = ESPERA_MAX_MS,
+): Promise<{
   estado: number;
   datos: Record<string, unknown>;
 }> {
@@ -30,7 +41,7 @@ async function pide(cuerpo: Record<string, unknown>): Promise<{
     headers: { "content-type": "application/json" },
     body: JSON.stringify(cuerpo),
     cache: "no-store",
-    signal: AbortSignal.timeout(ESPERA_MAX_MS),
+    signal: AbortSignal.timeout(esperaMs),
   });
   let datos: Record<string, unknown> = {};
   try {
@@ -77,7 +88,7 @@ export async function sigueValida(
   tok: string,
 ): Promise<{ ok: true; rol: RolPanel; email: string } | { ok: false; caducada: boolean }> {
   try {
-    const { estado, datos } = await pide({ action: "yo", tok });
+    const { estado, datos } = await pide({ action: "yo", tok }, ESPERA_REVALIDA_MS);
     if (estado === 200 && datos.ok === true) {
       const rol = texto(datos.rol) as RolPanel | null;
       const email = texto(datos.email);
