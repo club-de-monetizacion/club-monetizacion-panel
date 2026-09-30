@@ -82,7 +82,7 @@ function ParticleCanvas({
       height = canvas.offsetHeight;
       canvas.width = width * dpr;
       canvas.height = height * dpr;
-      const count = Math.min(110, Math.round((width * height) / 14000));
+      const count = Math.min(72, Math.round((width * height) / 22000));
       estrellas = Array.from({ length: count }, () => {
         const z = Math.random();                       // 0 = al fondo, 1 = delante
         return {
@@ -115,17 +115,33 @@ function ParticleCanvas({
     window.addEventListener("pointermove", mueve, { passive: true });
     window.addEventListener("pointerleave", sale);
 
-    const cerca = (p: Estrella) => {
-      if (!raton.dentro) return 0;
-      const d = Math.hypot(p.x - raton.x, p.y - raton.y);
-      return d > RADIO_RATON ? 0 : 1 - d / RADIO_RATON;
-    };
+    /* Se calcula una vez por estrella y por fotograma, no dentro del bucle de
+       uniones: ahí eran miles de raíces cuadradas por fotograma y se notaba. */
+    let cercania: number[] = [];
+    function midaCercania() {
+      const n = estrellas.length;
+      if (cercania.length !== n) cercania = new Array(n).fill(0);
+      if (!raton.dentro) { cercania.fill(0); return; }
+      const rr = RADIO_RATON * RADIO_RATON;
+      for (let i = 0; i < n; i++) {
+        const p = estrellas[i];
+        const dx = p.x - raton.x;
+        const dy = p.y - raton.y;
+        const d2 = dx * dx + dy * dy;
+        cercania[i] = d2 > rr ? 0 : 1 - Math.sqrt(d2) / RADIO_RATON;
+      }
+    }
 
     let raf = 0;
     let t0 = 0;
+    let ultimo = 0;
+    const MS_POR_CUADRO = 1000 / 40;
     function frame(ahora: number) {
       if (!ctx) return;
-      const paso = t0 ? Math.min((ahora - t0) / 16.67, 3) : 1;   // estable a 60 y a 120 Hz
+      if (!prefersReduced) raf = requestAnimationFrame(frame);
+      if (ahora - ultimo < MS_POR_CUADRO) return;                // tope de 40 fps
+      ultimo = ahora;
+      const paso = t0 ? Math.min((ahora - t0) / 16.67, 4) : 1;   // estable a 60 y a 120 Hz
       t0 = ahora;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -138,20 +154,23 @@ function ParticleCanvas({
         if (p.x < 0 || p.x > width) p.vx *= -1;
         if (p.y < 0 || p.y > height) p.vy *= -1;
       }
+      midaCercania();
 
       // Las uniones, primero: las estrellas quedan encima y se ven nítidas.
       for (let i = 0; i < estrellas.length; i++) {
         const a = estrellas[i];
-        const ca = cerca(a);
+        const ca = cercania[i];
         for (let j = i + 1; j < estrellas.length; j++) {
           const bP = estrellas[j];
-          const alcance = 120 + Math.max(ca, cerca(bP)) * 70;
+          const cercaMax = ca > cercania[j] ? ca : cercania[j];
+          const alcance = 120 + cercaMax * 70;
           const dx = a.x - bP.x;
           const dy = a.y - bP.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist >= alcance) continue;
+          const d2 = dx * dx + dy * dy;
+          if (d2 >= alcance * alcance) continue;      // sin raíz si no hace falta
+          const dist = Math.sqrt(d2);
           const fuerza = 1 - dist / alcance;
-          const viveza = 1 + Math.max(ca, cerca(bP)) * 2.1;
+          const viveza = 1 + cercaMax * 2.1;
           ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${lineAlpha * fuerza * viveza})`;
           ctx.lineWidth = 0.6 + fuerza * 0.7;
           ctx.beginPath();
@@ -161,14 +180,16 @@ function ParticleCanvas({
         }
       }
 
-      for (const p of estrellas) {
+      for (let i = 0; i < estrellas.length; i++) {
+        const p = estrellas[i];
         const titila = 0.72 + Math.sin(p.fase) * 0.28;
-        const c = cerca(p);
+        const c = cercania[i];
         const alfa = Math.min(1, dotAlpha * (0.45 + p.z * 0.55) * titila * (1 + c * 1.5));
         const tam = p.r * (1 + c * 0.55);
 
-        if (hctx) {
+        if (hctx && (p.z > 0.45 || c > 0.05)) {
           // El halo, que es lo que le da el brillo de estrella y no de punto plano.
+          // Solo en las de delante (o cerca del ratón): en las del fondo no se nota.
           const brillo = tam * (5.5 + c * 3);
           ctx.globalAlpha = alfa * 0.5;
           ctx.drawImage(halo, p.x - brillo, p.y - brillo, brillo * 2, brillo * 2);
@@ -180,8 +201,6 @@ function ParticleCanvas({
         ctx.arc(p.x, p.y, tam, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      if (!prefersReduced) raf = requestAnimationFrame(frame);
     }
 
     resize();
