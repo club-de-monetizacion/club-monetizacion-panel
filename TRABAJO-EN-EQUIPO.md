@@ -48,6 +48,38 @@ Cómo queda al final:
 La app de Electron **ya sabe cargar esta web por dentro** (está hecho y probado en el
 repositorio `diegocabrera22/pendientes`, ajuste `webUrl`). Lo que falta es cómo captura.
 
+## Pendientes: la app de escritorio de Diego, ya dentro  ✅ hecho
+
+**Hecho la noche del 30 sep 2026.** Sustituyó a "Tareas personales".
+
+- `/pendientes` es la pantalla. La vieja `/tareas-personales` redirige ahí.
+- La captura de corrido (`Grabar módulo 4 #master @viernes !!`) sale con etiqueta,
+  plazo y urgencia: `lib/pendientes-parse.ts` y `lib/pendientes-fechas.ts` son el
+  mismo parser de la app de escritorio, portado.
+- Cuatro tipos con su color (TAREA, IDEA, VIDEO, SKOOL), filtros con su cuenta,
+  buscador, subtareas plegables, y las hechas recogidas abajo.
+- `PersonalTask` creció para esto: tipo, prioridad, plazo, etiquetas, orden y
+  `PersonalSubtask`. Más `externalId`, el id que la tarea tenía en el Mac.
+- **Cada acción comprueba que la fila es de quien la pide**, sin excepción para
+  administradores. Esta lista es privada.
+
+### La app de escritorio sincroniza con la plataforma
+
+`POST /api/pendientes/sync` recibe los cambios del Mac y devuelve los de aquí, en la
+misma llamada. Cuando los dos tocaron lo mismo, **gana el más reciente** por
+`updatedAt`. Probado en las dos direcciones, borrados incluidos.
+
+La app del Mac no es un navegador con sesión: manda una llave en la cabecera
+(`lib/sync-token.ts`), derivada de `AUTH_SECRET` y del id de la persona. No se guarda
+en ninguna tabla y da acceso **solo a los pendientes de esa persona**. `AUTH_SECRET`
+las invalida todas de golpe. `scripts/llave-sync.mjs` saca la de alguien.
+
+El middleware deja pasar `/api/pendientes/` y `/api/perfil/foto` sin sesión de
+navegador; si no, la app recibía el HTML del login.
+
+`pendientes.clubdemonetizacion.com` **ya no existe como herramienta**: redirige aquí.
+Su `/api/` sigue en pie un tiempo por si algo apunta todavía ahí.
+
 ## Lo que hace falta de este lado
 
 ### 1. Una ruta para la captura rápida  ← lo primero
@@ -198,6 +230,22 @@ Si tocas el esquema de Prisma, una ruta de la API o cómo se autentica, **dilo e
 mensaje del commit** y avísale a tu humano para que se lo diga al otro. El botón
 flotante del Mac va a llamar a esta app: un cambio ahí lo rompe desde el otro lado sin
 que se note nada aquí.
+
+## La identidad es la del Club, no una parecida
+
+El sistema visual sale de `club.css` (el del panel y la Bóveda) y está en
+`app/globals.css`: los cuatro tonos del dorado, los seis del azul noche, las tarjetas
+con su degradado y su sombra, las dos auroras del fondo, los botones `.btn-oro` y
+`.btn-fantasma`, las pastillas `.chip`, y las tipografías Inter y Space Grotesk.
+
+**Si se cambia algo allá, se cambia aquí.** Es una sola identidad, no tres parecidas.
+Y el dorado lleva **texto oscuro** (`#1a1200`): con blanco no se lee.
+
+Las tarjetas de Pendientes (`.item-pendiente`) copian la animación de la app de
+escritorio, con sus mismos tiempos y su misma curva.
+
+Los colores del perfil se recargan junto con la revalidación contra el panel: un
+cambio de identidad se ve sin tener que volver a entrar.
 
 ## Estilo
 
