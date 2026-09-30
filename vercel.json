@@ -1,3 +1,11 @@
 {
-  "regions": ["iad1"]
+  "regions": [
+    "iad1"
+  ],
+  "crons": [
+    {
+      "path": "/api/latido",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
