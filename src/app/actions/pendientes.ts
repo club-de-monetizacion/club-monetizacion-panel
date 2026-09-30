@@ -208,6 +208,7 @@ export type PendienteVista = {
   plazo: string | null;
   etiquetas: string[];
   plegadas: boolean;
+  creado: string;
   subtareas: { id: string; texto: string; hecho: boolean }[];
 };
 
@@ -228,6 +229,7 @@ export async function misPendientes(): Promise<PendienteVista[]> {
     plazo: deFecha(f.due),
     etiquetas: f.tags,
     plegadas: f.subsFolded,
+    creado: f.createdAt.toISOString(),
     subtareas: f.subtasks.map((s) => ({ id: s.id, texto: s.title, hecho: s.done })),
   }));
 }

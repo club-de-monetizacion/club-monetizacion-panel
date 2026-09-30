@@ -118,7 +118,14 @@ const nextAuth = NextAuth({
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
-      const isOnLogin = request.nextUrl.pathname.startsWith("/login");
+      const ruta = request.nextUrl.pathname;
+
+      /* La app de escritorio no tiene sesión de navegador: se identifica con su
+         llave en la cabecera y la comprueba la propia ruta. Si se le exigiera
+         sesión aquí, recibiría el HTML del login en vez de sus pendientes. */
+      if (ruta.startsWith("/api/pendientes/")) return true;
+
+      const isOnLogin = ruta.startsWith("/login");
       if (isOnLogin) {
         if (isLoggedIn) {
           return Response.redirect(new URL("/", request.nextUrl));

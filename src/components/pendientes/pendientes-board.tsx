@@ -16,7 +16,21 @@ import {
   type PendienteVista,
 } from "@/app/actions/pendientes";
 import { TIPOS, TIPO_POR_ID, type TipoId } from "@/lib/pendientes-parse";
-import { comoTexto, hoyTexto, paraHoy, vencida } from "@/lib/pendientes-fechas";
+import { MESES, comoTexto, hoyTexto, paraHoy, vencida } from "@/lib/pendientes-fechas";
+
+/** "24 sep", o la hora si es de hoy: lo mismo que muestra la app de escritorio. */
+function fechaCorta(iso: string) {
+  const d = new Date(iso);
+  const hoy = new Date();
+  const mismoDia =
+    d.getDate() === hoy.getDate() &&
+    d.getMonth() === hoy.getMonth() &&
+    d.getFullYear() === hoy.getFullYear();
+  if (mismoDia) {
+    return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
+  return `${d.getDate()} ${MESES[d.getMonth()]}`;
+}
 
 type Filtro = "todo" | "hoy" | "TAREA" | "IDEA" | "VIDEO" | "SKOOL" | "plazo";
 
@@ -292,7 +306,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
             return (
               <li
                 key={p.id}
-                className="glass-panel group rounded-2xl p-3.5 transition-colors duration-200 hover:bg-white/[0.06]"
+                className="glass-panel group rounded-2xl px-4 py-3 transition-colors duration-200 hover:brightness-[1.15]"
                 style={
                   p.prioridad === 2
                     ? { borderLeft: "2.5px solid #ef4444" }
@@ -353,6 +367,15 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                       >
                         {t.corto}
                       </button>
+
+                      {/* La fecha en que se capturó, como en la app de escritorio */}
+                      <span className="flex items-center gap-1 text-[var(--ink-3)]" title="Cuándo lo apuntaste">
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 7.5V12l3 2" strokeLinecap="round" />
+                        </svg>
+                        {fechaCorta(p.creado)}
+                      </span>
 
                       {p.plazo ? (
                         <span
@@ -422,7 +445,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
 
                     {/* Los pasos: siempre a la vista salvo que se recojan */}
                     {!p.plegadas ? (
-                      <div className="mt-2.5 space-y-1.5 border-l border-white/10 pl-3">
+                      <div className={`mt-2 space-y-1.5 ${p.subtareas.length ? "border-l border-white/10 pl-3" : "pl-0.5"}`}>
                         {p.subtareas.map((s) => (
                           <div key={s.id} className="group/s flex items-center gap-2">
                             <button
@@ -456,6 +479,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
 
                         <input
                           value={nuevaSub[p.id] ?? ""}
+                          data-paso-nuevo
                           onChange={(e) => setNuevaSub({ ...nuevaSub, [p.id]: e.target.value })}
                           onKeyDown={(e) => {
                             if (e.key !== "Enter") return;
@@ -465,7 +489,9 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                             arranca(async () => { await agregarSubtarea(p.id, v); });
                           }}
                           placeholder="+ un paso"
-                          className="focus-ring w-full rounded-lg bg-transparent px-1 py-0.5 text-[13px] text-[var(--ink-1)] placeholder:text-[var(--ink-3)]/70 hover:bg-white/[0.04]"
+                          className={`focus-ring w-full rounded-lg bg-transparent px-1 py-0.5 text-[13px] text-[var(--ink-1)] placeholder:text-[var(--ink-3)]/70 hover:bg-white/[0.04] ${
+                            p.subtareas.length ? "" : "opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                          }`}
                         />
                       </div>
                     ) : null}
