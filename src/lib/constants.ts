@@ -112,8 +112,7 @@ export const BACKGROUND_TYPE_INFO: Record<
 export const ACCENT_PRESETS = [
   "#c9a040", // el dorado del Club: el de la casa
   "#e8c060", // el mismo, más claro
-  "#8b5cf6",
-  "#6366f1",
+  "#2468ff", // el azul vivo del Club
   "#3b82f6",
   "#06b6d4",
   "#10b981",

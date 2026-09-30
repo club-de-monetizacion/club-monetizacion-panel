@@ -138,7 +138,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
   return (
     <div className={`space-y-4 ${pendiente ? "opacity-[0.97]" : ""}`}>
       {/* ── La captura: se escribe todo de corrido y se reparte solo ── */}
-      <div className="glass-panel rounded-2xl p-3">
+      <div className="glass-panel campo-captura rounded-2xl p-3">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
           <textarea
             ref={campo}
@@ -306,14 +306,9 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
             return (
               <li
                 key={p.id}
-                className="glass-panel group rounded-2xl px-4 py-3 transition-colors duration-200 hover:brightness-[1.15]"
-                style={
-                  p.prioridad === 2
-                    ? { borderLeft: "2.5px solid #ef4444" }
-                    : p.prioridad === 1
-                      ? { borderLeft: "2.5px solid #eab308" }
-                      : undefined
-                }
+                className={`item-pendiente group px-3.5 py-3 ${
+                  p.prioridad === 2 ? "p2" : p.prioridad === 1 ? "p1" : ""
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <button

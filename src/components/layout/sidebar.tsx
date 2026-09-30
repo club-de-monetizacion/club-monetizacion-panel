@@ -149,7 +149,7 @@ export function Sidebar({
           </NavLink>
         )}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto space-y-1 pt-4">
           <NavLink
             href="/perfil"
             icon={<Settings className="h-4 w-4" />}
@@ -157,6 +157,19 @@ export function Sidebar({
           >
             Mi perfil
           </NavLink>
+
+          {/* Las herramientas del Club son las mismas cuentas: de aquí se vuelve al
+              panel sin tener que volver a entrar. */}
+          <a
+            href="https://panel.clubdemonetizacion.com"
+            className="focus-ring flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-[var(--ink-2)] transition hover:bg-[var(--oro)]/10 hover:text-[var(--oro-claro)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4 flex-none" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M10 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 12h13a5 5 0 0 1 5 5v2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Regresar al panel
+          </a>
         </div>
       </aside>
     </>

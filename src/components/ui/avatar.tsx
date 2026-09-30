@@ -18,7 +18,7 @@ export function Avatar({
   return (
     <AvatarPrimitive.Root
       className={cn(
-        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 ring-1 ring-white/10",
+        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[var(--oro-claro)] to-[var(--oro-hondo)] ring-1 ring-[var(--oro)]/30",
         className
       )}
       style={{ width: size, height: size }}

@@ -36,7 +36,7 @@ export function CreateProjectDialog({
 }) {
   const router = useRouter();
   const [platform, setPlatform] = useState<Platform>(defaultPlatform ?? "YOUTUBE");
-  const [color, setColor] = useState("#6366f1");
+  const [color, setColor] = useState("#c9a040");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

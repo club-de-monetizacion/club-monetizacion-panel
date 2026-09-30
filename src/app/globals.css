@@ -334,3 +334,39 @@ h1, h2, h3 {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ══════════ LAS TARJETAS DE PENDIENTES ══════════
+   Copiadas de la app de escritorio (`renderer/styles.css`, la clase `.item`), para
+   que se sientan igual: el degradado en diagonal, el borde que se aclara al pasar
+   por encima y la sombra que la levanta. Mismos tiempos y misma curva. */
+:root {
+  --curva: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --rapido: 0.16s var(--curva);
+  --suave: 0.24s var(--curva);
+  --lento: 0.3s var(--curva);
+}
+
+.item-pendiente {
+  background: linear-gradient(135deg, #0a1428, #101e3a);
+  border: 1px solid #142440;
+  border-radius: 14px;
+  transition: border-color var(--suave), background var(--suave),
+    box-shadow var(--suave), opacity var(--lento), transform var(--rapido);
+}
+.item-pendiente:hover {
+  border-color: #24406f;
+  background: linear-gradient(135deg, #0c1932, #13244a);
+  box-shadow: 0 0 0 1px rgba(30, 92, 232, 0.08), 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+/* El filo de color de la prioridad, como en el escritorio */
+.item-pendiente.p1 { border-left: 3px solid var(--oro); }
+.item-pendiente.p2 { border-left: 3px solid var(--rojo); }
+
+/* La caja de captura: el aro dorado al escribir, igual que allá */
+.campo-captura {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.campo-captura:focus-within {
+  border-color: var(--oro);
+  box-shadow: 0 0 0 3px rgba(201, 160, 64, 0.16), 0 0 22px rgba(201, 160, 64, 0.18);
+}

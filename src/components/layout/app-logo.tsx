@@ -36,7 +36,7 @@ export function AppLogo({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 font-bold text-white shadow-lg shadow-violet-900/30",
+          "flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--oro-claro)] to-[var(--oro-hondo)] font-bold text-[#1a1200] shadow-lg shadow-[var(--oro-hondo)]/30",
           className
         )}
       >

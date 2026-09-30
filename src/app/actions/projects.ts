@@ -41,7 +41,7 @@ export async function createProject(formData: FormData) {
       description: data.description || null,
       platform: data.platform,
       driveLink: data.driveLink || null,
-      color: data.color || "#6366f1",
+      color: data.color || "#c9a040",
       createdById: session.user.id,
     },
   });

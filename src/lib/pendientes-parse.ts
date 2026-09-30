@@ -55,7 +55,7 @@ export const TIPOS = [
   { id: "TAREA", label: "Tarea", corto: "TAREA", color: "#22c55e" },
   { id: "IDEA", label: "Idea", corto: "IDEA", color: "#eab308" },
   { id: "VIDEO", label: "Video", corto: "VIDEO", color: "#ef4444" },
-  { id: "SKOOL", label: "Skool", corto: "SKOOL", color: "#8b5cf6" },
+  { id: "SKOOL", label: "Skool", corto: "SKOOL", color: "#2468ff" },
 ] as const;
 
 export type TipoId = (typeof TIPOS)[number]["id"];
