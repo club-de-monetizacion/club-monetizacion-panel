@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import {
   agregarSubtarea,
   borrarPendiente,
@@ -60,8 +60,39 @@ function conEnlaces(texto: string) {
   });
 }
 
+type Retoque =
+  | { tipo: "marcar"; id: string; hecho: boolean }
+  | { tipo: "borrar"; id: string }
+  | { tipo: "plegar"; id: string; plegadas: boolean }
+  | { tipo: "sub"; id: string; hecho: boolean }
+  | { tipo: "tipo"; id: string; valor: PendienteVista["tipo"] };
+
+/**
+ * Lo que se toca se ve al instante y el servidor confirma detrás. Sin esto, cada
+ * casilla que se marcaba esperaba medio segundo a que la página volviera del
+ * servidor, y la app se sentía pesada aunque no lo fuera.
+ */
+function conRetoque(lista: PendienteVista[], r: Retoque): PendienteVista[] {
+  switch (r.tipo) {
+    case "borrar":
+      return lista.filter((p) => p.id !== r.id);
+    case "marcar":
+      return lista.map((p) => (p.id === r.id ? { ...p, hecho: r.hecho } : p));
+    case "plegar":
+      return lista.map((p) => (p.id === r.id ? { ...p, plegadas: r.plegadas } : p));
+    case "tipo":
+      return lista.map((p) => (p.id === r.id ? { ...p, tipo: r.valor } : p));
+    case "sub":
+      return lista.map((p) => ({
+        ...p,
+        subtareas: p.subtareas.map((s) => (s.id === r.id ? { ...s, hecho: r.hecho } : s)),
+      }));
+  }
+}
+
 export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
   const [pendiente, arranca] = useTransition();
+  const [lista0, retoca] = useOptimistic(inicial, conRetoque);
   const [texto, setTexto] = useState("");
   const [tipo, setTipo] = useState<TipoId>("TAREA");
   const [plazo, setPlazo] = useState("");
@@ -72,7 +103,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
   const [nuevaSub, setNuevaSub] = useState<Record<string, string>>({});
   const campo = useRef<HTMLTextAreaElement>(null);
 
-  const vivos = inicial.filter((p) => !p.hecho);
+  const vivos = lista0.filter((p) => !p.hecho);
   const cuenta = {
     todo: vivos.length,
     hoy: vivos.filter((p) => paraHoy(p.plazo)).length,
@@ -82,10 +113,10 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
     SKOOL: vivos.filter((p) => p.tipo === "SKOOL").length,
     plazo: vivos.filter((p) => p.plazo).length,
   };
-  const hechos = inicial.filter((p) => p.hecho).length;
+  const hechos = lista0.filter((p) => p.hecho).length;
 
   const lista = useMemo(() => {
-    let out = inicial.filter((p) => !p.hecho);
+    let out = lista0.filter((p) => !p.hecho);
     if (filtro === "hoy") out = out.filter((p) => paraHoy(p.plazo) || vencida(p.plazo));
     else if (filtro === "plazo") out = out.filter((p) => p.plazo);
     else if (filtro !== "todo") out = out.filter((p) => p.tipo === filtro);
@@ -107,11 +138,11 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
       if (b.plazo) return 1;
       return 0;
     });
-  }, [inicial, filtro, busca, etiqueta]);
+  }, [lista0, filtro, busca, etiqueta]);
 
   const etiquetas = useMemo(
     () => [...new Set(vivos.flatMap((p) => p.etiquetas))].sort(),
-    [inicial] // eslint-disable-line react-hooks/exhaustive-deps
+    [lista0] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   function agregar() {
@@ -313,7 +344,12 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                 <div className="flex items-start gap-3">
                   <button
                     type="button"
-                    onClick={() => arranca(async () => { await marcarPendiente(p.id, true); })}
+                    onClick={() =>
+                      arranca(async () => {
+                        retoca({ tipo: "marcar", id: p.id, hecho: true });
+                        await marcarPendiente(p.id, true);
+                      })
+                    }
                     aria-label="Marcar como hecha"
                     className="focus-ring mt-0.5 h-4.5 w-4.5 flex-none rounded-md border-2 border-white/20 transition hover:border-[var(--oro)] hover:bg-[var(--oro)]/20"
                   />
@@ -355,7 +391,10 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                         onClick={() => {
                           const i = TIPOS.findIndex((x) => x.id === p.tipo);
                           const sig = TIPOS[(i + 1) % TIPOS.length].id;
-                          arranca(async () => { await cambiarTipoPendiente(p.id, sig); });
+                          arranca(async () => {
+                            retoca({ tipo: "tipo", id: p.id, valor: sig });
+                            await cambiarTipoPendiente(p.id, sig);
+                          });
                         }}
                         className="rounded px-1.5 py-0.5 font-semibold tracking-wide transition hover:brightness-125"
                         style={{ background: `${t.color}22`, color: t.color }}
@@ -402,7 +441,10 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                         <button
                           type="button"
                           onClick={() =>
-                            arranca(async () => { await plegarSubtareas(p.id, !p.plegadas); })
+                            arranca(async () => {
+                              retoca({ tipo: "plegar", id: p.id, plegadas: !p.plegadas });
+                              await plegarSubtareas(p.id, !p.plegadas);
+                            })
                           }
                           className="flex items-center gap-1 rounded bg-white/5 px-1.5 py-0.5 text-[var(--ink-3)] transition hover:text-[var(--ink-1)]"
                           title={p.plegadas ? "Ver los pasos" : "Recoger los pasos"}
@@ -430,7 +472,12 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                         </label>
                         <button
                           type="button"
-                          onClick={() => arranca(async () => { await borrarPendiente(p.id); })}
+                          onClick={() =>
+                            arranca(async () => {
+                              retoca({ tipo: "borrar", id: p.id });
+                              await borrarPendiente(p.id);
+                            })
+                          }
                           className="rounded px-1.5 py-0.5 text-[var(--ink-3)] transition hover:text-red-300"
                         >
                           Borrar
@@ -446,7 +493,10 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
                             <button
                               type="button"
                               onClick={() =>
-                                arranca(async () => { await marcarSubtarea(s.id, !s.hecho); })
+                                arranca(async () => {
+                                  retoca({ tipo: "sub", id: s.id, hecho: !s.hecho });
+                                  await marcarSubtarea(s.id, !s.hecho);
+                                })
                               }
                               aria-label={s.hecho ? "Desmarcar" : "Marcar"}
                               className={`focus-ring h-3.5 w-3.5 flex-none rounded border-2 transition ${
@@ -505,13 +555,18 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
             {hechos} hecha{hechos === 1 ? "" : "s"}
           </summary>
           <ul className="mt-2 space-y-1">
-            {inicial
+            {lista0
               .filter((p) => p.hecho)
               .map((p) => (
                 <li key={p.id} className="flex items-center gap-2 text-[13px]">
                   <button
                     type="button"
-                    onClick={() => arranca(async () => { await marcarPendiente(p.id, false); })}
+                    onClick={() =>
+                      arranca(async () => {
+                        retoca({ tipo: "marcar", id: p.id, hecho: false });
+                        await marcarPendiente(p.id, false);
+                      })
+                    }
                     aria-label="Devolver a pendientes"
                     className="focus-ring h-3.5 w-3.5 flex-none rounded border-2 border-[var(--oro)] bg-[var(--oro)]"
                   />

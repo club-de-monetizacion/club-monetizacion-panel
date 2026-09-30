@@ -20,10 +20,10 @@ import type { KindPendiente } from "@prisma/client";
 const textoSchema = z.string().trim().min(1, "Escribe algo").max(4000);
 const TIPOS_VALIDOS = ["TAREA", "IDEA", "VIDEO", "SKOOL"] as const;
 
+/* Solo la pantalla de Pendientes: refrescar también la portada en cada clic hacía
+   que marcar una casilla recargase cosas que no habían cambiado. */
 function refrescar() {
   revalidatePath("/pendientes");
-  revalidatePath("/tareas-personales");
-  revalidatePath("/");
 }
 
 async function miPendiente(id: string) {
