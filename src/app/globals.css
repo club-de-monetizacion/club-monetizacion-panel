@@ -1,32 +1,50 @@
 @import "tailwindcss";
 
+/* ══════════ SISTEMA VISUAL DEL CLUB DE MONETIZACIÓN ══════════
+   Los mismos valores que `club.css`, que usan el panel y la Bóveda. Si cambian
+   allá, cambian aquí: es una sola identidad, no tres parecidas. */
 :root {
-  /* La identidad del Club de Monetización: el dorado y el azul noche que ya usan
-     el panel y Pendientes. El acento lo puede cambiar cada persona en su perfil;
-     este es el de la casa. */
-  --accent: #c9a040;
-  --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
-  --bg-color: #05091a;
-
-  /* Los tres tonos del dorado del Club, para degradados y realces. */
+  /* El dorado, en sus cuatro tonos */
+  --oro-xclaro: #ffd97d;
   --oro-claro: #e8c060;
   --oro: #c9a040;
   --oro-hondo: #9b7520;
 
-  --ink-0: #f8fafc;
-  --ink-1: #cbd5e1;
-  --ink-2: #94a3b8;
-  --ink-3: #64748b;
+  /* El azul noche, del más hondo al de las tarjetas */
+  --azul-hondo: #05091a;
+  --azul-oscuro: #080e22;
+  --azul-medio: #0d1830;
+  --azul-carta: #0b1428;
+  --azul-vivo: #1e5ce8;
+  --azul-brillo: #2468ff;
 
+  /* El acento lo puede cambiar cada persona en su perfil; este es el de la casa. */
+  --accent: #c9a040;
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+  --bg-color: #05091a;
+
+  /* Los grises del Club: --gray y --gray-2 de club.css */
+  --ink-0: #ffffff;
+  --ink-1: #d6e0ee;
+  --ink-2: #a8b8d0;
+  --ink-3: #6b7c99;
+
+  /* El borde del Club: azulado y tenue, no blanco */
+  --linea: rgba(120, 150, 200, 0.14);
   --panel: rgba(255, 255, 255, 0.045);
   --panel-strong: rgba(255, 255, 255, 0.075);
-  --panel-border: rgba(160, 185, 225, 0.12);
+  --panel-border: var(--linea);
+
+  --verde: #10b981;
+  --rojo: #e5484d;
 
   /* Fondo OPACO para lo que flota por encima (menús, diálogos). Con el cristal
      translúcido se transparentaba el contenido de debajo y no se leía. */
-  --flotante: #0e1730;
-  --flotante-borde: rgba(160, 185, 225, 0.18);
+  --flotante: #0d1830;
+  --flotante-borde: rgba(120, 150, 200, 0.24);
   --ring: color-mix(in srgb, var(--accent) 55%, white 10%);
+
+  --r: 16px;
 }
 
 @theme inline {
@@ -37,7 +55,8 @@
   --color-ink-3: var(--ink-3);
   --color-panel: var(--panel);
   --color-panel-border: var(--panel-border);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-titulos: var(--font-space-grotesk);
 }
 
 html,
@@ -48,13 +67,51 @@ body {
 body {
   color: var(--ink-0);
   background: var(--bg-color);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Las dos auroras del Club: una azul arriba a la izquierda y una dorada abajo a la
+   derecha, moviéndose muy despacio. Es lo que hace que el fondo respire en el panel
+   y en la Bóveda. Van detrás de todo y no reciben clics. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+body::before {
+  background: radial-gradient(1000px 620px at 30% 12%, rgba(30, 92, 232, 0.2), transparent 62%);
+  animation: auroraA 26s ease-in-out infinite alternate;
+}
+body::after {
+  background: radial-gradient(760px 520px at 78% 88%, rgba(201, 160, 64, 0.1), transparent 62%);
+  animation: auroraB 34s ease-in-out infinite alternate;
+}
+@keyframes auroraA {
+  0% { transform: translate3d(-6%, -4%, 0) scale(1); }
+  50% { transform: translate3d(4%, 3%, 0) scale(1.12); }
+  100% { transform: translate3d(-2%, 6%, 0) scale(1.04); }
+}
+@keyframes auroraB {
+  0% { transform: translate3d(5%, 4%, 0) scale(1.06); }
+  50% { transform: translate3d(-4%, -3%, 0) scale(1); }
+  100% { transform: translate3d(3%, -6%, 0) scale(1.1); }
+}
+
+/* Los títulos, en la tipografía del Club. */
+h1, h2, h3 {
+  font-family: var(--font-titulos), var(--font-sans), sans-serif;
+  letter-spacing: -0.2px;
 }
 
 ::selection {
-  background: var(--accent);
-  color: white;
+  background: rgba(201, 160, 64, 0.3);
 }
 
 * {
@@ -73,11 +130,114 @@ body {
   background: transparent;
 }
 
+/* Las tarjetas del Club: degradado azul de arriba abajo, borde azulado tenue y una
+   sombra honda por debajo. Es la `.card` de club.css. */
 .glass-panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(168deg, var(--azul-medio), var(--azul-oscuro));
+  border: 1px solid var(--linea);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.9);
+}
+
+/* ── Los botones del Club ─────────────────────────────────────────────────── */
+
+/* El dorado, con el brillo que le barre por encima. El de todo el Club. */
+.btn-oro {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 13px;
+  font-weight: 800;
+  color: #1a1200;
+  background: linear-gradient(135deg, var(--oro-xclaro), var(--oro));
+  box-shadow: 0 8px 26px rgba(201, 160, 64, 0.28);
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.2s;
+}
+.btn-oro::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -45%;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg);
+  animation: barre 4.6s ease-in-out infinite;
+}
+@keyframes barre {
+  0% { left: -45%; }
+  55%, 100% { left: 125%; }
+}
+.btn-oro:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(201, 160, 64, 0.4);
+}
+.btn-oro:active { transform: scale(0.97); }
+.btn-oro:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
+.btn-oro:disabled::after { animation: none; opacity: 0; }
+
+/* El discreto: borde tenue, sin fondo. */
+.btn-fantasma {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border: 1px solid rgba(120, 150, 200, 0.16);
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.12s;
+}
+.btn-fantasma:hover {
+  color: #fff;
+  border-color: rgba(120, 150, 200, 0.32);
+  background: rgba(255, 255, 255, 0.045);
+}
+.btn-fantasma:active { transform: scale(0.96); }
+
+/* Las pastillas de estado y de filtro. */
+.chip {
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 4px 9px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--linea);
+}
+.chip-oro {
+  color: var(--oro-claro);
+  background: rgba(201, 160, 64, 0.14);
+  border-color: rgba(201, 160, 64, 0.3);
+}
+.chip-si {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* El círculo dorado que late, de las cabeceras del Club. */
+.cir-oro {
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--oro);
+  background: rgba(201, 160, 64, 0.1);
+  border: 1px solid rgba(201, 160, 64, 0.25);
+  animation: latido 3.4s ease-in-out infinite;
+}
+@keyframes latido {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 160, 64, 0.22); }
+  50% { box-shadow: 0 0 22px 3px rgba(201, 160, 64, 0.16); }
+}
+
+/* El antetítulo en versalitas doradas: la `.kick` del Club. */
+.antetitulo {
+  font-family: var(--font-titulos), var(--font-sans), sans-serif;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--oro);
 }
 
 /* Un menú o diálogo que flota sobre el contenido: opaco, para que se lea siempre. */

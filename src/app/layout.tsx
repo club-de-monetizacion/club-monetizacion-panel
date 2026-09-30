@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/* Las dos tipografías del Club: Inter para leer y Space Grotesk para los títulos.
+   Las mismas que el panel y la Bóveda. */
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 /**
@@ -42,11 +45,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
+      {/* El azul hondo del Club, el mismo del panel y la Bóveda. */}
       <body
         className="min-h-full flex flex-col"
-        style={{ background: "#0b0f19" }}
+        style={{ background: "#05091a" }}
       >
         {children}
       </body>

@@ -184,7 +184,7 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
               type="button"
               onClick={agregar}
               disabled={!texto.trim()}
-              className="focus-ring rounded-xl bg-gradient-to-br from-[var(--oro-claro)] to-[var(--oro-hondo)] px-4 py-2 text-xs font-bold text-[#1a1200] transition enabled:hover:brightness-110 disabled:opacity-40"
+              className="btn-oro focus-ring px-5 py-2 text-xs"
             >
               Agregar
             </button>
