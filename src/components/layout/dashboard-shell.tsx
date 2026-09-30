@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -47,34 +47,10 @@ export function DashboardShell({
   const pathname = usePathname();
   const title = titleFromPathname(pathname ?? "/");
 
-  /* Las pantallas que piden todo el ancho: el YouTube Planner es una herramienta
-     entera dentro de la plataforma, y con el menú abierto se queda sin sitio. Al
-     entrar se recoge solo; quien quiera el menú lo abre con su botón, y al salir
-     vuelve a como lo tenía. */
-  const aPantallaCompleta = (ruta: string) => ruta.startsWith("/youtube-planner");
-
-  /* Si la persona abre el menú a mano en una de esas pantallas, se respeta hasta que
-     cambie de sitio. Sin esto, el refresco automático volvía a recogerlo a los pocos
-     segundos y no se podía dejar abierto. */
-  const abiertoAMano = useRef(false);
-  const rutaAnterior = useRef<string | null>(null);
-
   useEffect(() => {
     // Client-only read of the viewer's saved preference; deferred to an
     // effect (rather than a useState initializer) so server and client
     // render the same markup on hydration and only diverge afterwards.
-    const ruta = pathname ?? "";
-    if (rutaAnterior.current !== ruta) {
-      rutaAnterior.current = ruta;
-      abiertoAMano.current = false;   // al cambiar de pantalla se empieza de cero
-    }
-
-    if (aPantallaCompleta(ruta)) {
-      if (abiertoAMano.current) return;   // lo abrió ella: no se le cierra encima
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsed(true);
-      return;
-    }
     try {
       const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -82,23 +58,17 @@ export function DashboardShell({
     } catch {
       // localStorage unavailable (private mode, etc.) — keep it expanded.
     }
-  }, [pathname]);
+  }, []);
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
       /* En una pantalla que pide todo el ancho no se guarda la preferencia: abrir
          el menú ahí es para mirar algo un momento, no para cambiar de gusto. */
-      if (aPantallaCompleta(pathname ?? "")) {
-        // Ahí abrir el menú es para mirar algo un momento: se respeta mientras se
-        // esté en esa pantalla, pero no se guarda como preferencia.
-        abiertoAMano.current = !next;
-      } else {
-        try {
-          localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
-        } catch {
-          // Ignore — the preference just won't persist this session.
-        }
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // Ignore — the preference just won't persist this session.
       }
       return next;
     });
