@@ -15,7 +15,7 @@ export function DropdownMenuContent({
     <DropdownPrimitive.Portal>
       <DropdownPrimitive.Content
         className={cn(
-          "glass-panel-strong animate-fade-in z-50 min-w-[10rem] rounded-lg p-1 shadow-2xl",
+          "capa-flotante animate-fade-in z-[60] min-w-[10rem] rounded-xl p-1",
           className
         )}
         sideOffset={6}

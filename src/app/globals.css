@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --accent: #8b5cf6;
+  /* La identidad del Club de Monetización: el dorado y el azul noche que ya usan
+     el panel y Pendientes. El acento lo puede cambiar cada persona en su perfil;
+     este es el de la casa. */
+  --accent: #c9a040;
   --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
-  --bg-color: #0b0f19;
+  --bg-color: #05091a;
+
+  /* Los tres tonos del dorado del Club, para degradados y realces. */
+  --oro-claro: #e8c060;
+  --oro: #c9a040;
+  --oro-hondo: #9b7520;
 
   --ink-0: #f8fafc;
   --ink-1: #cbd5e1;
@@ -12,7 +20,12 @@
 
   --panel: rgba(255, 255, 255, 0.045);
   --panel-strong: rgba(255, 255, 255, 0.075);
-  --panel-border: rgba(255, 255, 255, 0.09);
+  --panel-border: rgba(160, 185, 225, 0.12);
+
+  /* Fondo OPACO para lo que flota por encima (menús, diálogos). Con el cristal
+     translúcido se transparentaba el contenido de debajo y no se leía. */
+  --flotante: #0e1730;
+  --flotante-borde: rgba(160, 185, 225, 0.18);
   --ring: color-mix(in srgb, var(--accent) 55%, white 10%);
 }
 
@@ -65,6 +78,13 @@ body {
   border: 1px solid var(--panel-border);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+/* Un menú o diálogo que flota sobre el contenido: opaco, para que se lea siempre. */
+.capa-flotante {
+  background: var(--flotante);
+  border: 1px solid var(--flotante-borde);
+  box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .glass-panel-strong {

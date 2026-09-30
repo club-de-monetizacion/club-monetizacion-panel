@@ -48,9 +48,33 @@ function ParticleCanvas({
     let width = 0;
     let height = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const { r, g, b } = hexToRgb(color);
 
-    type Particle = { x: number; y: number; vx: number; vy: number; r: number };
-    let particles: Particle[] = [];
+    /* Cada estrella tiene su propia profundidad (`z`): las del fondo son pequeñas,
+       tenues y lentas; las de delante, grandes y vivas. Eso da relieve a lo que
+       antes era una malla plana. El parpadeo va por fase propia, así que no
+       titilan todas a la vez. */
+    type Estrella = {
+      x: number; y: number; vx: number; vy: number;
+      r: number; z: number; fase: number; vel: number;
+    };
+    let estrellas: Estrella[] = [];
+
+    /* El halo se dibuja una sola vez en un lienzo aparte y luego se estampa. Pintar
+       un degradado por estrella y por fotograma tira los fotogramas al suelo. */
+    const HALO = 24;
+    const halo = document.createElement("canvas");
+    halo.width = halo.height = HALO * 2;
+    const hctx = halo.getContext("2d");
+    if (hctx) {
+      const grad = hctx.createRadialGradient(HALO, HALO, 0, HALO, HALO, HALO);
+      grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.95)`);
+      grad.addColorStop(0.18, `rgba(${r}, ${g}, ${b}, 0.42)`);
+      grad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, 0.10)`);
+      grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+      hctx.fillStyle = grad;
+      hctx.fillRect(0, 0, HALO * 2, HALO * 2);
+    }
 
     function resize() {
       if (!canvas) return;
@@ -58,57 +82,102 @@ function ParticleCanvas({
       height = canvas.offsetHeight;
       canvas.width = width * dpr;
       canvas.height = height * dpr;
-      const count = Math.min(90, Math.round((width * height) / 16000));
-      particles = Array.from({ length: count }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
-        r: Math.random() * 1.6 + 0.6,
-      }));
+      const count = Math.min(110, Math.round((width * height) / 14000));
+      estrellas = Array.from({ length: count }, () => {
+        const z = Math.random();                       // 0 = al fondo, 1 = delante
+        return {
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * (0.08 + z * 0.3),
+          vy: (Math.random() - 0.5) * (0.08 + z * 0.3),
+          r: 0.5 + z * 1.7,
+          z,
+          fase: Math.random() * Math.PI * 2,
+          vel: 0.008 + Math.random() * 0.016,
+        };
+      });
     }
 
-    const { r, g, b } = hexToRgb(color);
-    const lineAlpha = isLight ? 0.14 : 0.16;
-    const dotAlpha = isLight ? 0.55 : 0.75;
+    const lineAlpha = isLight ? 0.13 : 0.15;
+    const dotAlpha = isLight ? 0.5 : 0.72;
+
+    /* El ratón atrae la mirada: las estrellas de alrededor brillan más y se enlazan
+       entre ellas aunque estén algo lejos. Con el puntero fuera, el fondo sigue
+       igual que siempre. */
+    const RADIO_RATON = 190;
+    let raton = { x: -9999, y: -9999, dentro: false };
+    const mueve = (e: PointerEvent) => {
+      const caja = canvas?.getBoundingClientRect();
+      if (!caja) return;
+      raton = { x: e.clientX - caja.left, y: e.clientY - caja.top, dentro: true };
+    };
+    const sale = () => { raton = { x: -9999, y: -9999, dentro: false }; };
+    window.addEventListener("pointermove", mueve, { passive: true });
+    window.addEventListener("pointerleave", sale);
+
+    const cerca = (p: Estrella) => {
+      if (!raton.dentro) return 0;
+      const d = Math.hypot(p.x - raton.x, p.y - raton.y);
+      return d > RADIO_RATON ? 0 : 1 - d / RADIO_RATON;
+    };
 
     let raf = 0;
-    function frame() {
+    let t0 = 0;
+    function frame(ahora: number) {
       if (!ctx) return;
+      const paso = t0 ? Math.min((ahora - t0) / 16.67, 3) : 1;   // estable a 60 y a 120 Hz
+      t0 = ahora;
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
 
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
+      for (const p of estrellas) {
+        p.x += p.vx * paso;
+        p.y += p.vy * paso;
+        p.fase += p.vel * paso;
         if (p.x < 0 || p.x > width) p.vx *= -1;
         if (p.y < 0 || p.y > height) p.vy *= -1;
       }
 
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const a = particles[i];
-          const bP = particles[j];
+      // Las uniones, primero: las estrellas quedan encima y se ven nítidas.
+      for (let i = 0; i < estrellas.length; i++) {
+        const a = estrellas[i];
+        const ca = cerca(a);
+        for (let j = i + 1; j < estrellas.length; j++) {
+          const bP = estrellas[j];
+          const alcance = 120 + Math.max(ca, cerca(bP)) * 70;
           const dx = a.x - bP.x;
           const dy = a.y - bP.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 140) {
-            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${
-              lineAlpha * (1 - dist / 140)
-            })`;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(bP.x, bP.y);
-            ctx.stroke();
-          }
+          if (dist >= alcance) continue;
+          const fuerza = 1 - dist / alcance;
+          const viveza = 1 + Math.max(ca, cerca(bP)) * 2.1;
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${lineAlpha * fuerza * viveza})`;
+          ctx.lineWidth = 0.6 + fuerza * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(bP.x, bP.y);
+          ctx.stroke();
         }
       }
 
-      for (const p of particles) {
+      for (const p of estrellas) {
+        const titila = 0.72 + Math.sin(p.fase) * 0.28;
+        const c = cerca(p);
+        const alfa = Math.min(1, dotAlpha * (0.45 + p.z * 0.55) * titila * (1 + c * 1.5));
+        const tam = p.r * (1 + c * 0.55);
+
+        if (hctx) {
+          // El halo, que es lo que le da el brillo de estrella y no de punto plano.
+          const brillo = tam * (5.5 + c * 3);
+          ctx.globalAlpha = alfa * 0.5;
+          ctx.drawImage(halo, p.x - brillo, p.y - brillo, brillo * 2, brillo * 2);
+          ctx.globalAlpha = 1;
+        }
+
         ctx.beginPath();
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${dotAlpha})`;
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alfa})`;
+        ctx.arc(p.x, p.y, tam, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -116,7 +185,7 @@ function ParticleCanvas({
     }
 
     resize();
-    frame();
+    frame(0);
 
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
@@ -124,6 +193,8 @@ function ParticleCanvas({
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      window.removeEventListener("pointermove", mueve);
+      window.removeEventListener("pointerleave", sale);
     };
   }, [color, isLight, animated]);
 
