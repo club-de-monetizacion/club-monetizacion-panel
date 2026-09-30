@@ -13,9 +13,16 @@ import { useEffect } from "react";
  */
 export function RecogeElMenu() {
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("ccm:menu", { detail: { recoger: true } }));
+    /* Con un salto de turno a propósito: en React los efectos de los hijos corren
+       antes que los del padre, así que avisar aquí mismo llegaba antes de que el
+       armazón estuviera escuchando y el aviso se perdía. */
+    const avisa = (recoger: boolean) =>
+      window.dispatchEvent(new CustomEvent("ccm:menu", { detail: { recoger } }));
+
+    const t = setTimeout(() => avisa(true), 0);
     return () => {
-      window.dispatchEvent(new CustomEvent("ccm:menu", { detail: { recoger: false } }));
+      clearTimeout(t);
+      avisa(false);
     };
   }, []);
 
