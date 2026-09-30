@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { AnimatedBackground } from "@/components/layout/animated-background";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { buildThemeVars } from "@/lib/theme";
+import { RefrescoVivo } from "@/components/layout/refresco-vivo";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export default async function DashboardLayout({
         accent={user.accentColor}
         animated={user.particlesEnabled}
       />
+      {/* Un solo temporizador para toda la plataforma: lo que cambie en tareas,
+          pendientes o lo del equipo aparece sin que nadie recargue. */}
+      <RefrescoVivo />
       <Providers>
         <DashboardShell user={user}>{children}</DashboardShell>
       </Providers>
