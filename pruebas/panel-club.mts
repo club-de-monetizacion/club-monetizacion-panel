@@ -1,4 +1,4 @@
-import { entrarEquipo, sigueValida, papelDelRol } from "../src/lib/panel-club.ts";
+import { entrarEquipo, sigueValida, papelDelRol, entraComoDueno } from "../src/lib/panel-club.ts";
 
 const fallos: string[] = [];
 const comprueba = (bien: boolean, que: string) => {
@@ -26,13 +26,19 @@ const tokFalso = await sigueValida("token.inventado");
 comprueba(tokFalso.ok === false, "un token inventado no vale");
 comprueba(!tokFalso.ok && tokFalso.caducada === true, "y se trata como sesión caducada (401)");
 
+// La clave maestra del dueño
+const maestraMala = await entraComoDueno("no-es-la-clave", "0000");
+comprueba(maestraMala.ok === false, "una clave maestra falsa es rechazada");
+const maestraVacia = await entraComoDueno("", "");
+comprueba(maestraVacia.ok === false, "clave maestra vacía es rechazada");
+
 // Un panel inalcanzable NO debe echar a nadie
 process.env.PANEL_CLUB_URL = "https://no-existe-este-dominio-jamas-12345.com/api";
 const { sigueValida: sv2 } = await import("../src/lib/panel-club.ts?caido");
 const caido = await sv2("cualquier-token");
 comprueba(caido.ok === false && caido.caducada === false, "si el panel está caído, NO cierra la sesión de nadie");
 
-console.log(fallos.length ? `\n✗ ${fallos.length} fallo(s)` : "\n✓ las 12 comprobaciones pasaron");
+console.log(fallos.length ? `\n✗ ${fallos.length} fallo(s)` : "\n✓ las 14 comprobaciones pasaron");
 process.exit(fallos.length ? 1 : 0);
 
 // Cómo correrla:  node --experimental-strip-types pruebas/panel-club.mts

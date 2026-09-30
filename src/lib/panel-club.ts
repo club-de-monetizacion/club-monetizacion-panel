@@ -92,6 +92,30 @@ export async function sigueValida(
 }
 
 /**
+ * Diego no tiene contraseña de equipo: entra al panel con su clave maestra. El panel
+ * la reconoce en la misma llamada `yo` (su `quienEs` prueba primero la clave maestra
+ * y devuelve el papel `maestro`), así que no hay que añadirle nada.
+ *
+ * **La clave maestra no se guarda en ningún sitio de esta app**, ni siquiera en la
+ * sesión: se valida una vez al entrar y se olvida. Por eso la sesión del dueño no se
+ * revalida contra el panel; dura lo que dure su sesión y se corta al salir.
+ */
+export async function entraComoDueno(
+  clave: string,
+  pin: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { estado, datos } = await pide({ action: "yo", pass: clave, pin });
+    if (estado === 200 && datos.ok === true && texto(datos.rol) === "maestro") {
+      return { ok: true };
+    }
+    return { ok: false, error: "La clave maestra o el PIN no son correctos" };
+  } catch {
+    return { ok: false, error: "No se pudo contactar el panel del Club" };
+  }
+}
+
+/**
  * El papel del panel manda. `maestro` y `equipo` son los administradores del Club;
  * `mirar` solo consulta. Cualquier otro valor no entra.
  */

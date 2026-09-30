@@ -39,6 +39,7 @@ export default async function LoginPage({
               await signIn("credentials", {
                 email: formData.get("email"),
                 password: formData.get("password"),
+                pin: formData.get("pin"),
                 redirectTo: "/",
               });
             } catch (e) {
@@ -84,6 +85,32 @@ export default async function LoginPage({
               className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)]"
             />
           </div>
+
+          {/* Diego no tiene contraseña de equipo: entra con su clave maestra y su PIN,
+              igual que en el panel. Va escondido porque solo le sirve a él. */}
+          <details className="group">
+            <summary className="cursor-pointer list-none text-xs text-[var(--ink-3)] transition hover:text-[var(--ink-2)]">
+              Entrar con la clave maestra
+            </summary>
+            <div className="mt-2">
+              <label
+                htmlFor="pin"
+                className="mb-1.5 block text-xs font-medium text-[var(--ink-2)]"
+              >
+                PIN
+              </label>
+              <input
+                id="pin"
+                name="pin"
+                type="password"
+                autoComplete="off"
+                className="focus-ring w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-[var(--ink-0)]"
+              />
+              <p className="mt-1.5 text-xs text-[var(--ink-3)]">
+                Solo para el dueño: arriba va la clave maestra y aquí el PIN del panel.
+              </p>
+            </div>
+          </details>
 
           {error ? (
             <p

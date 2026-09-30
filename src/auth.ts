@@ -3,7 +3,7 @@ import type { DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import { entrarEquipo, papelDelRol, sigueValida } from "@/lib/panel-club";
+import { entraComoDueno, entrarEquipo, papelDelRol, sigueValida } from "@/lib/panel-club";
 import type { BackgroundType, Role } from "@prisma/client";
 
 /**
@@ -68,24 +68,41 @@ const nextAuth = NextAuth({
       credentials: {
         email: { label: "Correo", type: "email" },
         password: { label: "Contraseña", type: "password" },
+        // Solo Diego: entra al panel con su clave maestra, no con contraseña de
+        // equipo. Si viene PIN, se valida por esa vía.
+        pin: { label: "PIN", type: "password" },
       },
       async authorize(datos) {
         const email = String(datos?.email ?? "").trim().toLowerCase();
         const clave = String(datos?.password ?? "");
         if (!email || !clave) return null;
 
-        const entrada = await entrarEquipo(email, clave);
-        if (!entrada.ok) return null;
+        const pin = String(datos?.pin ?? "").trim();
 
-        const papel = papelDelRol(entrada.rol) ?? (adminEmails.includes(email) ? "ADMIN" : null);
+        let papel: Role | null = null;
+        let nombre: string | null = null;
+        let tokPanel: string | undefined;
+
+        if (pin) {
+          // El dueño: clave maestra + PIN. No se guarda ninguna de las dos.
+          const dueno = await entraComoDueno(clave, pin);
+          if (!dueno.ok) return null;
+          papel = "ADMIN";
+        } else {
+          const entrada = await entrarEquipo(email, clave);
+          if (!entrada.ok) return null;
+          papel = papelDelRol(entrada.rol) ?? (adminEmails.includes(email) ? "ADMIN" : null);
+          nombre = entrada.nombre;
+          tokPanel = entrada.tok;
+        }
         if (!papel) return null;   // un papel que no conocemos no entra
 
         // El usuario se crea en el primer login y se identifica por el correo. La
         // base guarda sus tareas y preferencias, nunca su contraseña.
         const persona = await prisma.user.upsert({
           where: { email },
-          update: { role: papel, ...(entrada.nombre ? { name: entrada.nombre } : {}) },
-          create: { email, name: entrada.nombre ?? email, role: papel },
+          update: { role: papel, ...(nombre ? { name: nombre } : {}) },
+          create: { email, name: nombre ?? email, role: papel },
         });
 
         return {
@@ -93,7 +110,7 @@ const nextAuth = NextAuth({
           email,
           name: persona.name,
           image: persona.image,
-          panelTok: entrada.tok,
+          panelTok: tokPanel,
         };
       },
     }),
