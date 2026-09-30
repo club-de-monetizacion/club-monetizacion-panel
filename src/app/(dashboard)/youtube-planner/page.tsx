@@ -39,7 +39,7 @@ export default async function YoutubePlannerPage() {
       <iframe
         src="/planner/planner.html"
         title="YouTube Planner"
-        className="h-[calc(100vh-190px)] min-h-[560px] w-full rounded-2xl border border-[var(--linea)] bg-[var(--azul-hondo)]"
+        className="h-[calc(100vh-168px)] min-h-[600px] w-full rounded-2xl border border-[var(--linea)] bg-[var(--azul-hondo)]"
       />
     </div>
   );

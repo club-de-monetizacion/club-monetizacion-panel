@@ -47,10 +47,21 @@ export function DashboardShell({
   const pathname = usePathname();
   const title = titleFromPathname(pathname ?? "/");
 
+  /* Las pantallas que piden todo el ancho: el YouTube Planner es una herramienta
+     entera dentro de la plataforma, y con el menú abierto se queda sin sitio. Al
+     entrar se recoge solo; quien quiera el menú lo abre con su botón, y al salir
+     vuelve a como lo tenía. */
+  const aPantallaCompleta = (ruta: string) => ruta.startsWith("/youtube-planner");
+
   useEffect(() => {
     // Client-only read of the viewer's saved preference; deferred to an
     // effect (rather than a useState initializer) so server and client
     // render the same markup on hydration and only diverge afterwards.
+    if (aPantallaCompleta(pathname ?? "")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsed(true);
+      return;
+    }
     try {
       const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -58,15 +69,19 @@ export function DashboardShell({
     } catch {
       // localStorage unavailable (private mode, etc.) — keep it expanded.
     }
-  }, []);
+  }, [pathname]);
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
-      } catch {
-        // Ignore — the preference just won't persist this session.
+      /* En una pantalla que pide todo el ancho no se guarda la preferencia: abrir
+         el menú ahí es para mirar algo un momento, no para cambiar de gusto. */
+      if (!aPantallaCompleta(pathname ?? "")) {
+        try {
+          localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+        } catch {
+          // Ignore — the preference just won't persist this session.
+        }
       }
       return next;
     });
