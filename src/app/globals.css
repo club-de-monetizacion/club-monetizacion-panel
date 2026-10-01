@@ -395,3 +395,28 @@ h1, h2, h3 {
 @media (min-width: 768px) {
   .solo-escritorio { display: inline-flex; }
 }
+
+/* ══════════ UNA HERRAMIENTA A SANGRE ══════════
+   El YouTube Planner trae su propio menú, su cabecera y su pie: el relleno de la
+   zona de contenido y la cabecera de la plataforma le dejaban huecos alrededor sin
+   ninguna función. Con esto ocupa de borde a borde, sin bordes redondeados ni
+   márgenes, y se siente parte de la plataforma en vez de una ventana dentro de otra.
+   `:has()` es lo que permite decidirlo sin tocar el armazón desde cada pantalla. */
+.zona-contenido:has(> .herramienta-a-sangre) {
+  padding: 0 !important;
+  display: flex;
+  min-height: 0;
+}
+.herramienta-a-sangre {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.herramienta-a-sangre > iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  display: block;
+}

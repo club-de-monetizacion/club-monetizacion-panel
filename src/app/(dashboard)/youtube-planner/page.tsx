@@ -18,7 +18,7 @@ export default async function YoutubePlannerPage() {
   if (!session) redirect("/login");
 
   return (
-    <div className="animate-fade-in -mx-1">
+    <div className="herramienta-a-sangre animate-fade-in">
       {/* El menú se recoge mientras se esté aquí: con él abierto la herramienta se
           queda estrecha y se pone en su modo de teléfono. */}
       <RecogeElMenu />
@@ -27,7 +27,9 @@ export default async function YoutubePlannerPage() {
       <iframe
         src="/planner/planner.html"
         title="YouTube Planner"
-        className="h-[calc(100vh-104px)] min-h-[640px] w-full rounded-2xl border border-[var(--linea)] bg-[var(--azul-hondo)]"
+        /* Todo el alto que queda bajo la cabecera de la plataforma (64 px), sin
+           restar relleno porque ya no hay. */
+        className="h-[calc(100vh-64px)] min-h-[560px] w-full bg-[var(--azul-hondo)]"
       />
     </div>
   );

@@ -110,7 +110,7 @@ export function DashboardShell({
           onToggleCollapsed={toggleCollapsed}
           user={user}
         />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="zona-contenido flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

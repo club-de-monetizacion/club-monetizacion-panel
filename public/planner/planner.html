@@ -19,6 +19,14 @@
   --yt:#ff0000;--tt:#00f2ea;--ig:#e1306c;--r:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
+
+/* ── Dentro de la plataforma del Club ──
+   La herramienta se escribió para vivir en su propia pestaña. Incrustada, su marca
+   de agua y sus esquinas dejan huecos sin función: el marco de la plataforma ya pone
+   el fondo y el borde. `html.embed` lo pone el propio arranque al detectarlo. */
+html.embed, html.embed body{height:100%;background:var(--bg);}
+html.embed #wm{display:none;}
+html.embed .sidebar{border-radius:0;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;}
 
 /* ─── SIDEBAR ─── */
