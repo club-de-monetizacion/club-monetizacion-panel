@@ -27,9 +27,9 @@ export default async function YoutubePlannerPage() {
       <iframe
         src="/planner/planner.html"
         title="YouTube Planner"
-        /* Todo el alto que queda bajo la cabecera de la plataforma (64 px), sin
-           restar relleno porque ya no hay. */
-        className="h-[calc(100vh-64px)] min-h-[560px] w-full bg-[var(--azul-hondo)]"
+        /* La cabecera de la plataforma mide 64 px y deja una línea de borde: 65 px
+           es lo que queda justo, sin desbordar por abajo. */
+        className="h-[calc(100vh-65px)] min-h-[560px] w-full bg-[var(--azul-hondo)]"
       />
     </div>
   );

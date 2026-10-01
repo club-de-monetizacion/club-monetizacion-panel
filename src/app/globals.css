@@ -406,6 +406,9 @@ h1, h2, h3 {
   padding: 0 !important;
   display: flex;
   min-height: 0;
+  /* Sin esto aparecía una barra de desplazamiento vertical que dejaba una franja
+     vacía a la derecha: la herramienta ya hace su propio desplazamiento dentro. */
+  overflow: hidden;
 }
 .herramienta-a-sangre {
   display: flex;
