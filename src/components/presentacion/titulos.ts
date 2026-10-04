@@ -7,6 +7,8 @@ export const DIAPOSITIVAS = [
   { id: "portada", titulo: "Portada" },
   { id: "normas", titulo: "Normas" },
   { id: "horarios", titulo: "Horarios" },
+  { id: "horarios-latam", titulo: "Tu hora: Latinoamérica y España" },
+  { id: "horarios-eeuu", titulo: "Tu hora: Estados Unidos" },
   { id: "activa-tu-cuenta", titulo: "Activa tu cuenta" },
   { id: "actualizaciones", titulo: "Actualizaciones" },
   { id: "cierre", titulo: "Cierre" },

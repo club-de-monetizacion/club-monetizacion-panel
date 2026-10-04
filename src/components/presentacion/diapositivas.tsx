@@ -1,9 +1,11 @@
+import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   Ban,
   CalendarOff,
   Clock,
   Gift,
+  Globe,
   LifeBuoy,
   Link2Off,
   Megaphone,
@@ -15,6 +17,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import e from "./presentacion.module.css";
+import { ZONAS_EEUU, ZONAS_LATAM, convertir } from "./horas";
+import type { Zona } from "./horas";
 import type { IdDiapositiva } from "./titulos";
 
 /* El contenido de la presentación de clases (primera versión: el PDF "Red and White
@@ -22,6 +26,16 @@ import type { IdDiapositiva } from "./titulos";
    1920×1080; `presentacion-clases.tsx` lo escala a la pantalla. */
 
 const LOGO = "/branding/app-logo.png";
+
+/** El contenido vive en una caja de 1920×1080 centrada; los fondos, en cambio, llenan
+ * toda la pantalla (la diapositiva mide lo que mide la pantalla, nunca menos). */
+function Contenido({ children }: { children: ReactNode }) {
+  return (
+    <div className="absolute left-1/2 top-1/2 h-[1080px] w-[1920px] -translate-x-1/2 -translate-y-1/2">
+      {children}
+    </div>
+  );
+}
 
 /** Un bloque que entra con retraso `d` (ms) cuando su diapositiva pasa a ser la activa. */
 function Entra({
@@ -151,6 +165,7 @@ function Portada() {
         }}
       />
 
+<Contenido>
       <Entra zoom d={200} className="absolute right-[120px] top-[84px]">
         <Logo size={170} pulso />
       </Entra>
@@ -174,6 +189,7 @@ function Portada() {
           Bienvenido al Club
         </Entra>
       </div>
+</Contenido>
     </>
   );
 }
@@ -193,6 +209,7 @@ function Normas() {
   return (
     <>
       <Fondo />
+<Contenido>
       <Marca />
 
       <div className="absolute left-[140px] top-[84px]">
@@ -234,6 +251,7 @@ function Normas() {
           </Entra>
         ))}
       </div>
+</Contenido>
     </>
   );
 }
@@ -265,10 +283,11 @@ function Horarios() {
   return (
     <>
       <Fondo />
+<Contenido>
       <Marca />
 
       <div className="absolute left-[140px] top-[84px]">
-        <Rotulo>Atención del equipo</Rotulo>
+        <Rotulo>Atención del equipo · Hora de México</Rotulo>
         <Entra d={250} className={cn(e.titulo, "mt-7 text-[168px] font-bold leading-none text-white")}>
           Horarios
         </Entra>
@@ -354,7 +373,117 @@ function Horarios() {
           </div>
         </div>
       </Entra>
+</Contenido>
     </>
+  );
+}
+
+
+/* ───────────────────── 3b · Tu hora (Latam, España y EE. UU.) ───────────────────── */
+
+function TablaHoras({ zonas, rotulo, titulo, subtitulo }: { zonas: Zona[]; rotulo: string; titulo: string; subtitulo: string }) {
+  // La fecha de hoy se toma una sola vez, para que el horario de verano salga bien.
+  const [ahora] = useState(() => new Date());
+  const filas = zonas.length;
+  const alto = filas > 5 ? 68 : 118;
+  return (
+    <>
+      <Fondo />
+      <Contenido>
+        <Marca />
+        <div className="absolute left-[140px] top-[64px]">
+          <Rotulo>{rotulo}</Rotulo>
+          <Entra d={250} className={cn(e.titulo, "mt-5 text-[130px] font-bold leading-none text-white")}>
+            {titulo}
+          </Entra>
+          <Entra d={380} className="mt-3 text-[32px] font-light" style={{ color: "#a8b8d0" }}>
+            {subtitulo}
+          </Entra>
+        </div>
+
+        <Entra d={500} className={cn(e.cristal, "absolute left-[140px] w-[1640px] overflow-hidden rounded-[30px]")} style={{ top: filas > 5 ? 305 : 360 }}>
+          <div className="grid items-center px-9 py-4" style={{ gridTemplateColumns: "560px repeat(3, 1fr)", background: "rgba(255,255,255,0.05)" }}>
+            <span className="flex items-center gap-3 text-[22px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#e8c060" }}>
+              <Globe size={26} /> País o región
+            </span>
+            {HORARIOS.map((h) => (
+              <span key={h.nombre} className="flex items-center gap-3 text-[22px] font-bold uppercase tracking-[0.1em] text-white">
+                <span className="h-4 w-4 rounded-full" style={{ background: h.color }} />
+                {h.nombre}
+              </span>
+            ))}
+          </div>
+          {zonas.map((z, i) => (
+            <div
+              key={z.tz + z.etiqueta}
+              className="grid items-center px-9"
+              style={{
+                gridTemplateColumns: "560px repeat(3, 1fr)",
+                height: alto,
+                borderTop: "1px solid rgba(140,170,220,0.14)",
+                background: i === 0 && zonas === ZONAS_LATAM ? "rgba(232,192,96,0.08)" : undefined,
+              }}
+            >
+              <div className="pr-6">
+                <div className={cn(e.titulo, "text-[28px] font-semibold leading-tight text-white")}>{z.etiqueta}</div>
+                {z.detalle && (
+                  <div className="mt-0.5 text-[19px] leading-tight" style={{ color: "#6b7c99" }}>
+                    {z.detalle}
+                  </div>
+                )}
+              </div>
+              {HORARIOS.map((h) => {
+                const d = convertir(z.tz, h.ini, ahora);
+                const a = convertir(z.tz, h.fin, ahora);
+                return (
+                  <div key={h.nombre} className={cn(e.titulo, "whitespace-nowrap text-[31px] font-semibold text-white")} suppressHydrationWarning>
+                    {d.texto}
+                    {d.dia !== 0 && <Dia n={d.dia} />}
+                    <span style={{ color: "#6b7c99" }}> – </span>
+                    <span style={{ color: h.color }}>{a.texto}</span>
+                    {a.dia !== 0 && <Dia n={a.dia} />}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </Entra>
+
+        <Entra d={800} className="absolute bottom-[56px] left-[140px] text-[22px]" style={{ color: "#6b7c99" }}>
+          Horarios convertidos desde la hora de México. Se ajustan solos con el horario de verano. +1 = día siguiente.
+        </Entra>
+      </Contenido>
+    </>
+  );
+}
+
+function Dia({ n }: { n: number }) {
+  return (
+    <sup className="ml-1 text-[17px] font-bold" style={{ color: "#e8c060" }}>
+      {n > 0 ? `+${n}` : n}
+    </sup>
+  );
+}
+
+function HorariosLatam() {
+  return (
+    <TablaHoras
+      zonas={ZONAS_LATAM}
+      rotulo="Tu hora"
+      titulo="Latinoamérica y España"
+      subtitulo="Los mismos horarios, en la hora de tu país"
+    />
+  );
+}
+
+function HorariosEeuu() {
+  return (
+    <TablaHoras
+      zonas={ZONAS_EEUU}
+      rotulo="Tu hora"
+      titulo="Estados Unidos"
+      subtitulo="Los mismos horarios, en la hora de tu zona"
+    />
   );
 }
 
@@ -364,7 +493,7 @@ function ActivaTuCuenta() {
   return (
     <>
       <div className="absolute inset-0 bg-[#05091a]" />
-      <Entra zoom d={0} className="absolute inset-x-0 top-0 h-[880px]">
+      <Entra zoom d={0} className="absolute inset-x-0 top-0 h-[calc(50%+340px)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/presentacion/activa-tu-cuenta.jpg"
@@ -380,6 +509,7 @@ function ActivaTuCuenta() {
             "linear-gradient(180deg, rgba(5,9,26,0.25) 0%, transparent 25%, rgba(5,9,26,0.55) 62%, #05091a 88%), radial-gradient(1000px 520px at 6% 100%, rgba(36,104,255,0.34), transparent 65%), radial-gradient(800px 460px at 100% 100%, rgba(201,160,64,0.14), transparent 65%)",
         }}
       />
+<Contenido>
       <Marca />
 
       <div className="absolute bottom-[96px] left-[140px]">
@@ -396,6 +526,7 @@ function ActivaTuCuenta() {
           <span className={cn(e.titulo, e.oroTexto, "text-[84px] font-semibold leading-none")}>y recibe tu regalo</span>
         </Entra>
       </div>
+</Contenido>
     </>
   );
 }
@@ -405,14 +536,15 @@ function ActivaTuCuenta() {
 const ACTUALIZACIONES = [
   { titulo: "Infracciones y baneos", foto: "infracciones", estado: "Próximamente" },
   { titulo: "Mentalidad de creador", foto: "mentalidad", estado: "Próximamente" },
-  { titulo: "Monetiza con Avatars", foto: "avatars", detalle: "Crea tu primer avatar de IA" },
-  { titulo: "Automatizaciones de contenido", foto: "automatizaciones" },
+  { titulo: "Monetiza con Avatars", foto: "avatars", detalle: "Crea tu primer avatar de IA", estado: "Próximamente" },
+  { titulo: "Automatizaciones de contenido", foto: "automatizaciones", estado: "Próximamente" },
 ] as const;
 
 function Actualizaciones() {
   return (
     <>
       <Fondo />
+<Contenido>
       <Marca />
 
       <div className="absolute left-[140px] top-[84px]">
@@ -428,7 +560,7 @@ function Actualizaciones() {
             key={c.titulo}
             d={500 + i * 160}
             className={cn(e.cristal, "overflow-hidden rounded-[32px]")}
-            style={{ height: 520 }}
+            style={{ height: 590 }}
           >
             <div className="relative h-[262px] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -469,6 +601,7 @@ function Actualizaciones() {
           </Entra>
         ))}
       </div>
+</Contenido>
     </>
   );
 }
@@ -506,6 +639,8 @@ const CONTENIDO: Record<IdDiapositiva, () => ReactNode> = {
   portada: Portada,
   normas: Normas,
   horarios: Horarios,
+  "horarios-latam": HorariosLatam,
+  "horarios-eeuu": HorariosEeuu,
   "activa-tu-cuenta": ActivaTuCuenta,
   actualizaciones: Actualizaciones,
   cierre: Cierre,

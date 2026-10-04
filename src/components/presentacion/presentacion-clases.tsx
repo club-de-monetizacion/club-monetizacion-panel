@@ -35,7 +35,7 @@ const indiceDelHash = () => {
 export function PresentacionClases() {
   const raiz = useRef<HTMLDivElement>(null);
   const [actual, setActual] = useState(0);
-  const [escala, setEscala] = useState(1);
+  const [medida, setMedida] = useState({ escala: 1, ancho: ANCHO, alto: ALTO });
   const [completa, setCompleta] = useState(false);
   const [controles, setControles] = useState(true);
   const [listo, setListo] = useState(false);
@@ -84,7 +84,12 @@ export function PresentacionClases() {
     const ajustar = () => {
       const el = raiz.current;
       if (!el) return;
-      setEscala(Math.min(el.clientWidth / ANCHO, el.clientHeight / ALTO));
+      // El contenido (1920×1080) siempre cabe entero; el lienzo se agranda en el eje que
+      // sobre para que los fondos llenen la pantalla sin franjas ni recortes.
+      const w = el.clientWidth || ANCHO;
+      const h = el.clientHeight || ALTO;
+      const escala = Math.min(w / ANCHO, h / ALTO);
+      setMedida({ escala, ancho: Math.ceil(w / escala), alto: Math.ceil(h / escala) });
     };
     ajustar();
     const observador = new ResizeObserver(ajustar);
@@ -179,7 +184,9 @@ export function PresentacionClases() {
         className={e.lienzo}
         style={
           {
-            transform: `translate(-50%, -50%) scale(${escala})`,
+            width: medida.ancho,
+            height: medida.alto,
+            transform: `scale(${medida.escala})`,
             visibility: listo ? "visible" : "hidden",
           } as CSSProperties
         }
@@ -235,10 +242,11 @@ export function PresentacionClases() {
         </div>
       )}
 
-      {listo && actual === 0 && controles && (
+      {listo && actual === 0 && controles && !completa && (
         <div className={e.aviso}>← → para cambiar de diapositiva · F para pantalla completa</div>
       )}
 
+      {!completa && (
       <div className={cn(e.controles, !controles && e.oculta)}>
         <button type="button" className={e.boton} onClick={anterior} disabled={actual === 0} aria-label="Anterior">
           <ChevronLeft size={22} />
@@ -285,6 +293,7 @@ export function PresentacionClases() {
           {completa ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
         </button>
       </div>
+      )}
 
       <div className={e.progreso} style={{ width: `${((actual + 1) / TOTAL) * 100}%` }} />
     </div>

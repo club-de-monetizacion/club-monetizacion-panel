@@ -20,11 +20,9 @@
 
 .lienzo {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 1920px;
-  height: 1080px;
-  transform-origin: center center;
+  left: 0;
+  top: 0;
+  transform-origin: top left;
   /* Las dos tipografías del Club: Space Grotesk para títulos, Inter para leer. */
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
