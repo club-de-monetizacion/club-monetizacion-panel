@@ -43,12 +43,17 @@ export async function POST(req: Request) {
   if (cuerpo.action === "plannerGet") {
     const filas = await prisma.plannerDoc.findMany();
     const values: Record<string, string> = {};
+    /* Cuándo se tocó cada sección. Va junto con los datos a propósito: quien acaba
+       de traerlos ya sabe de qué momento son, y así no confunde lo que acaba de
+       leer con un cambio nuevo de otra persona. */
+    const cuando: Record<string, number> = {};
     let masReciente = 0;
     for (const f of filas) {
       values[f.key] = f.value;
+      cuando[f.key] = f.updatedAt.getTime();
       masReciente = Math.max(masReciente, f.updatedAt.getTime());
     }
-    return NextResponse.json({ ok: true, values, desde: masReciente });
+    return NextResponse.json({ ok: true, values, cuando, desde: masReciente });
   }
 
   if (cuerpo.action === "plannerSet") {
@@ -64,12 +69,14 @@ export async function POST(req: Request) {
       );
     }
     const quien = session.user.email || session.user.name || null;
-    await prisma.plannerDoc.upsert({
+    const fila = await prisma.plannerDoc.upsert({
       where: { key },
       update: { value, updatedBy: quien },
       create: { key, value, updatedBy: quien },
     });
-    return NextResponse.json({ ok: true, ahora: Date.now() });
+    /* La hora que quedó guardada, no la de ahora mismo: es la que va a devolver el
+       sondeo, y así quien acaba de guardar reconoce su propio cambio sin margen. */
+    return NextResponse.json({ ok: true, ahora: fila.updatedAt.getTime() });
   }
 
   /** Para el tiempo real: dice cuándo se tocó cada sección, sin traer el contenido. */

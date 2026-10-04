@@ -5317,8 +5317,28 @@ function mostrarIntro(st){
    traer (se compara con `tocadoPorMi`), para no deshacer lo que estoy haciendo.
    Y no se toca nada mientras haya algo abierto para editar: sería tirarle el
    trabajo a quien esté escribiendo. */
-function arrancaTiempoReal(){
-  let ultimo = {};
+/* Repinta solo las secciones que cambiaron, leyendo lo que acaba de llegar. Toda
+   la herramienta guarda y lee del almacenamiento en cada repintado, así que con
+   llamar a su pintor se ve lo nuevo: no hace falta recargar la página. El lienzo de
+   portadas abierto no se toca —ahí puede haber alguien dibujando—, solo su lista. */
+function repintaSecciones(cambiadas){
+  const toca = (k) => cambiadas.includes(k);
+  const prueba = (que, fn) => { try { fn(); } catch (e) { console.warn('[planner] no se pudo repintar', que, e); } };
+
+  if (toca('content_os_v2') || toca('content_tree_v3')) prueba('contenido', () => window.render && window.render());
+  if (toca('content_matrix_v1')) prueba('matriz', () => window.initMatrix && window.initMatrix());
+  if (toca('yt_spy_v1')) prueba('espía', () => window.renderSpySaved && window.renderSpySaved());
+  if (toca('cover_os_v1')) prueba('portadas', () => window.renderCovProjects && window.renderCovProjects());
+  if (toca('cov_resources_v1')) prueba('recursos', () => window.renderCovRes && window.renderCovRes());
+  if (toca('thumb_bank_v1')) prueba('banco', () => window.renderModalBancoStrip && window.renderModalBancoStrip());
+}
+
+function arrancaTiempoReal(yaConocido){
+  /* Las marcas de los datos con los que acabamos de arrancar. Sembrarlas es
+     imprescindible: en blanco, el primer sondeo toma la copia que ya tenemos
+     delante por un cambio recién hecho por otra persona, y la herramienta se
+     reinicia a los seis segundos de abrirla, una y otra vez. */
+  let ultimo = Object.assign({}, yaConocido || {});
   const hayAlgoAbierto = () => {
     const a = document.activeElement;
     if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
@@ -5348,9 +5368,8 @@ function arrancaTiempoReal(){
     window.__showToast && window.__showToast(
       quien ? ('Actualizado por ' + String(quien).split('@')[0]) : 'Actualizado por el equipo'
     );
-    // Se repinta con lo que acaba de llegar.
-    if (window.__repintarTodo) window.__repintarTodo();
-    else location.reload();
+    // Se repinta con lo que acaba de llegar, sin recargar nada.
+    repintaSecciones(cambiadas);
   }, 6000);
 }
 
@@ -5383,7 +5402,7 @@ async function boot(){
   const falta=900-(Date.now()-t0); if(falta>0) await new Promise(r=>setTimeout(r,falta));
   window.__setCloud({pushKey});
   window.__bootApp({displayName:st.name||'',email:st.email||'',photoURL:st.photo||''});
-  arrancaTiempoReal();
+  arrancaTiempoReal((pulled&&pulled.cuando)||{});
 }
 
 boot();
