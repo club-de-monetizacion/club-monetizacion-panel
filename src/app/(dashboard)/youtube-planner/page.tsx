@@ -25,6 +25,9 @@ export default async function YoutubePlannerPage() {
       {/* Se le da todo el alto que queda bajo la cabecera: la herramienta trae su
           propio menú y sus columnas, y con poco alto no se puede trabajar. */}
       <iframe
+        /* Una clave fija: así React reutiliza este mismo marco en cada repintado en
+           vez de crear uno nuevo, que recargaría la herramienta de cero. */
+        key="planner-del-club"
         src="/planner/planner.html"
         title="YouTube Planner"
         /* La cabecera de la plataforma mide 64 px y deja una línea de borde: 65 px

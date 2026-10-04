@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 /**
  * Mantiene la pantalla al día sin que nadie recargue.
@@ -16,6 +16,11 @@ import { useRouter } from "next/navigation";
  * desactualizada.
  *
  * Un solo reloj para toda la plataforma: va en el layout, no en cada pantalla.
+ *
+ * **Se calla en las pantallas que llevan una herramienta dentro de un marco** (el
+ * YouTube Planner): refrescar ahí volvía a montar el marco y la herramienta se
+ * recargaba de cero cada pocos segundos, con su pantalla de bienvenida y todo. Esas
+ * herramientas traen su propio tiempo real por dentro.
  */
 export function RefrescoVivo({
   cada = 8000,
@@ -25,8 +30,15 @@ export function RefrescoVivo({
   cadaDeFondo?: number;
 }) {
   const router = useRouter();
+  const ruta = usePathname();
+
+  /* Las pantallas que llevan una herramienta en un marco. Si crece la lista, aquí
+     se añade. */
+  const conHerramienta = (r: string) => r.startsWith("/youtube-planner");
 
   useEffect(() => {
+    if (conHerramienta(ruta ?? "")) return;   // ahí no se refresca nada
+
     let reloj: ReturnType<typeof setInterval> | null = null;
     let ultimo = 0;
 
@@ -60,7 +72,7 @@ export function RefrescoVivo({
       window.removeEventListener("focus", alVolver);
       window.removeEventListener("online", alVolver);
     };
-  }, [router, cada, cadaDeFondo]);
+  }, [router, ruta, cada, cadaDeFondo]);
 
   return null;
 }
