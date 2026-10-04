@@ -5289,10 +5289,18 @@ async function call(action,payload){
    para no pisarse: el sondeo de abajo compara esas marcas. */
 const tocadoPorMi = {};
 
+/* Lo último que se sabe de cada sección: lo que trajo el arranque y lo que se ha
+   subido después. Sirve para no subir lo que no cambió — al abrir la herramienta,
+   repintarla escribe las mismas secciones otra vez, y subirlas le avisaba a todo el
+   equipo de un cambio que no existe. */
+const ultimoSabido = {};
+
 async function pushKey(key,json){
+  if (ultimoSabido[key] === json) return;   // idéntico: no hay nada que guardar
   try{
     const r = await call('plannerSet',{key,value:json});
     tocadoPorMi[key] = r.ahora || Date.now();
+    ultimoSabido[key] = json;
   }catch(e){
     console.error('nube',key,e);
     window.__showToast&&window.__showToast('No se pudo guardar: '+e.message,'err');
@@ -5365,7 +5373,8 @@ function arrancaTiempoReal(yaConocido){
     let datos; try { datos = await call('plannerGet',{}); } catch { return; }
     cambiadas.forEach(k => {
       const v = (datos.values||{})[k];
-      if (typeof v === 'string') window.__rawSet(k, v); else window.__rawRemove(k);
+      if (typeof v === 'string') { window.__rawSet(k, v); ultimoSabido[k] = v; }
+      else window.__rawRemove(k);
     });
     Object.assign(ultimo, info.cuando||{});
     const quien = (info.quien||{})[cambiadas[0]];
@@ -5392,7 +5401,7 @@ async function boot(){
   if(pulled&&pulled.values&&Object.keys(pulled.values).length){
     // Lo del equipo manda: es una sola copia compartida.
     SYNC_KEYS.forEach(k=>{
-      if(typeof pulled.values[k]==='string') window.__rawSet(k,pulled.values[k]);
+      if(typeof pulled.values[k]==='string'){ window.__rawSet(k,pulled.values[k]); ultimoSabido[k]=pulled.values[k]; }
       else window.__rawRemove(k);
     });
   } else if(pulled){
