@@ -5333,6 +5333,10 @@ function repintaSecciones(cambiadas){
   if (toca('thumb_bank_v1')) prueba('banco', () => window.renderModalBancoStrip && window.renderModalBancoStrip());
 }
 
+/* El gancho que el propio código esperaba: así se puede pedir un repintado desde
+   fuera del módulo (la consola, o la plataforma que lo lleva en su marco). */
+window.__repintarTodo = (cambiadas) => repintaSecciones(cambiadas || window.SYNC_KEYS || []);
+
 function arrancaTiempoReal(yaConocido){
   /* Las marcas de los datos con los que acabamos de arrancar. Sembrarlas es
      imprescindible: en blanco, el primer sondeo toma la copia que ya tenemos
@@ -5426,7 +5430,6 @@ window.__signOut=async()=>{
   window.close();
   setTimeout(()=>{ location.href='/'; },250);
 };
-boot();
 </script>
 
 <div id="spyThumbOverlay" onclick="if(event.target===this)spyCloseThumb()">
