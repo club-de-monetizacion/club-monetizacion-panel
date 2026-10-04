@@ -1,0 +1,405 @@
+/* Presentación de clases. Todo se dibuja sobre un lienzo fijo de 1920×1080 que el
+   componente escala para que quepa en cualquier pantalla: así la tipografía y las
+   proporciones se ven igual en una laptop, en un proyector o en pantalla completa. */
+
+.raiz {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #05091a;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  outline: none;
+}
+
+.sinCursor {
+  cursor: none;
+}
+
+.lienzo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: center center;
+  /* Las dos tipografías del Club: Space Grotesk para títulos, Inter para leer. */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+.titulo {
+  font-family: var(--font-titulos), var(--font-inter), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ───────── Diapositivas y transición ───────── */
+
+.slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(0);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s ease,
+    visibility 0s linear 0.55s;
+}
+
+.slide[data-pos="antes"] {
+  transform: translateX(-90px) scale(0.985);
+}
+
+.slide[data-pos="despues"] {
+  transform: translateX(90px) scale(0.985);
+}
+
+.slide[data-pos="activa"] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 0.7s ease 0.12s,
+    transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 0.12s,
+    visibility 0s;
+}
+
+/* Cada elemento que entra con `.entra` espera a que su diapositiva sea la activa y
+   entonces sube y aparece, uno tras otro (`--d` es el retraso en milisegundos). */
+.entra {
+  opacity: 0;
+}
+
+.slide[data-pos="activa"] .entra {
+  animation: entra 0.95s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--d, 0) * 1ms + 250ms);
+}
+
+.slide[data-pos="activa"] .entraZoom {
+  animation: entraZoom 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--d, 0) * 1ms + 250ms);
+}
+
+.entraZoom {
+  opacity: 0;
+}
+
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes entraZoom {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ───────── Fondo del Club ───────── */
+
+.fondo {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 700px at 12% 8%, rgba(36, 104, 255, 0.28), transparent 62%),
+    radial-gradient(1000px 640px at 92% 96%, rgba(30, 92, 232, 0.22), transparent 60%),
+    radial-gradient(700px 420px at 78% 12%, rgba(201, 160, 64, 0.1), transparent 70%),
+    linear-gradient(168deg, #0d1830 0%, #080e22 48%, #05091a 100%);
+}
+
+.fondo::after {
+  /* Una trama de puntos muy tenue: da profundidad sin ruido. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(150, 180, 230, 0.1) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+}
+
+.orbe {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(90px);
+  pointer-events: none;
+  animation: flota 16s ease-in-out infinite alternate;
+}
+
+@keyframes flota {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(60px, -40px, 0) scale(1.12);
+  }
+}
+
+/* ───────── Tarjetas ───────── */
+
+.cristal {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03));
+  border: 1.5px solid rgba(140, 170, 220, 0.2);
+  box-shadow:
+    0 30px 80px -30px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.oroTexto {
+  background: linear-gradient(135deg, #ffd97d 0%, #e8c060 45%, #c9a040 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.anilloOro {
+  background: linear-gradient(135deg, #ffd97d, #c9a040 60%, #9b7520);
+}
+
+.pulso {
+  animation: pulso 2.6s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 192, 96, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 26px rgba(232, 192, 96, 0);
+  }
+}
+
+.barra {
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.slide[data-pos="activa"] .barra {
+  animation: crece 1.3s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--d, 0) * 1ms + 250ms);
+}
+
+@keyframes crece {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ───────── Controles (en pantalla, no en el lienzo) ───────── */
+
+.controles {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(8, 14, 34, 0.78);
+  border: 1px solid rgba(140, 170, 220, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 14px 40px -12px rgba(0, 0, 0, 0.7);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+  z-index: 5;
+}
+
+.superior {
+  position: absolute;
+  left: 20px;
+  top: 18px;
+  z-index: 5;
+  transition: opacity 0.35s ease;
+}
+
+.oculta {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controles.oculta {
+  transform: translateX(-50%) translateY(14px);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: #d6e0ee;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.boton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.boton:focus-visible {
+  outline: 2px solid #e8c060;
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(168, 184, 208, 0.38);
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.punto:hover {
+  background: rgba(214, 224, 238, 0.75);
+}
+
+.punto[data-activo="true"] {
+  width: 30px;
+  background: linear-gradient(90deg, #ffd97d, #c9a040);
+}
+
+.borde {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.borde:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.borde:disabled {
+  cursor: default;
+}
+
+.borde:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.bordeIzq {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 22px;
+  background: linear-gradient(90deg, rgba(5, 9, 26, 0.55), transparent);
+}
+
+.bordeDer {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 22px;
+  background: linear-gradient(270deg, rgba(5, 9, 26, 0.55), transparent);
+}
+
+.progreso {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  z-index: 5;
+  background: linear-gradient(90deg, #c9a040, #ffd97d);
+  box-shadow: 0 0 18px rgba(232, 192, 96, 0.6);
+  transition: width 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.aviso {
+  position: absolute;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #d6e0ee;
+  background: rgba(8, 14, 34, 0.82);
+  border: 1px solid rgba(140, 170, 220, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  white-space: nowrap;
+  animation: avisoVida 6s ease both;
+}
+
+@keyframes avisoVida {
+  0%,
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .slide[data-pos] {
+    transition: opacity 0.2s linear;
+    transform: none;
+  }
+  .entra,
+  .entraZoom {
+    opacity: 1;
+    animation: none !important;
+  }
+  .barra {
+    transform: none;
+    animation: none !important;
+  }
+  .orbe,
+  .pulso {
+    animation: none;
+  }
+}

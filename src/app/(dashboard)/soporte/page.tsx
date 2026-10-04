@@ -16,6 +16,7 @@ import { FaqPanel } from "@/components/support/faq-panel";
 import { QuickLinksPanel } from "@/components/support/quick-links-panel";
 import { DailyTasksPanel } from "@/components/support/daily-tasks-panel";
 import { DailyTasksTeamOverview } from "@/components/support/daily-tasks-team-overview";
+import { PresentacionPanel } from "@/components/support/presentacion-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,7 @@ export default async function SupportPage() {
           <TabsTrigger value="respuestas">Respuestas rápidas</TabsTrigger>
           <TabsTrigger value="faq">Preguntas frecuentes</TabsTrigger>
           <TabsTrigger value="enlaces">Enlaces importantes</TabsTrigger>
+          <TabsTrigger value="presentacion">Presentación de clases</TabsTrigger>
           {(isSupport || isAdmin) && <TabsTrigger value="diarias">Tareas diarias</TabsTrigger>}
         </TabsList>
 
@@ -83,6 +85,10 @@ export default async function SupportPage() {
 
         <TabsContent value="enlaces" className="mt-5">
           <QuickLinksPanel items={quickLinks} />
+        </TabsContent>
+
+        <TabsContent value="presentacion" className="mt-5">
+          <PresentacionPanel />
         </TabsContent>
 
         {isSupport && (
