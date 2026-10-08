@@ -19,7 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { claveLogro, escalonesPorDebajo, logrosAlcanzados } from "../src/lib/desafios.ts";
+import { claveLogro, claveVideo, escalonesPorDebajo, logrosAlcanzados } from "../src/lib/desafios.ts";
 
 const raiz = path.resolve(import.meta.dirname, "..");
 if (!process.env.DATABASE_URL) {
@@ -98,9 +98,11 @@ const PERFILES = [
       { red: "INSTAGRAM", nombre: "andres.finanzas (demo)", handle: "demo_andres_paredes", ini: 300, fin: 4200 },
       { red: "YOUTUBE", nombre: "Andrés Paredes (demo)", handle: "@demo_andres_paredes", ini: 20, fin: 650 },
     ],
+    // `cuenta` es la posición de la página en `cuentas`
     videos: [
-      { tipo: "VISTAS", umbral: 10_000, red: "TIKTOK", diasAtras: 41, nota: "Perfil de demostración" },
-      { tipo: "LIKES", umbral: 1_000, red: "TIKTOK", diasAtras: 41, nota: "Perfil de demostración" },
+      { tipo: "VISTAS", cuenta: 0, umbral: 10_000, diasAtras: 41 },
+      { tipo: "VISTAS", cuenta: 2, formato: "HORIZONTAL", umbral: 1_000, diasAtras: 20 },
+      { tipo: "LIKES", umbral: 1_000, diasAtras: 41 },
     ],
   },
   {
@@ -118,8 +120,10 @@ const PERFILES = [
       { red: "TIKTOK", mesesAtras: 1, usd: 60 }, { red: "TIKTOK", mesesAtras: 0, usd: 120.5 },
     ],
     videos: [
-      { tipo: "VISTAS", umbral: 50_000, red: "TIKTOK", diasAtras: 70, nota: "Perfil de demostración" },
-      { tipo: "LIKES", umbral: 5_000, red: "TIKTOK", diasAtras: 70, nota: "Perfil de demostración" },
+      { tipo: "VISTAS", cuenta: 0, formato: "VERTICAL", umbral: 100_000, diasAtras: 60 },
+      { tipo: "VISTAS", cuenta: 0, formato: "HORIZONTAL", umbral: 10_000, diasAtras: 40 },
+      { tipo: "VISTAS", cuenta: 1, umbral: 50_000, diasAtras: 70 },
+      { tipo: "LIKES", umbral: 5_000, diasAtras: 70 },
     ],
   },
   {
@@ -138,8 +142,12 @@ const PERFILES = [
       ...[60, 140, 210].map((usd, i) => ({ red: "FACEBOOK", mesesAtras: 2 - i, usd })),
     ],
     videos: [
-      { tipo: "VISTAS", umbral: 500_000, red: "TIKTOK", diasAtras: 55, nota: "Perfil de demostración" },
-      { tipo: "LIKES", umbral: 50_000, red: "TIKTOK", diasAtras: 55, nota: "Perfil de demostración" },
+      { tipo: "VISTAS", cuenta: 0, umbral: 500_000, diasAtras: 55 },
+      { tipo: "VISTAS", cuenta: 1, umbral: 100_000, diasAtras: 30 },
+      { tipo: "VISTAS", cuenta: 2, formato: "VERTICAL", umbral: 500_000, diasAtras: 45 },
+      { tipo: "VISTAS", cuenta: 2, formato: "HORIZONTAL", umbral: 50_000, diasAtras: 35 },
+      { tipo: "VISTAS", cuenta: 3, umbral: 10_000, diasAtras: 20 },
+      { tipo: "LIKES", umbral: 50_000, diasAtras: 55 },
     ],
   },
 ];
@@ -209,6 +217,7 @@ for (const p of PERFILES) {
     },
   });
 
+  const cuentasCreadas = [];
   for (const c of cuentas) {
     const cuenta = await prisma.cuentaSocial.create({
       data: {
@@ -222,6 +231,7 @@ for (const p of PERFILES) {
         createdAt: inicio,
       },
     });
+    cuentasCreadas.push(cuenta);
     // El salto más grande se anota como «se hizo viral», como lo haría una persona.
     let mayor = { i: -1, salto: 0 };
     c.historial.forEach((h, i) => {
@@ -253,13 +263,29 @@ for (const p of PERFILES) {
   // Las insignias que se ganan solas, con la fecha en que de verdad se cruzó cada escalón
   const filas = [...fechaLogro].map(([clave, creadoEn]) => ({ perfilId: perfil.id, clave, creadoEn, ...datosLogro.get(clave) }));
 
-  // Las de video, reclamadas: el escalón y los de abajo, igual que al reclamar de verdad
+  // Las de video, reclamadas: el escalón y los de abajo, igual que al reclamar de verdad.
+  // Las de vistas son de una página (y, en YouTube, de un formato); las de likes, generales.
   for (const v of p.videos ?? []) {
-    const clave = claveLogro(v.tipo, v.umbral);
     const creadoEn = hace(v.diasAtras);
-    filas.push({ perfilId: perfil.id, clave, tipo: v.tipo, red: v.red, umbral: v.umbral, creadoEn, nota: v.nota });
-    for (const u of escalonesPorDebajo(v.tipo, v.umbral)) {
-      filas.push({ perfilId: perfil.id, clave: claveLogro(v.tipo, u), tipo: v.tipo, red: v.red, umbral: u, creadoEn, origenClave: clave });
+    if (v.tipo === "VISTAS") {
+      const cuenta = cuentasCreadas[v.cuenta];
+      const formato = v.formato ?? null;
+      const clave = claveVideo(cuenta.id, formato, v.umbral);
+      const enlace =
+        cuenta.red === "YOUTUBE"
+          ? (formato === "VERTICAL" ? "https://youtube.com/shorts/DEMO0000001" : "https://youtube.com/watch?v=DEMO0000002")
+          : `${cuenta.url}/video/DEMO0000003`;
+      const comunes = { perfilId: perfil.id, tipo: "VISTAS", red: cuenta.red, cuentaId: cuenta.id, paginaNombre: cuenta.nombre, formato, creadoEn };
+      filas.push({ ...comunes, clave, umbral: v.umbral, enlace, nota: "Perfil de demostración" });
+      for (const u of escalonesPorDebajo("VISTAS", v.umbral)) {
+        filas.push({ ...comunes, clave: claveVideo(cuenta.id, formato, u), umbral: u, origenClave: clave });
+      }
+    } else {
+      const clave = claveLogro(v.tipo, v.umbral);
+      filas.push({ perfilId: perfil.id, clave, tipo: v.tipo, red: null, umbral: v.umbral, creadoEn, nota: "Perfil de demostración" });
+      for (const u of escalonesPorDebajo(v.tipo, v.umbral)) {
+        filas.push({ perfilId: perfil.id, clave: claveLogro(v.tipo, u), tipo: v.tipo, red: null, umbral: u, creadoEn, origenClave: clave });
+      }
     }
   }
   await prisma.logroCreador.createMany({ data: filas, skipDuplicates: true });

@@ -5,6 +5,7 @@ import {
   nivelDe, normalizarUrlCuenta, proximasMetas, puntosDe, puntosTotales, rangoDe,
   fraseDelDia, empujon, misionesDeInicio, mesAFecha, puntosDe as pts, rangoLogro,
   etiquetaCifra, tituloLogro, dolaresExactos, ESCALERA_INGRESOS, SE_RECLAMA,
+  claveVideo, formatoDeEnlace, formatosDe, normalizarEnlaceVideo, estiloNivel, TODOS_LOS_NIVELES, puntosParaNivel,
 } from "../src/lib/desafios.ts";
 
 const fallos: string[] = [];
@@ -98,6 +99,44 @@ comprueba(mesAFecha("2026-11", new Date("2026-10-15")) === null, "un mes futuro 
 comprueba(mesAFecha("2026-13") === null && mesAFecha("hola") === null && mesAFecha("1999-01") === null, "meses inválidos se rechazan");
 comprueba(/Primer dólar|primer dólar/.test(empujon({ tipo: "INGRESOS", red: null, umbral: 100, actual: 5, falta: 95, avance: 0.04, titulo: "x" })), "empujón de dinero habla de dinero");
 comprueba(misionesDeInicio({ tieneFoto: true, cuentas: [], avances: 0, logrosVideo: 0, monetiza: true }).find((m) => m.id === "monetiza")?.hecha === true, "misión de monetizar");
+
+console.log("Videos por página");
+comprueba(formatosDe("YOUTUBE").join() === "VERTICAL,HORIZONTAL", "YouTube tiene dos formatos");
+comprueba(formatosDe("TIKTOK").length === 1 && formatosDe("TIKTOK")[0] === null, "las demás redes no tienen formatos");
+comprueba(formatoDeEnlace("https://www.youtube.com/shorts/abc123", "YOUTUBE") === "VERTICAL", "un enlace /shorts/ es vertical");
+comprueba(formatoDeEnlace("https://youtube.com/watch?v=abc123", "YOUTUBE") === "HORIZONTAL", "un video normal es horizontal");
+comprueba(formatoDeEnlace("https://youtu.be/abc123", "YOUTUBE") === "HORIZONTAL", "youtu.be corto es horizontal");
+comprueba(formatoDeEnlace("https://tiktok.com/@a/video/1", "TIKTOK") === null, "TikTok no tiene formato");
+comprueba(normalizarEnlaceVideo("https://www.tiktok.com/@a/video/123", "TIKTOK") !== null, "enlace de video de TikTok válido");
+comprueba(normalizarEnlaceVideo("https://www.tiktok.com/@a/video/123", "INSTAGRAM") === null, "un video de TikTok no vale para una página de Instagram");
+comprueba(normalizarEnlaceVideo("https://evil.com/youtube.com/watch?v=1", "YOUTUBE") === null, "dominio falso rechazado");
+comprueba(normalizarEnlaceVideo("https://youtube.com", "YOUTUBE") === null && normalizarEnlaceVideo("", "YOUTUBE") === null, "solo el dominio o vacío no es un video");
+comprueba(normalizarEnlaceVideo("javascript:alert(1)", "YOUTUBE") === null, "javascript: rechazado");
+comprueba(normalizarEnlaceVideo("youtube.com/watch?v=abc", "YOUTUBE") !== null, "acepta el enlace sin https");
+comprueba(claveVideo("c1", "VERTICAL", 1000) !== claveVideo("c1", "HORIZONTAL", 1000), "vertical y horizontal tienen claves distintas");
+comprueba(claveVideo("c1", null, 1000) !== claveVideo("c2", null, 1000), "dos páginas tienen claves distintas");
+const dosPaginas = [
+  { id: "yt", red: "YOUTUBE" as const, nombre: "Mi canal", seguidores: 10 },
+  { id: "tt", red: "TIKTOK" as const, nombre: "Mi tiktok", seguidores: 10 },
+];
+const mv = proximasMetas(dosPaginas, [], 0).find((m) => m.tipo === "VISTAS");
+comprueba(mv?.umbral === 1000 && !!mv.detalle, "meta de video: el primer escalón, con su página");
+const todoYt = [
+  ...[1000].map((u) => ({ clave: claveVideo("yt", "VERTICAL", u), tipo: "VISTAS" as const, red: "YOUTUBE" as const, umbral: u, estado: "ACTIVO" as const })),
+  ...[1000].map((u) => ({ clave: claveVideo("yt", "HORIZONTAL", u), tipo: "VISTAS" as const, red: "YOUTUBE" as const, umbral: u, estado: "ACTIVO" as const })),
+  { clave: claveVideo("tt", null, 1000), tipo: "VISTAS" as const, red: "TIKTOK" as const, umbral: 1000, estado: "ACTIVO" as const },
+];
+const mv2 = proximasMetas(dosPaginas, todoYt, 0).find((m) => m.tipo === "VISTAS");
+comprueba(mv2?.umbral === 5000, "con 1K en todas, la meta de video sube a 5K");
+const soloVert = proximasMetas([dosPaginas[0]], [todoYt[0]], 0).find((m) => m.tipo === "VISTAS");
+comprueba(soloVert?.umbral === 1000 && soloVert.formato === "HORIZONTAL", "con el vertical hecho, falta el horizontal de YouTube");
+comprueba(tituloLogro("VISTAS", 10_000, "YOUTUBE", "VERTICAL") === "Un video de 10K vistas · Short" && tituloLogro("VISTAS", 10_000, "TIKTOK") === "Un video de 10K vistas", "títulos con formato");
+comprueba(pts("VISTAS", 10_000) < pts("LIKES", 10_000), "las vistas por página valen un poco menos");
+
+console.log("Niveles");
+comprueba(estiloNivel(1) === 1 && estiloNivel(2) === 1 && estiloNivel(3) === 2 && estiloNivel(5) === 3 && estiloNivel(7) === 4 && estiloNivel(9) === 5 && estiloNivel(10) === 6 && estiloNivel(40) === 6, "el estilo sube con el nivel");
+comprueba(TODOS_LOS_NIVELES.length === 10 && TODOS_LOS_NIVELES[0].desde === 0 && TODOS_LOS_NIVELES[9].desde === puntosParaNivel(10), "la galería tiene los 10 niveles, de 0 puntos hacia arriba");
+comprueba(TODOS_LOS_NIVELES.every((n, i) => i === 0 || n.desde > TODOS_LOS_NIVELES[i - 1].desde), "cada nivel pide más puntos que el anterior");
 
 console.log("Textos");
 comprueba(/Casi/.test(empujon({ ...metas[1], avance: 0.95, falta: 50 })), "empujón de «casi»");

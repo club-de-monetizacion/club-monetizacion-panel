@@ -51,7 +51,7 @@ export default async function Moderacion() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     <Link href={`/desafios/creador/${r.perfil.id}`} className="hover:text-[var(--oro-claro)]">{r.perfil.nombre}</Link>
-                    <span className="text-[var(--ink-3)]"> · {tituloLogro(r.tipo, r.umbral, r.red)}</span>
+                    <span className="text-[var(--ink-3)]"> · {tituloLogro(r.tipo, r.umbral, r.red, r.formato)}{r.tipo === "VISTAS" ? ` · ${r.cuenta?.nombre ?? r.paginaNombre ?? "página borrada"}` : ""}</span>
                   </p>
                   <p className="flex items-center gap-2 text-[11px] text-[var(--ink-3)]">
                     {fechaCorta(r.creadoEn.toISOString())}
@@ -60,7 +60,7 @@ export default async function Moderacion() {
                     {r.estado === "REVOCADO" && <span className="text-red-300">quitada</span>}
                   </p>
                 </div>
-                <VerPrueba titulo={tituloLogro(r.tipo, r.umbral, r.red)} enlace={r.enlace} captura={r.captura} nota={r.nota} />
+                <VerPrueba titulo={tituloLogro(r.tipo, r.umbral, r.red, r.formato)} enlace={r.enlace} captura={r.captura} nota={r.nota} />
                 <AdminLogro logroId={r.id} revocado={r.estado === "REVOCADO"} />
               </li>
             ))}

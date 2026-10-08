@@ -13,7 +13,7 @@ import {
   puntosTotales,
   type Nivel,
 } from "@/lib/desafios";
-import type { EstadoLogro, RedSocial, TipoLogro } from "@prisma/client";
+import type { EstadoLogro, FormatoVideo, RedSocial, TipoLogro } from "@prisma/client";
 
 export type PuntoHistorial = { seguidores: number; fecha: string; nota: string | null };
 
@@ -35,6 +35,10 @@ export type LogroVista = {
   red: RedSocial | null;
   umbral: number;
   estado: EstadoLogro;
+  /** En las vistas: la página del video y, en YouTube, su formato */
+  cuentaId: string | null;
+  paginaNombre: string | null;
+  formato: FormatoVideo | null;
   enlace: string | null;
   /** La imagen de la prueba (solo en las pantallas que la enseñan) */
   captura: string | null;
@@ -102,7 +106,10 @@ const perfilInclude = {
       avances: { orderBy: { createdAt: "desc" as const }, take: HISTORIAL_MAX },
     },
   },
-  logros: { orderBy: { creadoEn: "desc" as const } },
+  logros: {
+    orderBy: { creadoEn: "desc" as const },
+    include: { cuenta: { select: { nombre: true } } },
+  },
   ingresos: { orderBy: { mes: "desc" as const } },
 };
 
@@ -140,6 +147,10 @@ function aVista(p: PerfilConTodo, conCapturas: boolean, espectador: Espectador):
     red: l.red,
     umbral: l.umbral,
     estado: l.estado,
+    cuentaId: l.cuentaId,
+    // El nombre actual de la página; si se borró, el que tenía al reclamar.
+    paginaNombre: l.cuenta?.nombre ?? l.paginaNombre,
+    formato: l.formato,
     enlace: l.enlace,
     // Las capturas pesan: solo viajan a las pantallas que las enseñan.
     captura: conCapturas ? l.captura : null,
@@ -241,7 +252,7 @@ export type FilaTabla = {
   redes: { red: RedSocial; seguidores: number }[];
   insignias: number;
   /** Sus tres insignias de más valor, para lucirlas en la fila */
-  destacadas: { tipo: TipoLogro; red: RedSocial | null; umbral: number }[];
+  destacadas: { tipo: TipoLogro; red: RedSocial | null; umbral: number; formato: FormatoVideo | null }[];
   oculto: boolean;
 };
 
@@ -263,7 +274,7 @@ export async function filasDeLaTabla(
     include: {
       user: { select: { image: true } },
       cuentas: { select: { id: true, red: true, nombre: true, seguidores: true } },
-      logros: { where: { estado: "ACTIVO" }, select: { clave: true, tipo: true, red: true, umbral: true, estado: true } },
+      logros: { where: { estado: "ACTIVO" }, select: { clave: true, tipo: true, red: true, umbral: true, estado: true, formato: true } },
     },
   });
 
@@ -320,7 +331,7 @@ export async function filasDeLaTabla(
       destacadas: [...lucibles]
         .sort((a, b) => puntosDe(b.tipo, b.umbral) - puntosDe(a.tipo, a.umbral))
         .slice(0, 3)
-        .map(({ tipo, red, umbral }) => ({ tipo, red, umbral })),
+        .map(({ tipo, red, umbral, formato }) => ({ tipo, red, umbral, formato })),
       oculto: !p.visible || p.ocultoPorEquipo,
     };
   });
@@ -340,10 +351,13 @@ export function ordenar(filas: FilaTabla[], por: Orden): FilaTabla[] {
 export async function reclamosRecientes(dias = 14) {
   const desde = new Date(Date.now() - dias * 86_400_000);
   return prisma.logroCreador.findMany({
-    where: { tipo: { in: ["VISTAS", "LIKES"] }, origenClave: null, creadoEn: { gte: desde } },
+    where: { tipo: { in: ["VISTAS", "LIKES", "MONETIZACION"] }, origenClave: null, creadoEn: { gte: desde } },
     orderBy: { creadoEn: "desc" },
     take: 50,
-    include: { perfil: { select: { id: true, nombre: true } } },
+    include: {
+      perfil: { select: { id: true, nombre: true } },
+      cuenta: { select: { nombre: true } },
+    },
   });
 }
 

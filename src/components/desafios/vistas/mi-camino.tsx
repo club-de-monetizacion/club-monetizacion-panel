@@ -16,7 +16,8 @@ import {
 } from "@/lib/desafios";
 import { Avatar } from "@/components/ui/avatar";
 import { Barra } from "@/components/desafios/barra";
-import { ChipNivel } from "@/components/desafios/chip-nivel";
+import { AnilloNivel, ChipNivel } from "@/components/desafios/chip-nivel";
+import { NivelesGaleria } from "@/components/desafios/niveles-galeria";
 import { Insignia } from "@/components/desafios/insignia";
 import { RedIcon } from "@/components/desafios/red-icon";
 
@@ -59,7 +60,9 @@ export function MiCaminoVista({
       <section className="glass-panel relative overflow-hidden rounded-3xl p-5 md:p-7">
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-[var(--oro)]/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 md:flex-row md:items-center">
-          <Avatar src={perfil.foto} name={perfil.nombre} size={84} className="ring-2 ring-[var(--oro)]/50" />
+          <AnilloNivel numero={nivel.numero}>
+            <Avatar src={perfil.foto} name={perfil.nombre} size={84} className="ring-2 ring-[var(--oro)]/50" />
+          </AnilloNivel>
           <div className="min-w-0 flex-1">
             <p className="antetitulo">¡Hola, {primerNombre}!</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -126,9 +129,10 @@ export function MiCaminoVista({
                 className={`glass-panel rounded-2xl p-4 ${m.tipo === "MONETIZACION" ? "border-[var(--oro)]/50" : ""}`}
               >
                 <div className="flex items-center gap-3">
-                  <Insignia tipo={m.tipo} umbral={m.umbral} red={m.red} estado="bloqueada" tamano={56} />
+                  <Insignia tipo={m.tipo} umbral={m.umbral} red={m.red} formato={m.formato} estado="bloqueada" tamano={56} />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--ink-0)]">{m.titulo}</p>
+                    {m.detalle && <p className="truncate text-[11px] text-[var(--ink-2)]">en {m.detalle}</p>}
                     <p className="text-[11px] text-[var(--ink-3)]">+{puntosDe(m.tipo, m.umbral)} puntos</p>
                   </div>
                 </div>
@@ -152,6 +156,8 @@ export function MiCaminoVista({
           </div>
         )}
       </section>
+
+      <NivelesGaleria actual={nivel.numero} />
 
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Primeros pasos, mientras falten */}
@@ -220,8 +226,9 @@ export function MiCaminoVista({
           <div className="glass-panel flex flex-wrap gap-5 rounded-2xl p-5">
             {recientes.map((l) => (
               <div key={l.id} className="flex w-24 flex-col items-center gap-1.5 text-center">
-                <Insignia tipo={l.tipo} umbral={l.umbral} red={l.red} tamano={68} />
-                <p className="text-[11px] leading-tight text-[var(--ink-2)]">{tituloLogro(l.tipo, l.umbral, l.red)}</p>
+                <Insignia tipo={l.tipo} umbral={l.umbral} red={l.red} formato={l.formato} tamano={68} />
+                <p className="text-[11px] leading-tight text-[var(--ink-2)]">{tituloLogro(l.tipo, l.umbral, l.red, l.formato)}</p>
+                {l.paginaNombre && <p className="text-[10px] text-[var(--ink-3)]">{l.paginaNombre}</p>}
               </div>
             ))}
           </div>

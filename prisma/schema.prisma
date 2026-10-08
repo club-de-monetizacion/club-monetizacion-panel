@@ -542,7 +542,7 @@ enum TipoLogro {
   SEGUIDORES
   /// Seguidores sumando todas las redes
   AUDIENCIA
-  /// Primer video con N vistas
+  /// Un video con N vistas **en una página concreta** (y, en YouTube, en un formato)
   VISTAS
   /// Primer video con N likes
   LIKES
@@ -550,6 +550,13 @@ enum TipoLogro {
   MONETIZACION
   /// Dinero ganado en total, en dólares
   INGRESOS
+}
+
+/// En YouTube los Shorts (vertical) y los videos largos (horizontal) se cuentan por
+/// separado: cada uno tiene su propia escalera de vistas.
+enum FormatoVideo {
+  VERTICAL
+  HORIZONTAL
 }
 
 enum EstadoLogro {
@@ -622,6 +629,8 @@ model CuentaSocial {
   updatedAt DateTime @updatedAt
 
   avances AvanceCuenta[]
+  /// Los videos que esta página ha reclamado
+  logros  LogroCreador[]
 
   @@unique([perfilId, url])
   @@index([perfilId])
@@ -647,12 +656,19 @@ model LogroCreador {
   perfilId String
   perfil   PerfilCreador @relation(fields: [perfilId], references: [id], onDelete: Cascade)
 
-  clave  String
-  tipo   TipoLogro
+  clave        String
+  tipo         TipoLogro
   /// La red de los seguidores, o donde está el video de las vistas y los likes
-  red    RedSocial?
-  umbral Int
-  estado EstadoLogro @default(ACTIVO)
+  red          RedSocial?
+  /// Solo en las vistas: la página a la que pertenece el video. Si la página se borra, la
+  /// insignia se queda (es un logro) y `paginaNombre` recuerda cómo se llamaba.
+  cuentaId     String?
+  cuenta       CuentaSocial? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+  paginaNombre String?
+  /// Solo en las vistas de YouTube: vertical (Shorts) u horizontal (videos largos)
+  formato      FormatoVideo?
+  umbral       Int
+  estado       EstadoLogro   @default(ACTIVO)
 
   /// La prueba, opcional: el enlace al video y/o una captura
   enlace  String?
@@ -672,6 +688,7 @@ model LogroCreador {
   @@unique([perfilId, clave])
   @@index([perfilId, estado])
   @@index([estado, creadoEn])
+  @@index([cuentaId])
 }
 
 /// Lo que una persona gana al mes en una plataforma. Una fila por (persona, red, mes):

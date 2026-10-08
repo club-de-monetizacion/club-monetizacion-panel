@@ -12,11 +12,16 @@ import {
   escalonesPorDebajo,
   escaleraDe,
   logrosAlcanzados,
+  claveVideo,
+  ESCALERA_VISTAS,
+  formatoDeEnlace,
+  formatosDe,
   mesAFecha,
+  normalizarEnlaceVideo,
   normalizarUrlCuenta,
 } from "@/lib/desafios";
 import { leerCanalYoutube } from "@/lib/youtube";
-import type { RedSocial, TipoLogro } from "@prisma/client";
+import type { FormatoVideo, RedSocial, TipoLogro } from "@prisma/client";
 
 /**
  * Desafíos: los perfiles de creador, sus páginas, sus avances y sus insignias.
@@ -30,7 +35,14 @@ import type { RedSocial, TipoLogro } from "@prisma/client";
 
 /* ── Lo que se devuelve y se valida ────────────────────────────────────────── */
 
-export type LogroNuevo = { tipo: TipoLogro; red: RedSocial | null; umbral: number };
+export type LogroNuevo = {
+  tipo: TipoLogro;
+  red: RedSocial | null;
+  umbral: number;
+  /** En las vistas: de qué página y, en YouTube, de qué formato */
+  formato?: FormatoVideo | null;
+  pagina?: string | null;
+};
 type Resultado = { error: string } | { success: true; nuevos?: LogroNuevo[]; id?: string };
 
 const redSchema = z.enum(REDES as [RedSocial, ...RedSocial[]]);
@@ -331,7 +343,7 @@ export async function actualizarDesdeYoutube(cuentaId: string): Promise<Resultad
 /* ── Reclamar un video ─────────────────────────────────────────────────────── */
 
 const reclamoSchema = z.object({
-  tipo: z.enum(["VISTAS", "LIKES", "MONETIZACION"]),
+  tipo: z.enum(["LIKES", "MONETIZACION"]),
   umbral: z.coerce.number().int(),
   red: redSchema.nullable().optional(),
   // La prueba es opcional: puede ser solo el enlace, solo la captura, o nada.
@@ -341,8 +353,9 @@ const reclamoSchema = z.object({
 });
 
 /**
- * «Mi video llegó a N vistas/likes» o «ya tengo la monetización activada». Concede ese escalón y, de regalo, los de abajo de
- * la misma serie que aún no tenga: quien llegó a 10 mil pasó por las mil.
+ * «Un video mío llegó a N likes» o «ya tengo la monetización activada». Concede ese escalón y,
+ * de regalo, los de abajo de la misma serie que aún no tenga: quien llegó a 10 mil pasó por
+ * las mil. (Las vistas van por página: ver `reclamarVideo`.)
  */
 export async function reclamarLogro(entrada: z.input<typeof reclamoSchema>): Promise<Resultado> {
   const { perfil } = await miPerfil();
@@ -393,6 +406,88 @@ export async function reclamarLogro(entrada: z.input<typeof reclamoSchema>): Pro
   }
   refrescar();
   return { success: true, nuevos: [{ tipo, red: red ?? null, umbral }] };
+}
+
+const videoSchema = z.object({
+  cuentaId: z.string().min(1),
+  // En YouTube hay que decir de cuál de los dos formatos es el video
+  formato: z.enum(["VERTICAL", "HORIZONTAL"]).nullable().optional(),
+  umbral: z.coerce.number().int(),
+  // Aquí el enlace sí es obligatorio: es lo que prueba el video. La captura es opcional.
+  enlace: z.string().trim().min(1, "Pega el enlace del video").max(500, "El enlace es demasiado largo"),
+  captura: imagenSchema(900_000).nullable().optional(),
+  nota: z.string().trim().max(300, "La nota admite 300 caracteres").optional(),
+});
+
+/**
+ * «Un video de esta página llegó a N vistas». Cada página tiene su propia escalera, y en
+ * YouTube hay **dos**: los Shorts (vertical) y los videos largos (horizontal) se cuentan por
+ * separado, así que se pueden ganar las insignias de los dos. Se concede ese escalón y, de
+ * regalo, los de abajo de la misma página y formato.
+ */
+export async function reclamarVideo(entrada: z.input<typeof videoSchema>): Promise<Resultado> {
+  const datos = videoSchema.safeParse(entrada);
+  if (!datos.success) return { error: primerError(datos.error) };
+  const { cuentaId, umbral, captura, nota } = datos.data;
+  // La página tiene que ser de quien reclama: `miCuenta` lo comprueba.
+  const { perfil, cuenta } = await miCuenta(cuentaId);
+
+  if (!ESCALERA_VISTAS.includes(umbral)) return { error: "Ese escalón no existe" };
+
+  const enlace = normalizarEnlaceVideo(datos.data.enlace, cuenta.red);
+  if (!enlace) {
+    return { error: `Ese enlace no es un video de ${RED_INFO[cuenta.red].nombre}. Pega el enlace del video, no el de tu página.` };
+  }
+
+  // El formato: solo existe en YouTube, y tiene que cuadrar con el enlace (los Shorts llevan
+  // /shorts/), para que un Short no se cuente también como video largo.
+  const permitidos = formatosDe(cuenta.red);
+  const formato: FormatoVideo | null = permitidos[0] === null ? null : (datos.data.formato ?? null);
+  if (permitidos[0] !== null && !formato) return { error: "Di si el video es vertical (Short) u horizontal (largo)" };
+  if (formato) {
+    const real = formatoDeEnlace(enlace, cuenta.red);
+    if (real !== formato) {
+      return {
+        error: real === "VERTICAL"
+          ? "Ese enlace es de un Short: cuéntalo en la fila de verticales."
+          : "Ese enlace es de un video largo: cuéntalo en la fila de horizontales.",
+      };
+    }
+  }
+
+  const clave = claveVideo(cuenta.id, formato, umbral);
+  const yaEsta = await prisma.logroCreador.findUnique({
+    where: { perfilId_clave: { perfilId: perfil.id, clave } },
+  });
+  if (yaEsta?.estado === "ACTIVO") return { error: "Ya tienes esta insignia" };
+  if (yaEsta?.estado === "REVOCADO") {
+    return { error: "El equipo revisó esta insignia. Escríbele al equipo si crees que fue un error." };
+  }
+
+  const comunes = {
+    perfilId: perfil.id,
+    tipo: "VISTAS" as const,
+    red: cuenta.red,
+    cuentaId: cuenta.id,
+    paginaNombre: cuenta.nombre,
+    formato,
+  };
+  await prisma.logroCreador.create({
+    data: { ...comunes, clave, umbral, enlace, captura: captura ?? null, nota: nota || null },
+  });
+  // Los escalones de abajo, sin prueba propia: cuelgan de este.
+  const debajo = escalonesPorDebajo("VISTAS", umbral);
+  if (debajo.length > 0) {
+    await prisma.logroCreador.createMany({
+      data: debajo.map((u) => ({ ...comunes, clave: claveVideo(cuenta.id, formato, u), umbral: u, origenClave: clave })),
+      skipDuplicates: true,
+    });
+  }
+  refrescar();
+  return {
+    success: true,
+    nuevos: [{ tipo: "VISTAS", red: cuenta.red, umbral, formato, pagina: cuenta.nombre }],
+  };
 }
 
 /** Retira una insignia de video que la persona reclamó por error. */

@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { AdminCuenta, AdminIngreso, AdminLogro, AdminPerfil } from "@/components/desafios/admin-controles";
 import { Barra } from "@/components/desafios/barra";
 import { ChipDemo } from "@/components/desafios/chip-demo";
-import { ChipNivel } from "@/components/desafios/chip-nivel";
+import { AnilloNivel, ChipNivel } from "@/components/desafios/chip-nivel";
 import { Insignia } from "@/components/desafios/insignia";
 import { RedIcon } from "@/components/desafios/red-icon";
 import { Sparkline } from "@/components/desafios/sparkline";
@@ -67,7 +67,9 @@ export function CreadorVista({
       <section className="glass-panel relative overflow-hidden rounded-3xl p-5 md:p-7">
         <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-[var(--azul-vivo)]/15 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar src={perfil.foto} name={perfil.nombre} size={96} className="ring-2 ring-[var(--oro)]/50" />
+          <AnilloNivel numero={nivel.numero}>
+            <Avatar src={perfil.foto} name={perfil.nombre} size={96} className="ring-2 ring-[var(--oro)]/50" />
+          </AnilloNivel>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl font-bold">{perfil.nombre}</h1>
@@ -236,11 +238,12 @@ function CeldaLogro({ l, esEquipo }: { l: LogroVista; esEquipo: boolean }) {
   const revocado = l.estado === "REVOCADO";
   return (
     <div className="flex flex-col items-center gap-1 text-center">
-      <Insignia tipo={l.tipo} umbral={l.umbral} red={l.red} estado={revocado ? "revocada" : "ganada"} tamano={72} />
-      <p className="text-[11px] leading-tight text-[var(--ink-1)]">{tituloLogro(l.tipo, l.umbral, l.red)}</p>
+      <Insignia tipo={l.tipo} umbral={l.umbral} red={l.red} formato={l.formato} estado={revocado ? "revocada" : "ganada"} tamano={72} />
+      <p className="text-[11px] leading-tight text-[var(--ink-1)]">{tituloLogro(l.tipo, l.umbral, l.red, l.formato)}</p>
+      {l.paginaNombre && <p className="text-[10px] text-[var(--ink-3)]">{l.paginaNombre}</p>}
       <p className="text-[10px] text-[var(--ink-3)]">{fechaCorta(l.creadoEn)}</p>
       {!revocado && (l.enlace || l.captura || l.nota) && (
-        <VerPrueba titulo={tituloLogro(l.tipo, l.umbral, l.red)} enlace={l.enlace} captura={l.captura} nota={l.nota} />
+        <VerPrueba titulo={tituloLogro(l.tipo, l.umbral, l.red, l.formato)} enlace={l.enlace} captura={l.captura} nota={l.nota} />
       )}
       {!revocado && !l.enlace && !l.tieneCaptura && (l.tipo === "VISTAS" || l.tipo === "LIKES") && !l.origenClave && (
         <p className="text-[10px] text-[var(--ink-3)]">Sin prueba</p>

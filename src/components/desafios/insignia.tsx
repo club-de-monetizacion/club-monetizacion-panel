@@ -1,6 +1,6 @@
 import { useId } from "react";
-import type { RedSocial, TipoLogro } from "@prisma/client";
-import { BadgeDollarSign, Eye, Globe, Heart, Lock, Users, Wallet } from "lucide-react";
+import type { FormatoVideo, RedSocial, TipoLogro } from "@prisma/client";
+import { BadgeDollarSign, Eye, Globe, Heart, Lock, Monitor, Smartphone, Users, Wallet } from "lucide-react";
 import { etiquetaCifra, rangoLogro } from "@/lib/desafios";
 import { RedIcon } from "./red-icon";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function Insignia({
   tipo,
   umbral,
   red,
+  formato,
   estado = "ganada",
   tamano = 76,
   className,
@@ -31,6 +32,8 @@ export function Insignia({
   tipo: TipoLogro;
   umbral: number;
   red?: RedSocial | null;
+  /** En las vistas de YouTube: vertical (Shorts) u horizontal (largos) */
+  formato?: FormatoVideo | null;
   estado?: EstadoInsignia;
   tamano?: number;
   className?: string;
@@ -110,13 +113,23 @@ export function Insignia({
         </span>
       </div>
 
-      {red && tipo === "SEGUIDORES" && (
+      {red && (tipo === "SEGUIDORES" || tipo === "VISTAS") && (
         <span
           className="absolute -right-0.5 -bottom-0.5 flex items-center justify-center rounded-full bg-[#0b1428] ring-1 ring-[var(--linea)]"
           // (el logo ocupa el 65 % del círculo)
           style={{ width: tamano * 0.3, height: tamano * 0.3 }}
         >
           <RedIcon red={red} className="h-[65%] w-[65%]" />
+        </span>
+      )}
+
+      {formato && (
+        <span
+          className="absolute -bottom-0.5 -left-0.5 flex items-center justify-center rounded-full bg-[#0b1428] text-[var(--ink-1)] ring-1 ring-[var(--linea)]"
+          style={{ width: tamano * 0.3, height: tamano * 0.3 }}
+          title={formato === "VERTICAL" ? "Vertical (Shorts)" : "Horizontal (videos largos)"}
+        >
+          {formato === "VERTICAL" ? <Smartphone className="h-[60%] w-[60%]" /> : <Monitor className="h-[60%] w-[60%]" />}
         </span>
       )}
     </div>

@@ -4,7 +4,7 @@ import { ordenar, type FilaTabla, type Orden } from "@/lib/desafios-data";
 import { abreviar, entero } from "@/lib/desafios";
 import { Avatar } from "@/components/ui/avatar";
 import { ChipDemo } from "@/components/desafios/chip-demo";
-import { ChipNivel } from "@/components/desafios/chip-nivel";
+import { AnilloNivel, ChipNivel } from "@/components/desafios/chip-nivel";
 import { Insignia } from "@/components/desafios/insignia";
 import { RedIcon } from "@/components/desafios/red-icon";
 import { cn } from "@/lib/utils";
@@ -101,7 +101,11 @@ export function ClasificacionVista({
                   {["🥇", "🥈", "🥉"][i]}
                 </span>
                 {i === 0 && <Crown className="absolute top-3 right-3 h-5 w-5 text-[var(--oro)]" />}
-                <Avatar src={f.foto} name={f.nombre} size={i === 0 ? 84 : 68} className="mx-auto ring-2 ring-[var(--oro)]/40" />
+                <div className="flex justify-center">
+                  <AnilloNivel numero={f.nivel.numero}>
+                    <Avatar src={f.foto} name={f.nombre} size={i === 0 ? 84 : 68} className="ring-2 ring-[var(--oro)]/40" />
+                  </AnilloNivel>
+                </div>
                 <p className="mt-3 truncate text-lg font-bold">{f.nombre}</p>
                 <div className="mt-1 flex flex-wrap justify-center gap-1.5">
                   <ChipNivel numero={f.nivel.numero} nombre={f.nivel.nombre} />
@@ -113,7 +117,7 @@ export function ClasificacionVista({
                 <p className="text-[11px] text-[var(--ink-3)]">{pestana.unidad}</p>
                 <div className="mt-3 flex justify-center gap-1.5">
                   {f.destacadas.map((d) => (
-                    <Insignia key={`${d.tipo}${d.red}${d.umbral}`} tipo={d.tipo} umbral={d.umbral} red={d.red} tamano={40} />
+                    <Insignia key={`${d.tipo}${d.red}${d.umbral}`} tipo={d.tipo} umbral={d.umbral} red={d.red} formato={d.formato} tamano={40} />
                   ))}
                 </div>
               </Link>
@@ -132,15 +136,18 @@ export function ClasificacionVista({
                     <span className="w-7 text-center font-[family-name:var(--font-titulos)] text-sm font-bold text-[var(--ink-3)]">
                       {i + 4}
                     </span>
-                    <Avatar src={f.foto} name={f.nombre} size={40} />
+                    <AnilloNivel numero={f.nivel.numero}>
+                      <Avatar src={f.foto} name={f.nombre} size={40} />
+                    </AnilloNivel>
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-2 truncate font-medium">
                         {f.nombre}
                         {f.id === mioId && <span className="chip chip-oro">Tú</span>}
                         {f.esDemo && <ChipDemo />}
                       </p>
-                      <p className="truncate text-xs text-[var(--ink-3)]">
-                        Nivel {f.nivel.numero} · {f.nivel.nombre}{f.nicho ? ` · ${f.nicho}` : ""}
+                      <p className="flex items-center gap-2 text-xs text-[var(--ink-3)]">
+                        <ChipNivel numero={f.nivel.numero} nombre={f.nivel.nombre} />
+                        {f.nicho && <span className="truncate">{f.nicho}</span>}
                       </p>
                     </div>
                     <div className="hidden items-center gap-2.5 md:flex">
@@ -153,7 +160,7 @@ export function ClasificacionVista({
                     </div>
                     <div className="hidden gap-1 lg:flex">
                       {f.destacadas.map((d) => (
-                        <Insignia key={`${d.tipo}${d.red}${d.umbral}`} tipo={d.tipo} umbral={d.umbral} red={d.red} tamano={32} />
+                        <Insignia key={`${d.tipo}${d.red}${d.umbral}`} tipo={d.tipo} umbral={d.umbral} red={d.red} formato={d.formato} tamano={32} />
                       ))}
                     </div>
                     <div className="w-24 text-right">

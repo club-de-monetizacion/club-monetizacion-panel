@@ -55,16 +55,17 @@ export function Celebracion({
         <div className="relative flex flex-col items-center gap-3 pt-2">
           <p className="antetitulo">¡Insignia desbloqueada!</p>
           <div className="aparece-rebote">
-            <Insignia tipo={mayor.tipo} umbral={mayor.umbral} red={mayor.red} tamano={120} />
+            <Insignia tipo={mayor.tipo} umbral={mayor.umbral} red={mayor.red} formato={mayor.formato} tamano={120} />
           </div>
-          <DialogTitle className="text-xl">{tituloLogro(mayor.tipo, mayor.umbral, mayor.red)}</DialogTitle>
+          <DialogTitle className="text-xl">{tituloLogro(mayor.tipo, mayor.umbral, mayor.red, mayor.formato)}</DialogTitle>
+          {mayor.pagina && <p className="text-xs text-[var(--ink-3)]">en {mayor.pagina}</p>}
           <DialogDescription>
             Rango <strong style={{ color: rango.claro }}>{rango.nombre}</strong> · +{puntos} puntos
           </DialogDescription>
           {resto.length > 0 && (
             <div className="mt-1 flex flex-wrap justify-center gap-2">
               {resto.slice(0, 8).map((l) => (
-                <Insignia key={`${l.tipo}${l.red}${l.umbral}`} tipo={l.tipo} umbral={l.umbral} red={l.red} tamano={44} />
+                <Insignia key={`${l.tipo}${l.red}${l.formato}${l.umbral}`} tipo={l.tipo} umbral={l.umbral} red={l.red} formato={l.formato} tamano={44} />
               ))}
             </div>
           )}

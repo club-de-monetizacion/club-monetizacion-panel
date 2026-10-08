@@ -206,6 +206,16 @@ administradores**.
 - **Seguidores automáticos: solo YouTube**, con la API pública de Google y `YOUTUBE_API_KEY`
   (opcional). Instagram, TikTok y Facebook no dejan leer eso sin ser una app aprobada por
   ellas, así que se anota a mano. Lo leído de YouTube lleva sello y no se pisa a mano.
+- **Videos por página (8 oct 2026):** cada página tiene su propia escalera de «un video con N
+  vistas» (1K, 5K, 10K… 100M). Se reclama con el **enlace del video (obligatorio, y debe ser de
+  la red de esa página)** y una captura opcional. **En YouTube hay dos escaleras por página:**
+  Shorts (vertical) y videos largos (horizontal), que se cuentan por separado; el servidor
+  comprueba que el enlace cuadre con el formato (`/shorts/` = vertical), para que un Short no
+  cuente también como largo. Las insignias de «likes» siguen siendo generales.
+- **Niveles con etiqueta animada:** `ChipNivel` y `AnilloNivel` (`components/desafios/chip-nivel.tsx`)
+  suben de categoría con el nivel (`estiloNivel`, `lib/desafios.ts`): sobria, dorada, con
+  destello, borde de aurora (nivel 7), resplandor de fuego (9) y holográfica con chispas (10+).
+  «Los niveles del Club» (Mi camino) enseña todas desde el primer día. Estilos en `globals.css`.
 - **Monetización e ingresos (8 oct 2026):** la primera meta de todos es **activar la
   monetización** (insignia que se reclama, en cualquier plataforma). Aparte, cada quien anota
   lo que gana por mes y plataforma (`/desafios/monetizacion`, **siempre en dólares**, una fila

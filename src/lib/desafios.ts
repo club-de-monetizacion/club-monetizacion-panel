@@ -5,7 +5,7 @@
  * se calcula el nivel viven en este archivo, así que cambiar un escalón (o añadir uno
  * más alto) no pide migrar nada: las insignias ganadas se guardan por su `clave`.
  */
-import type { RedSocial, TipoLogro } from "@prisma/client";
+import type { FormatoVideo, RedSocial, TipoLogro } from "@prisma/client";
 
 /* ── Las redes ─────────────────────────────────────────────────────────────── */
 
@@ -42,7 +42,7 @@ export const RED_INFO: Record<
 };
 
 /** ¿Este dominio es de esa red? Acepta subdominios (`www.`, `m.`, `vm.`…). */
-function esDeLaRed(host: string, red: RedSocial): boolean {
+export function esDeLaRed(host: string, red: RedSocial): boolean {
   return RED_INFO[red].dominios.some((d) => host === d || host.endsWith(`.${d}`));
 }
 
@@ -97,6 +97,56 @@ export function normalizarUrlCuenta(
   return { url: `https://${host}${ruta}${resto}`, usuario };
 }
 
+/* ── Videos por página ─────────────────────────────────────────────────────── */
+
+/** Cómo se llama cada formato de YouTube, completo y corto. */
+export const FORMATO_INFO: Record<FormatoVideo, { largo: string; corto: string; explica: string }> = {
+  VERTICAL: { largo: "Shorts · vertical", corto: "Short", explica: "videos verticales (Shorts)" },
+  HORIZONTAL: { largo: "Videos largos · horizontal", corto: "Largo", explica: "videos horizontales (largos)" },
+};
+
+/** En YouTube se cuentan aparte los verticales (Shorts) y los horizontales; en el resto, no. */
+export const formatosDe = (red: RedSocial): (FormatoVideo | null)[] =>
+  red === "YOUTUBE" ? ["VERTICAL", "HORIZONTAL"] : [null];
+
+/**
+ * Qué formato es un video de YouTube, según su enlace: los Shorts llevan `/shorts/`. En las
+ * demás redes no hay formatos y devuelve `null`.
+ */
+export function formatoDeEnlace(url: string, red: RedSocial): FormatoVideo | null {
+  if (red !== "YOUTUBE") return null;
+  try {
+    return new URL(url).pathname.toLowerCase().startsWith("/shorts/") ? "VERTICAL" : "HORIZONTAL";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deja limpio el enlace de un video y comprueba que sea de la red de su página: un video
+ * de TikTok no vale como prueba de una página de Instagram. `null` si no es válido.
+ */
+export function normalizarEnlaceVideo(bruto: string, red: RedSocial): string | null {
+  let texto = bruto.trim();
+  if (!texto) return null;
+  if (!/^https?:\/\//i.test(texto)) texto = `https://${texto}`;
+  try {
+    const u = new URL(texto);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (!esDeLaRed(host, red)) return null;
+    // Solo el dominio no es un video.
+    if (u.pathname.replace(/\/+$/, "") === "" && !u.searchParams.has("v")) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** La clave de una insignia de vistas: pertenece a una página y, en YouTube, a un formato. */
+export const claveVideo = (cuentaId: string, formato: FormatoVideo | null, umbral: number) =>
+  `VISTAS:${cuentaId}:${formato ?? "-"}:${umbral}`;
+
 /* ── Los escalones ─────────────────────────────────────────────────────────── */
 
 /** Seguidores en una sola red, y el total sumando todas. */
@@ -108,7 +158,7 @@ export const ESCALERA_AUDIENCIA = [
   1_000, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000,
   5_000_000, 10_000_000, 50_000_000,
 ];
-/** «Mi primer video con N vistas». */
+/** «Un video con N vistas», en cada página (y en YouTube, en cada formato). */
 export const ESCALERA_VISTAS = [
   1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000,
   10_000_000, 50_000_000, 100_000_000,
@@ -204,7 +254,11 @@ export function puntosDe(tipo: TipoLogro, umbral: number): number {
   if (tipo === "INGRESOS") return Math.round((Math.log10(umbral) + 1) ** 2 * 8);
   const base = Math.round(Math.log10(umbral) ** 2 * 5);
   // La audiencia total repite lo que ya cuentan las redes sueltas: vale menos.
-  return tipo === "AUDIENCIA" ? Math.round(base * 0.6) : base;
+  if (tipo === "AUDIENCIA") return Math.round(base * 0.6);
+  // Cada página tiene su propia escalera de vistas: valen un poco menos para que tener
+  // muchas páginas no dispare los puntos.
+  if (tipo === "VISTAS") return Math.round(base * 0.75);
+  return base;
 }
 
 const NIVELES = [
@@ -228,7 +282,33 @@ export type Nivel = {
 };
 
 /** Cuántos puntos hacen falta para llegar al nivel `n` (el 1 es el de partida). */
-const puntosParaNivel = (n: number) => (n <= 1 ? 0 : 30 * (n - 1) ** 2);
+export const puntosParaNivel = (n: number) => (n <= 1 ? 0 : 30 * (n - 1) ** 2);
+
+/** Todos los niveles con nombre, de partida a cima, para enseñarlos en una galería. */
+export const TODOS_LOS_NIVELES = NIVELES.map((nombre, i) => ({
+  numero: i + 1,
+  nombre,
+  desde: puntosParaNivel(i + 1),
+}));
+
+/**
+ * Cómo se ve la etiqueta de un nivel: del 1 (discreta) al 6 (la más llamativa). Cuanto más
+ * alto el nivel, más brilla y más se mueve, para que quien llega vea qué hay al fondo.
+ *   1 · niveles 1-2   sobria
+ *   2 · niveles 3-4   dorada
+ *   3 · niveles 5-6   dorada con destello
+ *   4 · niveles 7-8   borde de aurora que gira
+ *   5 · nivel 9       resplandor que late
+ *   6 · nivel 10+     holográfica, con chispas
+ */
+export function estiloNivel(numero: number): 1 | 2 | 3 | 4 | 5 | 6 {
+  if (numero >= 10) return 6;
+  if (numero >= 9) return 5;
+  if (numero >= 7) return 4;
+  if (numero >= 5) return 3;
+  if (numero >= 3) return 2;
+  return 1;
+}
 
 export function nivelDe(puntos: number): Nivel {
   const numero = Math.floor(Math.sqrt(Math.max(0, puntos) / 30)) + 1;
@@ -275,12 +355,17 @@ export const cifraDe = (tipo: TipoLogro, n: number) =>
 
 /* ── Textos de las insignias ───────────────────────────────────────────────── */
 
-export function tituloLogro(tipo: TipoLogro, umbral: number, red?: RedSocial | null): string {
+export function tituloLogro(
+  tipo: TipoLogro,
+  umbral: number,
+  red?: RedSocial | null,
+  formato?: FormatoVideo | null,
+): string {
   const cifra = abreviar(umbral);
   switch (tipo) {
     case "SEGUIDORES": return `${cifra} en ${red ? RED_INFO[red].nombre : "una red"}`;
     case "AUDIENCIA": return `${cifra} de audiencia`;
-    case "VISTAS": return `Un video de ${cifra} vistas`;
+    case "VISTAS": return `Un video de ${cifra} vistas${formato ? ` · ${FORMATO_INFO[formato].corto}` : ""}`;
     case "LIKES": return `Un video de ${cifra} likes`;
     case "MONETIZACION": return "Monetización activada";
     case "INGRESOS": return `$${cifra} ganados`;
@@ -368,6 +453,9 @@ export type Meta = {
   /** 0–1 desde el escalón anterior hasta este; `null` si no se mide */
   avance: number | null;
   titulo: string;
+  /** De qué página es (en las metas de video): «en lucia.finanzas · Short» */
+  detalle?: string;
+  formato?: FormatoVideo | null;
 };
 
 /**
@@ -417,17 +505,37 @@ export function proximasMetas(cuentas: CuentaMin[], logros: LogroMin[], ingresos
   medidas.sort((a, b) => (b.avance ?? 0) - (a.avance ?? 0) || (a.falta ?? 0) - (b.falta ?? 0));
 
   const sinMedir: Meta[] = [];
-  for (const tipo of ["VISTAS", "LIKES"] as const) {
-    const u = escaleraDe(tipo).find((n) => {
-      const k = claveLogro(tipo, n);
-      return !claves.has(k) && !revocadas.has(k);
-    });
-    if (u) {
-      sinMedir.push({
-        tipo, red: null, umbral: u, actual: null, falta: null, avance: null,
-        titulo: tituloLogro(tipo, u),
+
+  // Videos: el escalón más bajo que le falta a alguna de sus páginas (y formatos). Se ofrece
+  // uno solo, el más fácil, para no llenar la pantalla de metas.
+  let video: Meta | null = null;
+  for (const c of cuentas) {
+    for (const formato of formatosDe(c.red)) {
+      const u = ESCALERA_VISTAS.find((n) => {
+        const k = claveVideo(c.id, formato, n);
+        return !claves.has(k) && !revocadas.has(k);
       });
+      if (u && (!video || u < video.umbral)) {
+        video = {
+          tipo: "VISTAS", red: c.red, umbral: u, actual: null, falta: null, avance: null,
+          titulo: tituloLogro("VISTAS", u, c.red, formato),
+          detalle: c.nombre,
+          formato,
+        };
+      }
     }
+  }
+  if (video) sinMedir.push(video);
+
+  const likes = ESCALERA_LIKES.find((n) => {
+    const k = claveLogro("LIKES", n);
+    return !claves.has(k) && !revocadas.has(k);
+  });
+  if (likes) {
+    sinMedir.push({
+      tipo: "LIKES", red: null, umbral: likes, actual: null, falta: null, avance: null,
+      titulo: tituloLogro("LIKES", likes),
+    });
   }
   const activar: Meta[] =
     monetiza || revocadas.has(monetizaClave)

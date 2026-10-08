@@ -490,3 +490,145 @@ h1, h2, h3 {
   background: linear-gradient(135deg, #0c1932, #13244a);
 }
 .fila-tabla.es-mia { border-color: rgba(201, 160, 64, 0.45); }
+
+/* ══════════ LOS NIVELES ══════════
+   La etiqueta de nivel y el marco de la foto suben de categoría con el nivel (ver
+   `estiloNivel` en `lib/desafios.ts`): sobria, dorada, con destello, con borde de aurora que
+   gira, con resplandor y, en la cima, holográfica. La idea es que quien llega vea que los
+   niveles altos se ven distintos y quiera tenerlos. Con «reducir movimiento» todo se queda
+   quieto (la regla de arriba apaga las animaciones). */
+@property --ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes gira-ang { to { --ang: 360deg; } }
+@keyframes late-nivel {
+  0%, 100% { box-shadow: 0 0 8px 0 var(--halo, transparent); }
+  50% { box-shadow: 0 0 20px 3px var(--halo, transparent); }
+}
+@keyframes holo { to { background-position: 200% 50%; } }
+@keyframes chispa {
+  0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+@keyframes destello-etiqueta {
+  0%, 60%, 100% { transform: translateX(-130%) skewX(-18deg); }
+  85% { transform: translateX(260%) skewX(-18deg); }
+}
+
+.nivel-etiqueta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  isolation: isolate;
+}
+
+/* 1 · niveles 1-2: sobria */
+.nivel-t1 {
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--linea);
+}
+/* 2 · niveles 3-4: dorada */
+.nivel-t2 {
+  color: var(--oro-claro);
+  background: rgba(201, 160, 64, 0.14);
+  border: 1px solid rgba(201, 160, 64, 0.3);
+}
+/* 3 · niveles 5-6: dorada con un destello que cruza de vez en cuando */
+.nivel-t3 {
+  overflow: hidden;
+  color: var(--oro-xclaro);
+  background: linear-gradient(135deg, rgba(201, 160, 64, 0.28), rgba(155, 117, 32, 0.2));
+  border: 1px solid rgba(232, 192, 96, 0.5);
+}
+.nivel-t3::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: destello-etiqueta 3.6s ease-in-out infinite;
+  z-index: -1;
+}
+/* 4 · niveles 7-8: borde de aurora que gira */
+.nivel-t4 {
+  color: #fff;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(#0d1830, #0d1830) padding-box,
+    conic-gradient(from var(--ang), #2468ff, #4fd1c5, #ffd97d, #2468ff) border-box;
+  animation: gira-ang 3.6s linear infinite;
+}
+/* 5 · nivel 9: borde de fuego y resplandor que late */
+.nivel-t5 {
+  --halo: rgba(255, 140, 50, 0.6);
+  color: #ffe9b8;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(#1b0f10, #1b0f10) padding-box,
+    conic-gradient(from var(--ang), #ff7a18, #ffd97d, #ff3d6e, #ffd97d, #ff7a18) border-box;
+  text-shadow: 0 0 8px rgba(255, 150, 60, 0.7);
+  animation: gira-ang 2.6s linear infinite, late-nivel 1.8s ease-in-out infinite;
+}
+/* 6 · nivel 10+: holográfica, con chispas */
+.nivel-t6 {
+  --halo: rgba(190, 120, 255, 0.65);
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(#150b30, #150b30) padding-box,
+    conic-gradient(from var(--ang), #ff5fa2, #ffd97d, #5ffbf1, #8f7bff, #ff5fa2) border-box;
+  font-weight: 700;
+  animation: gira-ang 2.2s linear infinite, late-nivel 1.6s ease-in-out infinite;
+}
+.nivel-t6 .nivel-texto {
+  background: linear-gradient(90deg, #fff, #ffd97d, #9ff7ff, #ffb3e0, #fff);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: holo 3s linear infinite;
+}
+.nivel-t6 svg { color: #ffd97d; filter: drop-shadow(0 0 4px rgba(255, 217, 125, 0.9)); }
+.nivel-t5 svg { color: #ffb347; filter: drop-shadow(0 0 4px rgba(255, 150, 60, 0.9)); }
+.nivel-t4 svg { color: #9ff7ff; }
+
+/* Las chispas de los niveles más altos */
+.chispa {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  background: #fff;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  filter: drop-shadow(0 0 3px #ffd97d);
+  animation: chispa 2.4s ease-in-out infinite;
+}
+
+/* El marco de la foto */
+.anillo-nivel {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 3px;
+  background: conic-gradient(from var(--ang), #2468ff, #4fd1c5, #ffd97d, #2468ff);
+  animation: gira-ang 3.6s linear infinite;
+}
+.anillo-t5 {
+  --halo: rgba(255, 140, 50, 0.55);
+  background: conic-gradient(from var(--ang), #ff7a18, #ffd97d, #ff3d6e, #ffd97d, #ff7a18);
+  animation: gira-ang 2.6s linear infinite, late-nivel 1.8s ease-in-out infinite;
+}
+.anillo-t6 {
+  --halo: rgba(190, 120, 255, 0.6);
+  background: conic-gradient(from var(--ang), #ff5fa2, #ffd97d, #5ffbf1, #8f7bff, #ff5fa2);
+  animation: gira-ang 2.2s linear infinite, late-nivel 1.6s ease-in-out infinite;
+}
