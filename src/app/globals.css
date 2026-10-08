@@ -423,3 +423,70 @@ h1, h2, h3 {
   border-radius: 0;
   display: block;
 }
+
+/* ══════════ DESAFÍOS ══════════
+   El juego de los creadores. Las insignias son hexágonos con el color de su rango; las
+   ganadas brillan y las bloqueadas se quedan apagadas, para que se vea qué falta. */
+.insignia-ganada {
+  filter: drop-shadow(0 6px 14px var(--brillo, rgba(201, 160, 64, 0.35)));
+  transition: transform var(--suave), filter var(--suave);
+}
+.insignia-ganada:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 10px 22px var(--brillo, rgba(201, 160, 64, 0.5)));
+}
+.insignia-bloqueada { opacity: 0.55; }
+.insignia-bloqueada:hover { opacity: 0.8; }
+.insignia-revocada { opacity: 0.6; filter: grayscale(0.9); }
+
+/* El destello que cruza una insignia ganada de vez en cuando */
+.insignia-destello {
+  animation: destello 5.5s ease-in-out infinite;
+}
+@keyframes destello {
+  0%, 70%, 100% { opacity: 0; transform: translateX(-120%) skewX(-18deg); }
+  82% { opacity: 0.9; }
+  92% { opacity: 0; transform: translateX(260%) skewX(-18deg); }
+}
+
+/* La barra de progreso: dorado que se llena, con un brillo en la punta */
+.barra-oro {
+  background: linear-gradient(90deg, var(--oro-hondo), var(--oro), var(--oro-xclaro));
+  box-shadow: 0 0 14px rgba(232, 192, 96, 0.45);
+  transition: width 0.9s var(--curva);
+}
+
+/* La celebración al desbloquear: el trofeo sube con un rebote y cae el confeti */
+@keyframes aparece-rebote {
+  0% { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  60% { opacity: 1; transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.aparece-rebote { animation: aparece-rebote 0.7s var(--curva) backwards; }
+
+@keyframes cae-confeti {
+  0% { transform: translate3d(0, -20px, 0) rotate(0); opacity: 1; }
+  100% { transform: translate3d(var(--dx, 0), 420px, 0) rotate(var(--giro, 540deg)); opacity: 0; }
+}
+.confeti {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: cae-confeti var(--dur, 2.4s) ease-in var(--ret, 0s) both;
+}
+
+/* Las filas de la tabla clasificatoria */
+.fila-tabla {
+  background: linear-gradient(135deg, #0a1428, #101e3a);
+  border: 1px solid #142440;
+  border-radius: 14px;
+  transition: border-color var(--suave), background var(--suave), transform var(--rapido);
+}
+.fila-tabla:hover {
+  border-color: #24406f;
+  background: linear-gradient(135deg, #0c1932, #13244a);
+}
+.fila-tabla.es-mia { border-color: rgba(201, 160, 64, 0.45); }

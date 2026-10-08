@@ -36,7 +36,9 @@ const MODELOS = [
   "user", "account", "session", "project", "task", "checklistItem",
   "attachment", "comment", "cannedResponse", "faqItem", "quickLink",
   "idea", "ideaConnection", "ideaNode", "ideaNodeConnection",
-  "dailyTaskItem", "dailyTaskLog", "personalTask",
+  "dailyTaskItem", "dailyTaskLog", "personalTask", "plannerDoc",
+  // Desafíos
+  "perfilCreador", "cuentaSocial", "avanceCuenta", "logroCreador", "ingresoCreador",
 ];
 
 const datos = {};
@@ -47,7 +49,16 @@ for (const m of MODELOS) {
   try {
     datos[m] = await prisma[m].findMany();
   } catch (e) {
-    fallos.push(`${m}: ${e.message?.slice(0, 120)}`);
+    // Si el esquema del código va por delante de la base (acabamos de añadir una columna y
+    // todavía no se ha aplicado), `findMany` falla pero la tabla está. Se lee con SQL
+    // directo, que no depende de las columnas que espera el código.
+    try {
+      const tabla = m[0].toUpperCase() + m.slice(1);
+      datos[m] = await prisma.$queryRawUnsafe(`SELECT * FROM "${tabla}"`);
+      fallos.push(`${m}: leído con SQL directo (el esquema del código va por delante de la base)`);
+    } catch {
+      fallos.push(`${m}: ${e.message?.slice(0, 120)}`);
+    }
   }
 }
 

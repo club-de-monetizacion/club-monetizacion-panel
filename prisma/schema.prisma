@@ -128,6 +128,7 @@ model User {
   dailyTaskItems  DailyTaskItem[]
   dailyTaskLogs   DailyTaskLog[]
   personalTasks   PersonalTask[]
+  perfilCreador   PerfilCreador?
 }
 
 model Account {
@@ -520,4 +521,179 @@ model PlannerDoc {
   updatedAt DateTime @updatedAt
   /// Quién lo tocó por última vez, para poder preguntar si algo se ve raro.
   updatedBy String?
+}
+
+// ══════════ DESAFÍOS ══════════
+// El juego de los creadores del Club: cada persona da de alta sus páginas, va
+// anotando sus seguidores y reclamando insignias. Todo esto son tablas NUEVAS: no
+// toca ninguna de arriba, así que añadirlas no pone en riesgo ningún dato existente.
+// El catálogo de insignias (qué escalones hay y cuántos puntos valen) vive en
+// `lib/desafios.ts`, no en la base: cambiar un escalón no pide migrar nada.
+
+enum RedSocial {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+}
+
+enum TipoLogro {
+  /// Seguidores en una red concreta
+  SEGUIDORES
+  /// Seguidores sumando todas las redes
+  AUDIENCIA
+  /// Primer video con N vistas
+  VISTAS
+  /// Primer video con N likes
+  LIKES
+  /// Haber activado la monetización en alguna plataforma
+  MONETIZACION
+  /// Dinero ganado en total, en dólares
+  INGRESOS
+}
+
+enum EstadoLogro {
+  ACTIVO
+  /// Lo quitó el equipo. La fila se queda para que no se vuelva a reclamar a ciegas.
+  REVOCADO
+}
+
+/// La ficha de creador de cada persona: «me llamo Miguel Ángel y tengo estas páginas».
+model PerfilCreador {
+  id     String  @id @default(cuid())
+  /// Quién es. **Vacío solo en los perfiles de demostración** (`esDemo`): no son personas
+  /// reales y no deben tener un usuario, o saldrían en la lista del equipo.
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Perfil de mentira, para enseñar cómo se ve con datos. Se borran antes de publicar:
+  /// `node scripts/desafios-demo.mjs --quitar`.
+  esDemo Boolean @default(false)
+
+  /// Cómo quiere que lo llamen en la tabla
+  nombre String
+  bio    String? @db.Text
+  /// De qué hace contenido: cocina, finanzas, fitness…
+  nicho  String?
+  /// Su foto en Desafíos. Si falta, se usa la de su cuenta.
+  foto   String? @db.Text
+
+  /// La persona decide si sale en la tabla clasificatoria
+  visible           Boolean @default(true)
+  /// Si los demás ven sus cifras de seguidores. Las insignias se ven siempre.
+  mostrarSeguidores Boolean @default(true)
+  /// Si los demás ven cuánto gana. **Por defecto no**: es dinero.
+  mostrarIngresos   Boolean @default(false)
+  /// El equipo puede sacarla de la tabla (sin borrar nada suyo)
+  ocultoPorEquipo   Boolean @default(false)
+  /// Lo que el equipo quiera dejar anotado sobre esta persona. Solo lo ve el equipo.
+  notaEquipo        String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cuentas  CuentaSocial[]
+  logros   LogroCreador[]
+  ingresos IngresoCreador[]
+
+  @@index([visible, ocultoPorEquipo])
+}
+
+/// Una página o canal: un Instagram, un YouTube… Una persona puede tener varias de la
+/// misma red.
+model CuentaSocial {
+  id       String        @id @default(cuid())
+  perfilId String
+  perfil   PerfilCreador @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  red        RedSocial
+  /// Cómo se llama la página
+  nombre     String
+  /// Su dirección, ya normalizada (sin parámetros de rastreo)
+  url        String
+  foto       String?   @db.Text
+  seguidores Int       @default(0)
+
+  /// Cuándo se leyeron los seguidores directamente de la red (solo YouTube). Si está
+  /// puesta, el dato no lo escribió la persona: es de fiar.
+  leidoDeLaRed DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  avances AvanceCuenta[]
+
+  @@unique([perfilId, url])
+  @@index([perfilId])
+}
+
+/// Cada vez que se anota cuántos seguidores tiene una página queda una fila: de ahí
+/// salen la gráfica de avance y la tabla de «quién crece más».
+model AvanceCuenta {
+  id         String       @id @default(cuid())
+  cuentaId   String
+  cuenta     CuentaSocial @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  seguidores Int
+  nota       String?
+  createdAt  DateTime     @default(now())
+
+  @@index([cuentaId, createdAt])
+}
+
+/// Una insignia ganada. `clave` identifica el escalón del catálogo, p. ej.
+/// `SEGUIDORES:INSTAGRAM:1000` o `VISTAS:10000`.
+model LogroCreador {
+  id       String        @id @default(cuid())
+  perfilId String
+  perfil   PerfilCreador @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  clave  String
+  tipo   TipoLogro
+  /// La red de los seguidores, o donde está el video de las vistas y los likes
+  red    RedSocial?
+  umbral Int
+  estado EstadoLogro @default(ACTIVO)
+
+  /// La prueba, opcional: el enlace al video y/o una captura
+  enlace  String?
+  captura String? @db.Text
+  nota    String? @db.Text
+
+  /// Si se concedió «de regalo» al reclamar un escalón más alto (quien tiene un video
+  /// de 10 mil vistas ya pasó por las mil), la clave de ese escalón. Al quitar el alto
+  /// se quitan también estos.
+  origenClave String?
+
+  creadoEn         DateTime  @default(now())
+  revocadoEn       DateTime?
+  revocadoPor      String?
+  motivoRevocacion String?
+
+  @@unique([perfilId, clave])
+  @@index([perfilId, estado])
+  @@index([estado, creadoEn])
+}
+
+/// Lo que una persona gana al mes en una plataforma. Una fila por (persona, red, mes):
+/// volver a anotar el mismo mes la corrige en vez de sumarla otra vez. Siempre en
+/// dólares, que es en lo que pagan YouTube y TikTok; se guarda en centavos para no
+/// arrastrar errores de decimales.
+model IngresoCreador {
+  id       String        @id @default(cuid())
+  perfilId String
+  perfil   PerfilCreador @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  red      RedSocial
+  /// El primer día del mes al que corresponde
+  mes      DateTime  @db.Date
+  centavos Int
+  nota     String?
+  /// La captura del panel de pagos, opcional
+  captura  String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([perfilId, red, mes])
+  @@index([perfilId, mes])
 }

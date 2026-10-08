@@ -12,6 +12,7 @@ import {
   Lightbulb,
   ClipboardCheck,
   ClipboardList,
+  Trophy,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -172,6 +173,19 @@ export function Sidebar({
             active={isActive("/tareas-diarias-soporte")}
           >
             Tareas diarias Soporte
+          </NavLink>
+        )}
+
+        {/* Desafíos es un borrador hasta que el subdominio esté aprobado: por ahora solo
+            lo ve el equipo, desde aquí. */}
+        {role === "ADMIN" && (
+          <NavLink
+            href="/desafios"
+            icon={<Trophy className="h-4 w-4" />}
+            active={isActive("/desafios")}
+          >
+            Desafíos
+            <span className="chip chip-oro ml-auto !px-1.5 !py-0 text-[9px]">Borrador</span>
           </NavLink>
         )}
 

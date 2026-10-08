@@ -181,6 +181,69 @@ Reglas de esto:
 **No es urgente**: primero la captura rápida. Si al mirarlo ves un problema con este
 diseño, dilo antes de programarlo.
 
+## Desafíos: el juego de los creadores  🚧 borrador, rama `desafios`
+
+**Hecho el 7 oct 2026, sin fusionar.** Un apartado donde cada creador del Club da de alta
+sus páginas (Instagram, TikTok, YouTube, Facebook), anota sus seguidores, gana insignias
+por escalones y compite en una tabla clasificatoria. Pensado para vivir en un subdominio
+propio (`desafios.…`) cuando Diego apruebe el DNS; mientras tanto es `/desafios`, con su
+propia cabecera (no la barra del equipo) y un enlace «Borrador» en el menú, **solo para
+administradores**.
+
+- **Qué hay:** `/desafios` (Mi camino: nivel, próximas metas, primeros pasos), `/retos`
+  (todas las insignias), `/clasificacion` (puntos, audiencia, crecimiento a 30 días),
+  `/paginas` (alta de páginas, avances, perfil), `/creador/[id]` (la ficha que ve cualquiera)
+  y `/admin` (moderación, solo ADMIN).
+- **El catálogo vive en el código, no en la base:** `lib/desafios.ts` (escalones, rangos,
+  puntos, niveles, metas). Cambiar un escalón o añadir uno más alto no pide migrar nada;
+  las insignias ganadas se guardan por su `clave`. `pruebas/desafios.mts` lo comprueba.
+- **Insignias de seguidores y audiencia se ganan solas** al anotar la cifra. **Las de video
+  (vistas y likes) se reclaman**, con enlace y/o captura opcionales: se puede reclamar sin
+  prueba. Reclamar un escalón alto concede los de abajo (`origenClave`).
+- **Moderación:** el equipo puede quitar una insignia (queda quién y por qué; una revocada
+  **no se vuelve a ganar sola**), devolverla, corregir una cifra, sacar a alguien de la tabla,
+  dejarle una nota o borrar su perfil. Quitar un escalón alto quita también los que colgaban.
+- **Seguidores automáticos: solo YouTube**, con la API pública de Google y `YOUTUBE_API_KEY`
+  (opcional). Instagram, TikTok y Facebook no dejan leer eso sin ser una app aprobada por
+  ellas, así que se anota a mano. Lo leído de YouTube lleva sello y no se pisa a mano.
+- **Monetización e ingresos (8 oct 2026):** la primera meta de todos es **activar la
+  monetización** (insignia que se reclama, en cualquier plataforma). Aparte, cada quien anota
+  lo que gana por mes y plataforma (`/desafios/monetizacion`, **siempre en dólares**, una fila
+  por persona-red-mes: volver a anotarlo corrige, no suma). Con ello se ganan solas las
+  insignias de dinero, de $1 a $1M; anotar $1 o más también activa la monetización.
+- **Privacidad, decidida por cada persona:** «Salir en la tabla», «Mostrar mis cifras de
+  seguidores» y «Mostrar cuánto gano». **Los ingresos arrancan ocultos.** Lo oculto se quita en
+  el servidor (`aVista` y `filasDeLaTabla` en `lib/desafios-data.ts`): no llega ni al HTML ni a
+  los datos del navegador de otra persona. Las insignias normales se ven siempre; las de
+  dinero se ocultan con los ingresos. La dueña y el equipo (ADMIN) lo ven todo. Los puntos y
+  el nivel cuentan todo, para no cambiar según quién mire.
+- **⚠ PERFILES DE DEMOSTRACIÓN, A BORRAR ANTES DE PUBLICAR.** Para enseñarle Desafíos a Diego
+  hay 4 creadores **inventados** (Camila Ortega, Andrés Paredes, Mateo Quintero y Sofía Lara)
+  con páginas y cifras que no existen, de 1 semana, 3 meses y 6 meses de historia. Llevan la
+  marca «Demo» y un aviso en su perfil. No tienen usuario, así que no salen en la lista del
+  equipo. Para quitarlos: `node scripts/desafios-demo.mjs --quitar` (solo borra filas con
+  `esDemo = true`; nunca toca un perfil real). Para volver a crearlos: el mismo script sin
+  opciones. **Antes de abrir Desafíos a los creadores, o de dejarlo sin el aviso de borrador,
+  corre `--quitar`.**
+- **Tablas nuevas, nada tocado:** `PerfilCreador`, `CuentaSocial`, `AvanceCuenta`,
+  `LogroCreador`, `IngresoCreador` y cuatro enums. Verificado con `prisma migrate diff` contra el esquema de
+  `main`: solo `CREATE TYPE`, `CREATE TABLE`, índices y claves foráneas; **ningún `ALTER` ni
+  `DROP` sobre tablas existentes**. Aun así, regla 2: respaldo (`scripts/respaldar-db.mjs`)
+  y aviso antes del `db push` contra producción.
+
+**Pendiente de decidir antes de abrirlo a los creadores:**
+
+1. **Cómo entran los creadores.** Hoy `main` solo deja entrar a administradores del panel
+   (el login con Google se quitó). Para que entren creadores hace falta un segundo camino
+   de acceso. Ojo: el papel `MIEMBRO` ya existe (es el de `mirar` del panel) y hoy ve todo
+   el panel del equipo en solo lectura; antes de abrir nada, un miembro tiene que quedar
+   **limitado a `/desafios`** (en `authorized` de `src/auth.ts`). Es un cambio de
+   autenticación: hay que hablarlo con Diego, no se hizo.
+2. **El subdominio:** cuando esté el DNS, reescribir el host `desafios.…` a `/desafios`
+   (en `next.config.ts`, excluyendo `/api` y `/_next`) y poner la URL en `metadata`.
+3. **Fotos y capturas** se guardan en la base como texto (igual que las fotos de perfil).
+   Con muchos creadores conviene moverlas a un almacén de archivos.
+
 ## Reglas que no se rompen
 
 1. **Jamás se pierden tareas.** Son datos reales de gente que trabaja con ellos.
