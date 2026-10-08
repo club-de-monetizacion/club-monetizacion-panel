@@ -1,39 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ArrowLeft, Gamepad2, LogOut, Medal, ShieldCheck, Target, Trophy, UserRound, Wallet } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 const ENLACES = [
-  { href: "/desafios", texto: "Mi camino", Icono: Gamepad2, exacto: true },
-  { href: "/desafios/retos", texto: "Retos", Icono: Target },
-  { href: "/desafios/clasificacion", texto: "Clasificación", Icono: Trophy },
-  { href: "/desafios/monetizacion", texto: "Monetización", Icono: Wallet },
-  { href: "/desafios/paginas", texto: "Mis páginas", Icono: UserRound },
+  { ruta: "", texto: "Mi camino", Icono: Gamepad2, exacto: true },
+  { ruta: "/retos", texto: "Retos", Icono: Target },
+  { ruta: "/clasificacion", texto: "Clasificación", Icono: Trophy },
+  { ruta: "/monetizacion", texto: "Monetización", Icono: Wallet },
+  { ruta: "/paginas", texto: "Mis páginas", Icono: UserRound },
 ];
 
-/** La barra de arriba de Desafíos: sus cuatro secciones y, para el equipo, la moderación. */
+type Enlace = { href: string; texto: string; Icono: typeof Gamepad2; exacto?: boolean };
+
+/**
+ * La barra de arriba de Desafíos: sus secciones y, para el equipo, la moderación. En la
+ * demostración pública (`demo`) no hay sesión: sin avatar ni «salir», con la persona que se
+ * está viendo (`?p=`) conservada al cambiar de pantalla, y sin «Mis páginas» (se edita).
+ */
 export function DesafiosNav({
-  esEquipo,
+  esEquipo = false,
   usuario,
+  base = "/desafios",
+  demo = false,
 }: {
-  esEquipo: boolean;
-  usuario: { nombre: string | null; foto: string | null; correo: string | null };
+  esEquipo?: boolean;
+  usuario?: { nombre: string | null; foto: string | null; correo: string | null };
+  base?: string;
+  demo?: boolean;
 }) {
   const ruta = usePathname() ?? "";
+  const persona = useSearchParams().get("p");
+  const sufijo = demo && persona ? `?p=${encodeURIComponent(persona)}` : "";
+
   const activo = (href: string, exacto?: boolean) =>
     exacto ? ruta === href : ruta === href || ruta.startsWith(`${href}/`);
-  const enlaces = esEquipo
-    ? [...ENLACES, { href: "/desafios/admin", texto: "Moderación", Icono: ShieldCheck }]
-    : ENLACES;
+
+  const enlaces: Enlace[] = ENLACES.filter((e) => !(demo && e.ruta === "/paginas")).map((e) => ({
+    href: `${base}${e.ruta}`,
+    texto: e.texto,
+    Icono: e.Icono,
+    exacto: e.exacto,
+  }));
+  if (esEquipo) enlaces.push({ href: `${base}/admin`, texto: "Moderación", Icono: ShieldCheck });
+
+  const destino = (href: string) => (href.endsWith("/clasificacion") ? href : `${href}${sufijo}`);
 
   return (
     <header className="glass-panel sticky top-0 z-30">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
-        <Link href="/desafios" className="flex items-center gap-2.5">
+        <Link href={destino(base)} className="flex items-center gap-2.5">
           <span className="cir-oro h-9 w-9">
             <Medal className="h-[18px] w-[18px]" />
           </span>
@@ -47,7 +67,7 @@ export function DesafiosNav({
           {enlaces.map(({ href, texto, Icono, exacto }) => (
             <Link
               key={href}
-              href={href}
+              href={destino(href)}
               className={cn(
                 "focus-ring inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap transition",
                 activo(href, exacto)
@@ -70,16 +90,20 @@ export function DesafiosNav({
             </Link>
           </span>
         )}
-        <span className="chip chip-oro hidden whitespace-nowrap md:inline">Borrador</span>
-        <Avatar src={usuario.foto} name={usuario.nombre} email={usuario.correo} size={32} />
-        <button
-          onClick={() => signOut({ redirectTo: "/login" })}
-          className="focus-ring rounded-md p-1.5 text-[var(--ink-3)] hover:bg-white/5 hover:text-white"
-          aria-label="Salir"
-          title="Salir"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <span className="chip chip-oro whitespace-nowrap">{demo ? "Demo" : "Borrador"}</span>
+        {!demo && usuario && (
+          <>
+            <Avatar src={usuario.foto} name={usuario.nombre} email={usuario.correo} size={32} />
+            <button
+              onClick={() => signOut({ redirectTo: "/login" })}
+              className="focus-ring rounded-md p-1.5 text-[var(--ink-3)] hover:bg-white/5 hover:text-white"
+              aria-label="Salir"
+              title="Salir"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* En el móvil la navegación va en una segunda fila con scroll */}
@@ -87,7 +111,7 @@ export function DesafiosNav({
         {enlaces.map(({ href, texto, Icono, exacto }) => (
           <Link
             key={href}
-            href={href}
+            href={destino(href)}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition",
               activo(href, exacto) ? "bg-[var(--oro)]/15 text-[var(--oro-claro)]" : "text-[var(--ink-2)]",

@@ -217,6 +217,16 @@ administradores**.
   los datos del navegador de otra persona. Las insignias normales se ven siempre; las de
   dinero se ocultan con los ingresos. La dueña y el equipo (ADMIN) lo ven todo. Los puntos y
   el nivel cuentan todo, para no cambiar según quién mire.
+- **Demo pública, sin cuenta (`/demo`):** la misma interfaz en solo lectura, con los perfiles
+  de demostración, para que cualquiera con el enlace vea cómo funciona (se elige con quién
+  mirarlo: empezando, intermedio, monetizando, grande). **Es la única parte de Desafíos que se
+  abre sin sesión**, y toca `authorized` en `src/auth.ts` con una sola línea (permitir `/demo`),
+  igual que ya se permite `/api/pendientes/`. Es segura por construcción: cada consulta de
+  `lib/desafios-data.ts` bajo «La demostración pública» lleva `esDemo = true` en el `where`, no
+  hay ninguna acción que escriba, y un perfil real por `/demo/creador/…` da 404. Si se borran los
+  perfiles de mentira, `/demo` queda vacía. Las pantallas viven en `components/desafios/vistas/`
+  y las comparten la versión real y la demo. **Al publicar de verdad, decidir si `/demo` se queda
+  o se quita** (borrar la carpeta `src/app/demo` y la línea de `src/auth.ts`).
 - **⚠ PERFILES DE DEMOSTRACIÓN, A BORRAR ANTES DE PUBLICAR.** Para enseñarle Desafíos a Diego
   hay 4 creadores **inventados** (Camila Ortega, Andrés Paredes, Mateo Quintero y Sofía Lara)
   con páginas y cifras que no existen, de 1 semana, 3 meses y 6 meses de historia. Llevan la

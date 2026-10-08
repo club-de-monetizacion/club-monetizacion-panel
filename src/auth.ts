@@ -130,6 +130,10 @@ const nextAuth = NextAuth({
       if (ruta === "/api/perfil/foto") return true;
       if (ruta === "/api/latido") return true;
 
+      /* La demostración pública de Desafíos: solo lectura y solo con perfiles inventados
+         (`esDemo`, ver `lib/desafios-data.ts`). No lleva sesión ni deja escribir nada. */
+      if (ruta === "/demo" || ruta.startsWith("/demo/")) return true;
+
       const isOnLogin = ruta.startsWith("/login");
       if (isOnLogin) {
         if (isLoggedIn) {

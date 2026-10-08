@@ -249,10 +249,17 @@ export type FilaTabla = {
  * Todos los perfiles con sus cifras. Con `incluirOcultos` salen también los que la
  * persona o el equipo sacaron de la tabla (lo usa la pantalla de moderación).
  */
-export async function filasDeLaTabla(incluirOcultos = false, verTodo = false): Promise<FilaTabla[]> {
+export async function filasDeLaTabla(
+  incluirOcultos = false,
+  verTodo = false,
+  /** Solo los perfiles de demostración (para la demo pública) */
+  soloDemo = false,
+): Promise<FilaTabla[]> {
   const corte = new Date(Date.now() - DIAS_CRECIMIENTO * 86_400_000);
   const perfiles = await prisma.perfilCreador.findMany({
-    where: incluirOcultos ? {} : { visible: true, ocultoPorEquipo: false },
+    where: soloDemo
+      ? { esDemo: true, visible: true, ocultoPorEquipo: false }
+      : incluirOcultos ? {} : { visible: true, ocultoPorEquipo: false },
     include: {
       user: { select: { image: true } },
       cuentas: { select: { id: true, red: true, nombre: true, seguidores: true } },
@@ -338,4 +345,40 @@ export async function reclamosRecientes(dias = 14) {
     take: 50,
     include: { perfil: { select: { id: true, nombre: true } } },
   });
+}
+
+/* ── La demostración pública ───────────────────────────────────────────────── */
+/* Todo lo de aquí se puede ver sin iniciar sesión, así que **solo devuelve perfiles de
+   demostración** (`esDemo`): la condición está en cada consulta, no en quien las llama. Si
+   un día se borran los perfiles de mentira, la demo queda vacía y no enseña nada real. */
+
+/** Los perfiles de demostración, de menos a más puntos (para elegir con quién verlo). */
+export async function personasDemo() {
+  const filas = await filasDeLaTabla(false, false, true);
+  return filas
+    .sort((a, b) => a.puntos - b.puntos)
+    .map((f) => ({ id: f.id, nombre: f.nombre, nicho: f.nicho, puntos: f.puntos, nivel: f.nivel }));
+}
+
+/**
+ * Un perfil de demostración. `comoDueno` lo enseña completo, como lo vería su dueña en su
+ * «Mi camino»; sin él, como lo ve cualquier visitante (con lo que ocultó, oculto).
+ */
+export async function perfilDemo(id: string, comoDueno: boolean) {
+  const p = await prisma.perfilCreador.findFirst({
+    where: { id, esDemo: true },
+    include: perfilInclude,
+  });
+  return p ? aVista(p, false, { esMio: comoDueno, esEquipo: false }) : null;
+}
+
+/**
+ * Con quién se ve la demostración: el perfil que pide `?p=` o, si no, uno intermedio, que es
+ * el que mejor enseña cómo funciona (tiene metas cerca y aún no monetiza).
+ */
+export async function personaDemoElegida(p?: string) {
+  const personas = await personasDemo();
+  if (personas.length === 0) return { personas, perfil: null };
+  const id = personas.find((x) => x.id === p)?.id ?? personas[Math.min(1, personas.length - 1)].id;
+  return { personas, perfil: await perfilDemo(id, true) };
 }
