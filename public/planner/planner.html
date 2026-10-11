@@ -1655,6 +1655,22 @@ let sortables=[];
 
 // Tree canvas
 let treePan={x:200,y:120}, treeZoom=1;
+
+/* ══ DÓNDE ME QUEDÉ ══
+   Al recargar, la herramienta volvía al tablero de YouTube y el lienzo al
+   punto de partida. Si estabas trabajando en una esquina del árbol, tocaba
+   volver a buscarla. Ahora se recuerda la vista y la posición. */
+const SITIO='planner_sitio_v1';
+function guardaSitio(){
+  try{ localStorage.setItem(SITIO, JSON.stringify({
+    plat, view, pan:treePan, zoom:treeZoom })); }catch(e){}
+}
+/* lab.js corre en su propio ámbito: necesita una puerta para decir que la
+   vista ahora es el laboratorio. */
+window.__apuntaVista=function(v){ try{ view=v; guardaSitio(); }catch(e){} };
+function leeSitio(){
+  try{ return JSON.parse(localStorage.getItem(SITIO)||'null'); }catch(e){ return null; }
+}
 let isPanning=false, panStart=null, panOrig=null;
 let dragNodeId=null, dragStart=null, dragNodeOrig=null, nodeMoved=false;
 let dragGroupOrig=null; // orig positions for multi-drag
@@ -1675,6 +1691,7 @@ function setActiveNav(sel){
   const el = typeof sel==='string' ? document.querySelector(sel) : sel;
   if(el) el.classList.add('active');
   arribaDelTodo();
+  setTimeout(guardaSitio,60);
 }
 
 /* Cada herramienta abría donde se había quedado el scroll de la anterior, y
@@ -2357,9 +2374,12 @@ function onWheel(e){
   applyTransform();updateGridBg();
 }
 
+let _guardaSitioTm=null;
 function applyTransform(){
   document.getElementById('treeWorld').style.transform=`translate(${treePan.x}px,${treePan.y}px) scale(${treeZoom})`;
   document.getElementById('zoomLabel').textContent=Math.round(treeZoom*100)+'%';
+  /* se apunta al parar de moverse, no en cada pixel */
+  clearTimeout(_guardaSitioTm); _guardaSitioTm=setTimeout(guardaSitio,350);
 }
 
 function updateGridBg(){
@@ -4905,8 +4925,24 @@ function __bootApp(user){
   /* La foto del sidebar se fue con el bloque repetido: la que vale es la de
      la barra de arriba del Panel. */
   if(!__booted){buildPalette();__booted=true;}
-  plat='youtube';view='board';
+
+  /* Se vuelve a donde estabas: misma herramienta, misma plataforma y el
+     lienzo en el mismo sitio. Si no hay nada guardado, al tablero de siempre. */
+  const s=leeSitio();
+  plat = (s&&s.plat) || 'youtube';
+  view = (s&&s.view==='tree') ? 'tree' : 'board';
+  if(s&&s.pan){ treePan={x:s.pan.x,y:s.pan.y}; }
+  if(s&&s.zoom){ treeZoom=s.zoom; }
   render();
+
+  if(view==='tree'){
+    const bw=document.getElementById('boardWrap'); if(bw) bw.style.display='none';
+    const tc=document.getElementById('treeCanvas'); if(tc) tc.style.display='block';
+    const tb=document.getElementById('treeNavBtn'); if(tb) tb.classList.add('active');
+    renderTree();
+  } else if(s&&s.view==='lab' && typeof abrirLab==='function'){
+    abrirLab(document.getElementById('labNavBtn'));
+  }
 }
 /* ══ Extras del Máster: portada por link (proxy ytThumb del panel) + referencias ══ */
 async function pmYtThumb(url){

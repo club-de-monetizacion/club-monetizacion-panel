@@ -29,7 +29,22 @@
 
   const uid = () => "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const guarda = () => { try { localStorage.setItem(LLAVE, JSON.stringify(items)); } catch (e) {} };
-  const carga = () => { try { items = JSON.parse(localStorage.getItem(LLAVE) || "[]"); } catch (e) { items = []; } };
+  /* Dónde estaba mirando: al volver, el lienzo aparece donde lo dejaste. */
+  const LLAVE_VISTA = "lab_vista_v1";
+  let _vistaTm = null;
+  const guardaVista = () => {
+    clearTimeout(_vistaTm);
+    _vistaTm = setTimeout(() => {
+      try { localStorage.setItem(LLAVE_VISTA, JSON.stringify({ pan, zoom })); } catch (e) {}
+    }, 350);
+  };
+  const carga = () => {
+    try { items = JSON.parse(localStorage.getItem(LLAVE) || "[]"); } catch (e) { items = []; }
+    try {
+      const v = JSON.parse(localStorage.getItem(LLAVE_VISTA) || "null");
+      if (v && v.pan) { pan = { x: v.pan.x, y: v.pan.y }; zoom = v.zoom || 1; }
+    } catch (e) {}
+  };
 
   /* ── deshacer: se guarda el estado antes de cada cambio ── */
   function apunta() {
@@ -160,6 +175,7 @@
     if (gu) gu.style.transform = mundo.style.transform;
     const z = document.getElementById("labZoomLabel");
     if (z) z.textContent = Math.round(zoom * 100) + "%";
+    guardaVista();
   }
 
   /* ════════ CREAR COSAS ════════ */
@@ -637,8 +653,11 @@
     const bw = document.getElementById("boardWrap"); if (bw) bw.style.display = "none";
     const tc = document.getElementById("treeCanvas"); if (tc) tc.style.display = "none";
     el.classList.add("on");
-    if (typeof view !== "undefined") window.view = "lab";
+    /* que el planner lo apunte: al recargar se vuelve aquí */
+    if (typeof window.__apuntaVista === "function") window.__apuntaVista("lab");
     pinta();
   };
   window.cerrarLab = function () { if (el) el.classList.remove("on"); };
+  /* y la vista guardada también se guarda al moverse por el lienzo */
+  window.__labVistaGuardada = () => { try { return JSON.parse(localStorage.getItem(LLAVE_VISTA)||"null"); } catch(e){ return null; } };
 })();
