@@ -70,6 +70,20 @@
     if (vacio) vacio.style.display = items.length ? "none" : "block";
   }
 
+  /* maxresdefault no existe en todos los videos: cuando falta, YouTube
+     devuelve un gris de 120px. Se detecta por el ancho y se baja a hq. */
+  function cuidaPortada(img, it) {
+    img.addEventListener("load", () => {
+      if (img.naturalWidth <= 150 && it.vid) {
+        const hq = "https://i.ytimg.com/vi/" + it.vid + "/hqdefault.jpg";
+        if (img.src !== hq) { img.src = hq; it.img = hq; guarda(); }
+      }
+    });
+    img.addEventListener("error", () => {
+      if (it.vid) img.src = "https://i.ytimg.com/vi/" + it.vid + "/hqdefault.jpg";
+    });
+  }
+
   function nodo(it) {
     const d = document.createElement("div");
     d.className = "lab-el " + it.t + (sel.has(it.id) ? " sel" : "");
@@ -90,9 +104,26 @@
       d.style.borderRadius = it.t === "elipse" ? "50%" : "6px";
       if (it.relleno) d.style.background = it.color + "33";
     } else if (it.t === "link") {
-      d.innerHTML = (it.img ? '<img class="lk-img" src="' + it.img + '" alt="">' : "") +
-        '<div class="lk-tx">' + (it.titulo || it.url) + "</div>";
+      /* Si trae portada, la portada es la tarjeta entera: se pega un video
+         para VERLO, no para leer su dirección. El enlace queda en un botón
+         pequeño en la esquina. */
+      if (it.img) {
+        d.classList.add("conPortada");
+        d.innerHTML =
+          '<img class="lk-img" src="' + it.img + '" alt="">' +
+          '<button class="lk-ir" title="Abrir en YouTube">' +
+            '<svg viewBox="0 0 24 24" fill="currentColor">' +
+              '<path d="M10 15.5l6-3.5-6-3.5v7z"/>' +
+              '<path d="M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.6 2.6 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8C22 15.2 22 12 22 12s0-3.2-.4-4.8z" fill="none" stroke="currentColor" stroke-width="1.9"/>' +
+            "</svg></button>";
+      } else {
+        d.innerHTML = '<div class="lk-tx solo">' + (it.titulo || it.url) + "</div>";
+      }
       d.title = it.url;
+    }
+    if (it.t === "link" && it.img) {
+      const im = d.querySelector(".lk-img");
+      if (im) cuidaPortada(im, it);
     }
     if (sel.has(it.id) && sel.size === 1 && it.t !== "texto")
       ["nw","ne","sw","se"].forEach(p => {
@@ -148,9 +179,10 @@
   }
   function enlace(url, x, y) {
     const yt = url.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
-    anade({ id: uid(), t: "link", x, y, w: 300, h: 210, url,
+    anade({ id: uid(), t: "link", x, y, w: 320, h: yt ? 180 : 96, url,
       titulo: url.replace(/^https?:\/\//, "").slice(0, 60),
-      img: yt ? "https://i.ytimg.com/vi/" + yt[1] + "/hqdefault.jpg" : "" });
+      img: yt ? "https://i.ytimg.com/vi/" + yt[1] + "/maxresdefault.jpg" : "",
+      vid: yt ? yt[1] : "" });
   }
 
   /* ════════ PEGAR ════════ */
@@ -438,6 +470,17 @@
       };
       gr.appendChild(b);
     });
+
+    /* El botón del enlace abre el video. Se atiende antes que el arrastre:
+       si no, al pulsarlo se movería la tarjeta en vez de abrir nada. */
+    canvas.addEventListener("mousedown", e => {
+      const ir = e.target.closest && e.target.closest(".lk-ir");
+      if (!ir) return;
+      e.stopPropagation(); e.preventDefault();
+      const n = ir.closest(".lab-el");
+      const it = items.find(x => x.id === (n && n.dataset.id));
+      if (it && it.url) window.open(it.url, "_blank", "noopener");
+    }, true);
 
     canvas.addEventListener("mousedown", abajo);
     document.addEventListener("mousemove", mueve);
