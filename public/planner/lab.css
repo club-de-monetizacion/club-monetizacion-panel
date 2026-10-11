@@ -1,0 +1,102 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LAB — el laboratorio de portadas
+   Un lienzo en blanco para bajar ideas: pegar capturas, escribir, dibujar
+   encima y mover todo hasta que la portada aparezca. Las teclas y los gestos
+   son los de Miro y Excalidraw, para no tener que aprender nada nuevo.
+   ══════════════════════════════════════════════════════════════════════════ */
+#labWrap{position:absolute;inset:0;display:none;background:#070b14;overflow:hidden;
+  user-select:none;-webkit-user-select:none;touch-action:none;}
+#labWrap.on{display:block;}
+#labCanvas{position:absolute;inset:0;cursor:grab;}
+#labCanvas.mano{cursor:grab;}
+#labCanvas.mano.arrastrando{cursor:grabbing;}
+#labCanvas.dibuja{cursor:crosshair;}
+#labCanvas.texto{cursor:text;}
+#labMundo{position:absolute;left:0;top:0;transform-origin:0 0;}
+#labSvg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;}
+
+/* la barra de herramientas, flotando como en Excalidraw */
+.lab-barra{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:40;
+  display:flex;align-items:center;gap:3px;padding:6px;border-radius:14px;
+  background:rgba(13,19,38,.94);border:1px solid rgba(201,160,64,.2);
+  box-shadow:0 10px 34px rgba(0,0,0,.6);backdrop-filter:blur(10px);}
+.lab-h{width:38px;height:38px;border-radius:10px;border:0;background:transparent;
+  color:#9fb0cc;cursor:pointer;display:grid;place-items:center;transition:background .14s,color .14s;}
+.lab-h:hover{background:rgba(255,255,255,.07);color:#fff;}
+.lab-h.on{background:linear-gradient(135deg,#FFE7A8,#C9A040);color:#1a1200;}
+.lab-h svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;}
+.lab-sep{width:1px;height:22px;background:rgba(255,255,255,.12);margin:0 4px;}
+
+/* la paleta de color y grosor */
+.lab-props{position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:40;
+  display:none;align-items:center;gap:8px;padding:7px 11px;border-radius:12px;
+  background:rgba(13,19,38,.94);border:1px solid rgba(201,160,64,.18);
+  box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.lab-props.on{display:flex;}
+.lab-col{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.lab-col.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25);}
+.lab-gr{display:flex;gap:4px;align-items:center;}
+.lab-gr button{width:26px;height:26px;border-radius:7px;border:0;cursor:pointer;
+  background:rgba(255,255,255,.06);color:#9fb0cc;display:grid;place-items:center;}
+.lab-gr button.on{background:rgba(201,160,64,.9);color:#1a1200;}
+.lab-gr i{display:block;background:currentColor;border-radius:4px;}
+
+/* el zoom, abajo */
+.lab-zoom{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:40;
+  display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:30px;
+  background:rgba(13,19,38,.94);border:1px solid rgba(201,160,64,.18);
+  box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.lab-zoom button{width:26px;height:26px;border-radius:7px;border:0;cursor:pointer;
+  background:rgba(255,255,255,.06);color:#e7eefc;font-size:15px;font-weight:700;
+  display:grid;place-items:center;}
+.lab-zoom button:hover{background:rgba(255,255,255,.13);}
+.lab-zoom span{font-size:12px;color:#9fb0cc;min-width:40px;text-align:center;}
+.lab-pista{position:absolute;bottom:18px;right:18px;z-index:40;font-size:11.5px;
+  color:#6c7c99;background:rgba(13,19,38,.8);padding:7px 12px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.07);pointer-events:none;}
+
+/* ─── los elementos del lienzo ─── */
+.lab-el{position:absolute;box-sizing:border-box;}
+.lab-el.sel{outline:1.5px solid #2468ff;outline-offset:3px;}
+.lab-el img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;
+  border-radius:4px;-webkit-user-drag:none;}
+/* nota adhesiva */
+.lab-el.nota{padding:12px 13px;border-radius:4px;font-size:14px;line-height:1.45;
+  color:#1a1200;box-shadow:0 6px 18px rgba(0,0,0,.4);overflow:hidden;word-break:break-word;
+  font-family:inherit;}
+/* texto suelto */
+.lab-el.texto{font-size:20px;line-height:1.3;font-weight:600;white-space:pre-wrap;
+  word-break:break-word;padding:2px;}
+.lab-el[contenteditable="true"]{outline:1.5px solid #2468ff;cursor:text;user-select:text;}
+/* enlace pegado */
+.lab-el.link{border-radius:9px;overflow:hidden;background:#101a33;
+  border:1px solid rgba(160,190,240,.25);box-shadow:0 6px 18px rgba(0,0,0,.4);}
+.lab-el.link .lk-img{width:100%;height:calc(100% - 42px);object-fit:cover;display:block;}
+.lab-el.link .lk-tx{padding:7px 10px;font-size:11.5px;color:#cfe0ff;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+
+/* los tiradores para redimensionar */
+.lab-asa{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;
+  border:2px solid #2468ff;z-index:5;}
+.lab-asa.nw{left:-5px;top:-5px;cursor:nwse-resize;}
+.lab-asa.ne{right:-5px;top:-5px;cursor:nesw-resize;}
+.lab-asa.sw{left:-5px;bottom:-5px;cursor:nesw-resize;}
+.lab-asa.se{right:-5px;bottom:-5px;cursor:nwse-resize;}
+
+#labSelBox{position:absolute;border:1.5px solid #2468ff;background:rgba(36,104,255,.1);
+  pointer-events:none;display:none;z-index:30;}
+
+/* el cartel de cuando está vacío */
+.lab-vacio{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
+  text-align:center;color:#6c7c99;pointer-events:none;max-width:420px;}
+.lab-vacio b{display:block;font-size:19px;color:#cfe0ff;margin-bottom:8px;font-weight:700;}
+.lab-vacio p{font-size:13.4px;line-height:1.65;}
+.lab-vacio kbd{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+  border-radius:5px;padding:1px 6px;font-size:12px;font-family:inherit;}
+
+@media(max-width:760px){
+  .lab-barra{top:auto;bottom:70px;padding:5px;gap:1px;max-width:94vw;overflow-x:auto;}
+  .lab-h{width:34px;height:34px;}
+  .lab-pista{display:none;}
+}

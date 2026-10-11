@@ -7,6 +7,7 @@
 <link rel="icon" href="logo-club.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<link rel="stylesheet" href="lab.css">
 <style>
 :root{
   /* Los colores del Club de Monetización, los mismos del panel y la Bóveda. El
@@ -1064,9 +1065,9 @@ opacity:0;transition:opacity .3s;z-index:1;}
   </button>
 
   <div class="sidebar-sep"></div>
-  <button class="nav-btn" data-p="cover" id="coverNavBtn" onclick="pmProximamente()" title="Constructor de portadas — próximamente" style="opacity:.45">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7l-3 4h8l-2.5-3.5-2 2.5z"/></svg>
-    🔒 PORTADAS
+  <button class="nav-btn" data-p="lab" id="labNavBtn" onclick="abrirLab(this)" title="Laboratorio de portadas — lienzo libre">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6.5L4.2 18A2 2 0 0 0 6 21h12a2 2 0 0 0 1.8-3L15 9.5V3"/><path d="M8 3h8M7.5 14h9"/></svg>
+    LAB
   </button>
 
   <div class="pm-ver" style="margin-top:auto;padding:6px 0 2px;font-size:9px;color:rgba(201,160,64,.55);letter-spacing:.06em;font-weight:700;">v10.76</div>
@@ -1118,6 +1119,47 @@ opacity:0;transition:opacity .3s;z-index:1;}
       <button id="delEdgeBtn" class="tz-del-btn" onclick="deleteSelectedEdge()" style="display:none">🗑 Eliminar flecha</button>
     </div>
   </div>
+
+  <!-- ═══ LAB — laboratorio de portadas ═══ -->
+  <div id="labWrap">
+    <div id="labCanvas">
+      <div id="labMundo"></div>
+      <svg id="labSvg" width="100%" height="100%"></svg>
+      <div id="labSelBox"></div>
+      <div class="lab-vacio" id="labVacio">
+        <b>Tu laboratorio de portadas</b>
+        <p>Pega una captura con <kbd>⌘V</kbd>, suelta imágenes encima, escribe una nota o
+          dibuja. Doble clic en el vacío para escribir. Arrastra el fondo para moverte y la
+          rueda hace zoom.</p>
+      </div>
+    </div>
+    <div class="lab-barra">
+      <button class="lab-h on" data-h="sel" title="Seleccionar (V)"><svg viewBox="0 0 24 24"><path d="M5 3l14 7.5-6 1.7-2.6 5.8z"/></svg></button>
+      <button class="lab-h" data-h="mano" title="Mover la hoja (H)"><svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4.5a5.5 5.5 0 0 1-5.5 5.5h-1A6.5 6.5 0 0 1 5 14.5V12a1.5 1.5 0 0 1 3 0"/></svg></button>
+      <span class="lab-sep"></span>
+      <button class="lab-h" data-h="nota" title="Nota (N)"><svg viewBox="0 0 24 24"><path d="M4 4h16v10l-6 6H4z"/><path d="M20 14h-6v6"/></svg></button>
+      <button class="lab-h" data-h="texto" title="Texto (T)"><svg viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg></button>
+      <button class="lab-h" data-h="rect" title="Rectángulo (R)"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/></svg></button>
+      <button class="lab-h" data-h="elipse" title="Elipse (O)"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.5" ry="7"/></svg></button>
+      <button class="lab-h" data-h="flecha" title="Flecha (F)"><svg viewBox="0 0 24 24"><path d="M4 19L20 5M20 5h-7M20 5v7"/></svg></button>
+      <button class="lab-h" data-h="lapiz" title="Lápiz (L)"><svg viewBox="0 0 24 24"><path d="M3 21l3.5-1 11-11-2.5-2.5-11 11z"/><path d="M14.5 5.5L17 3l4 4-2.5 2.5"/></svg></button>
+      <span class="lab-sep"></span>
+      <button class="lab-h" id="labBorra" title="Vaciar el lienzo"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    </div>
+    <div class="lab-props" id="labProps">
+      <div id="labPaleta" style="display:flex;gap:6px"></div>
+      <span class="lab-sep"></span>
+      <div class="lab-gr" id="labGrosor"></div>
+    </div>
+    <div class="lab-zoom">
+      <button id="labMenos">−</button>
+      <span id="labZoomLabel">100%</span>
+      <button id="labMas">+</button>
+      <button id="labReset" style="width:auto;padding:0 9px;font-size:11px">Reset</button>
+    </div>
+    <div class="lab-pista">V seleccionar · H mano · N nota · T texto · R rect · O elipse · F flecha · L lápiz · ⌘V pegar</div>
+  </div>
+
 
   <!-- ═══ REFERENCIAS (Máster) ═══ -->
   <div id="pmRefsPanel">
@@ -1649,6 +1691,7 @@ function arribaDelTodo(){
 }
 
 function switchPlatform(p,btn){
+  if(typeof cerrarLab==="function") cerrarLab();
   if(spyActive)closeYtSpy();
   if(covActive)closeCoverAll();
   plat=p;
@@ -1679,6 +1722,7 @@ function setView(v,btn){
 }
 
 function openTreeFromSidebar(btn){
+  if(typeof cerrarLab==="function") cerrarLab();
   if(spyActive)closeYtSpy();
   if(covActive)closeCoverAll();
   view='tree';
@@ -5564,5 +5608,6 @@ window.__signOut=async()=>{
 </div>
 
 <div id="covEraseCursor"></div>
+<script src="lab.js"></script>
 </body>
 </html>
