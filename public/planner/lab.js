@@ -297,15 +297,102 @@
     return { dx: mejorX ? mejorX.d : 0, dy: mejorY ? mejorY.d : 0, lineas };
   }
 
+  /* ── SEPARACIÓN IGUAL ──
+     Si ya hay dos piezas con un hueco entre ellas y acercas una tercera a esa
+     misma distancia, se engancha y se marcan los dos huecos. Es lo que deja
+     una fila repartida sin tener que medir nada. */
+  function buscaSeparacion(movidos, caja) {
+    const tol = IMAN_PX / zoom;
+    const quietos = items.filter(i => !movidos.includes(i) && i.x != null);
+    if (quietos.length < 2) return null;
+
+    for (const eje of ["x", "y"]) {
+      const esX = eje === "x";
+      /* los que comparten banda con lo que muevo: los de su misma fila
+         (si miramos en horizontal) o de su misma columna */
+      const banda = quietos.filter(q => {
+        const b = bordes(q);
+        return esX ? (b.y2 > caja.y1 && b.y1 < caja.y2)
+                   : (b.x2 > caja.x1 && b.x1 < caja.x2);
+      });
+      if (banda.length < 2) continue;
+
+      const ord = banda.map(bordes).sort((a, b) => esX ? a.x1 - b.x1 : a.y1 - b.y1);
+      /* los huecos que ya existen entre vecinos */
+      const huecos = [];
+      for (let i = 0; i < ord.length - 1; i++) {
+        const g = esX ? ord[i+1].x1 - ord[i].x2 : ord[i+1].y1 - ord[i].y2;
+        if (g > 1) huecos.push({ g, a: ord[i], b: ord[i+1] });
+      }
+      if (!huecos.length) continue;
+
+      for (const h of huecos) {
+        /* a la derecha (o debajo) del último, a la misma distancia */
+        const ult = ord[ord.length - 1], pri = ord[0];
+        const quiero1 = esX ? ult.x2 + h.g : ult.y2 + h.g;      // yo detrás
+        const quiero2 = esX ? pri.x1 - h.g : pri.y1 - h.g;      // yo delante
+        const miIni = esX ? caja.x1 : caja.y1;
+        const miFin = esX ? caja.x2 : caja.y2;
+
+        if (Math.abs(miIni - quiero1) <= tol)
+          return { eje, d: quiero1 - miIni, g: h.g, ref: h, yo: "detras", ult, pri };
+        if (Math.abs(miFin - quiero2) <= tol)
+          return { eje, d: quiero2 - miFin, g: h.g, ref: h, yo: "delante", ult, pri };
+      }
+    }
+    return null;
+  }
+
+  /* las marcas de separación: una barra con sus topes, como una cota */
+  function cotas(sep, caja) {
+    if (!sep) return [];
+    const esX = sep.eje === "x";
+    const ls = [];
+    const pinta = (desde, hasta, centro) => {
+      if (esX) {
+        ls.push({ cota:true, x1:desde, x2:hasta, y:centro });
+      } else {
+        ls.push({ cota:true, y1:desde, y2:hasta, x:centro });
+      }
+    };
+    /* el hueco que ya existía */
+    pinta(esX ? sep.ref.a.x2 : sep.ref.a.y2,
+          esX ? sep.ref.b.x1 : sep.ref.b.y1,
+          esX ? (sep.ref.a.cy + sep.ref.b.cy) / 2 : (sep.ref.a.cx + sep.ref.b.cx) / 2);
+    /* y el mío, que ahora mide lo mismo */
+    if (sep.yo === "detras")
+      pinta(esX ? sep.ult.x2 : sep.ult.y2,
+            esX ? sep.ult.x2 + sep.g : sep.ult.y2 + sep.g,
+            esX ? (sep.ult.cy + caja.cy) / 2 : (sep.ult.cx + caja.cx) / 2);
+    else
+      pinta(esX ? sep.pri.x1 - sep.g : sep.pri.y1 - sep.g,
+            esX ? sep.pri.x1 : sep.pri.y1,
+            esX ? (sep.pri.cy + caja.cy) / 2 : (sep.pri.cx + caja.cx) / 2);
+    return ls;
+  }
+
   function pintaGuias() {
     const c = document.getElementById("labGuias");
     if (!c) return;
     if (!guias.length) { c.innerHTML = ""; return; }
     const g = 1 / zoom;           // que la línea se vea igual de fina con cualquier zoom
-    c.innerHTML = guias.map(l => l.v
-      ? `<line x1="${l.en}" y1="${l.desde}" x2="${l.en}" y2="${l.hasta}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`
-      : `<line x1="${l.desde}" y1="${l.en}" x2="${l.hasta}" y2="${l.en}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`
-    ).join("");
+    const tope = 5 * g;
+    c.innerHTML = guias.map(l => {
+      if (l.cota) {
+        /* una cota: la barra y sus dos topes */
+        if (l.y != null) return (
+          `<line x1="${l.x1}" y1="${l.y}" x2="${l.x2}" y2="${l.y}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>` +
+          `<line x1="${l.x1}" y1="${l.y-tope}" x2="${l.x1}" y2="${l.y+tope}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>` +
+          `<line x1="${l.x2}" y1="${l.y-tope}" x2="${l.x2}" y2="${l.y+tope}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>`);
+        return (
+          `<line x1="${l.x}" y1="${l.y1}" x2="${l.x}" y2="${l.y2}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>` +
+          `<line x1="${l.x-tope}" y1="${l.y1}" x2="${l.x+tope}" y2="${l.y1}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>` +
+          `<line x1="${l.x-tope}" y1="${l.y2}" x2="${l.x+tope}" y2="${l.y2}" stroke="#ff3d7f" stroke-width="${g*1.4}"/>`);
+      }
+      return l.v
+        ? `<line x1="${l.en}" y1="${l.desde}" x2="${l.en}" y2="${l.hasta}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`
+        : `<line x1="${l.desde}" y1="${l.en}" x2="${l.hasta}" y2="${l.en}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`;
+    }).join("");
   }
 
   /* ════════ RATÓN ════════ */
@@ -417,6 +504,25 @@
         else { it.x += g.dx; it.y += g.dy; }
       });
       guias = g.lineas;
+
+      /* y si además encaja a la misma distancia que otras dos, se reparte */
+      const bs2 = movidos.map(bordes);
+      const caja2 = {
+        x1: Math.min(...bs2.map(b => b.x1)), x2: Math.max(...bs2.map(b => b.x2)),
+        y1: Math.min(...bs2.map(b => b.y1)), y2: Math.max(...bs2.map(b => b.y2)),
+      };
+      caja2.cx = (caja2.x1 + caja2.x2) / 2; caja2.cy = (caja2.y1 + caja2.y2) / 2;
+      const sep = buscaSeparacion(movidos, caja2);
+      if (sep) {
+        const sx = sep.eje === "x" ? sep.d : 0, sy = sep.eje === "y" ? sep.d : 0;
+        movidos.forEach(it => {
+          if (it.x == null) { it.x1 += sx; it.x2 += sx; it.y1 += sy; it.y2 += sy; }
+          else { it.x += sx; it.y += sy; }
+        });
+        caja2.x1 += sx; caja2.x2 += sx; caja2.y1 += sy; caja2.y2 += sy;
+        caja2.cx += sx; caja2.cy += sy;
+        guias = guias.concat(cotas(sep, caja2));
+      }
       pinta(); return;
     }
     if (arrastre.tipo === "dibuja") {
