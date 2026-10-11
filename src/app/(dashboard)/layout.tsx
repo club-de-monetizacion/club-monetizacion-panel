@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Providers } from "@/components/providers";
-import { AnimatedBackground } from "@/components/layout/animated-background";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { buildThemeVars } from "@/lib/theme";
 import { RefrescoVivo } from "@/components/layout/refresco-vivo";
@@ -22,12 +21,10 @@ export default async function DashboardLayout({
 
   return (
     <div style={themeVars} className="relative min-h-screen">
-      <AnimatedBackground
-        type={user.backgroundType}
-        color={user.backgroundColor}
-        accent={user.accentColor}
-        animated={user.particlesEnabled}
-      />
+      {/* El fondo lo pone el cielo del Club desde globals.css: los mismos tres
+          gradientes y la misma trama que clubdemonetizacion.com, la Bóveda y
+          el Arsenal. Antes aquí se pintaban partículas y auroras en movimiento,
+          y el panel parecía de otra plataforma. */}
       {/* Un solo temporizador para toda la plataforma: lo que cambie en tareas,
           pendientes o lo del equipo aparece sin que nadie recargue. */}
       <RefrescoVivo />

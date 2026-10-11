@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
-import { AnimatedBackground } from "@/components/layout/animated-background";
 import { AppLogo } from "@/components/layout/app-logo";
 import { CampoClave } from "@/components/layout/campo-clave";
 
@@ -21,7 +20,6 @@ export default async function LoginPage({
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
-      <AnimatedBackground type="PARTICLES" color="#05091a" accent="#c9a040" />
 
       <div className="glass-panel-strong animate-fade-in w-full max-w-sm rounded-2xl p-8 shadow-2xl">
         <AppLogo className="mx-auto mb-5 h-14 w-14 text-2xl" />

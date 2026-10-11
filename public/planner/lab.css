@@ -7,7 +7,7 @@
 #labWrap{position:absolute;inset:0;display:none;background:#070b14;overflow:hidden;
   user-select:none;-webkit-user-select:none;touch-action:none;}
 #labWrap.on{display:block;}
-#labCanvas{position:absolute;inset:0;cursor:grab;}
+#labCanvas{position:absolute;inset:0;cursor:default;}
 #labCanvas.mano{cursor:grab;}
 #labCanvas.mano.arrastrando{cursor:grabbing;}
 #labCanvas.dibuja{cursor:crosshair;}

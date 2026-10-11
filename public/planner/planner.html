@@ -118,7 +118,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 #treeCanvas.is-connecting *{cursor:crosshair !important;}
 /* El lienzo no es un documento de texto: arrastrar sobre él tiene que mover
    la hoja, no seleccionar palabras ni ofrecer el menú del navegador. */
-#treeCanvas{cursor:grab;user-select:none;-webkit-user-select:none;
+#treeCanvas{cursor:default;user-select:none;-webkit-user-select:none;
   -webkit-touch-callout:none;}
 #treeCanvas img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
 /* el texto de las tarjetas sí se puede seleccionar al hacer doble clic */
@@ -1108,7 +1108,7 @@ opacity:0;transition:opacity .3s;z-index:1;}
       </svg>
     </div>
     <div class="tree-toolbar">
-      <span class="tree-hint">Arrastra el fondo para moverte · Rueda para zoom · Shift+arrastre para seleccionar varias · Clic en un punto y suelta sobre otra tarjeta para unirlas</span>
+      <span class="tree-hint">Clic derecho y arrastra para moverte · Rueda para zoom · Arrastre izquierdo para seleccionar · Clic en un punto y suelta sobre otra tarjeta para unirlas</span>
       <div class="tz-sep"></div>
       <button class="tz-btn" onclick="treeZoomOut()">−</button>
       <span class="tz-label" id="zoomLabel">100%</span>
@@ -1889,6 +1889,7 @@ function makeTreeCard(video,pos){
 
   // Card drag
   card.addEventListener('mousedown',e=>{
+    if(e.button===2||e.button===1){ e.preventDefault(); startPan(e); return; }  // el derecho mueve la hoja
     if(e.target.classList.contains('tc-dot')) return;
     e.stopPropagation();e.preventDefault();
     startNodeDrag(e,video.id);
@@ -2325,8 +2326,11 @@ function onTreeCanvasMousedown(e){
   if(e.target.classList.contains('tree-card')||e.target.closest?.('.tree-card')) return;
   if(drawing){cancelDrawing();return;}
   if(selEdge){selEdge=null;document.getElementById('delEdgeBtn').style.display='none';drawEdges();}
-  if(e.shiftKey){ startSelBox(e); return; }   // Shift = seleccionar varias
-  if(e.button===0 || e.button===1){ e.preventDefault(); startPan(e); }
+  /* El DERECHO mueve la hoja; el izquierdo selecciona. El menú contextual
+     del navegador está desactivado sobre el lienzo, así que el derecho queda
+     libre para esto. El botón del medio también sirve, por costumbre. */
+  if(e.button===2 || e.button===1){ e.preventDefault(); startPan(e); return; }
+  if(e.button===0){ startSelBox(e); }
 }
 
 /* ─── WHEEL — TRACKPAD + MOUSE ─── */
@@ -2867,13 +2871,12 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('mousemove',onTreeMousemove);
 document.addEventListener('mouseup',onTreeMouseup);
 document.getElementById('treeCanvas').addEventListener('mousedown',onTreeCanvasMousedown);
+/* el derecho no abre menú en ningún sitio del lienzo: ahí sirve para mover */
+document.getElementById('treeCanvas').addEventListener('auxclick',e=>{if(e.button===2)e.preventDefault();});
 /* Arrastrar con el izquierdo sacaba el menú del navegador y el fantasma de
    arrastre nativo. Sobre el lienzo mandamos nosotros. */
 document.getElementById('treeCanvas').addEventListener('dragstart',e=>e.preventDefault());
-document.getElementById('treeCanvas').addEventListener('contextmenu',e=>{
-  if(e.target.closest('.tree-card')) return;   // sobre una tarjeta, el de siempre
-  e.preventDefault();
-});
+document.getElementById('treeCanvas').addEventListener('contextmenu',e=>e.preventDefault());
 document.getElementById('treeCanvas').addEventListener('wheel',onWheel,{passive:false});
 
 /* ════════════════════════════════════

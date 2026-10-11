@@ -76,32 +76,32 @@ body {
 /* Las dos auroras del Club: una azul arriba a la izquierda y una dorada abajo a la
    derecha, moviéndose muy despacio. Es lo que hace que el fondo respire en el panel
    y en la Bóveda. Van detrás de todo y no reciben clics. */
-body::before,
+/* ── EL CIELO DEL CLUB ──
+   El mismo de clubdemonetizacion.com, la Bóveda y el Arsenal, clavado: tres
+   gradientes quietos y una trama de 3px encima. Antes aquí había dos auroras
+   moviéndose despacio, y eso hacía que el panel pareciera otra cosa. El
+   cielo del Club no se mueve: está. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 620px at 12% 2%, rgba(30, 92, 232, 0.26), transparent 62%),
+    radial-gradient(760px 560px at 92% 4%, rgba(201, 160, 64, 0.16), transparent 60%),
+    radial-gradient(1100px 700px at 50% 108%, rgba(36, 104, 255, 0.16), transparent 66%);
+}
+/* la trama fina, la firma del dominio */
 body::after {
   content: "";
   position: fixed;
-  inset: -20%;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  will-change: transform;
-}
-body::before {
-  background: radial-gradient(1000px 620px at 30% 12%, rgba(30, 92, 232, 0.2), transparent 62%);
-  animation: auroraA 26s ease-in-out infinite alternate;
-}
-body::after {
-  background: radial-gradient(760px 520px at 78% 88%, rgba(201, 160, 64, 0.1), transparent 62%);
-  animation: auroraB 34s ease-in-out infinite alternate;
-}
-@keyframes auroraA {
-  0% { transform: translate3d(-6%, -4%, 0) scale(1); }
-  50% { transform: translate3d(4%, 3%, 0) scale(1.12); }
-  100% { transform: translate3d(-2%, 6%, 0) scale(1.04); }
-}
-@keyframes auroraB {
-  0% { transform: translate3d(5%, 4%, 0) scale(1.06); }
-  50% { transform: translate3d(-4%, -3%, 0) scale(1); }
-  100% { transform: translate3d(3%, -6%, 0) scale(1.1); }
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 3px 3px;
 }
 
 /* Los títulos, en la tipografía del Club. */

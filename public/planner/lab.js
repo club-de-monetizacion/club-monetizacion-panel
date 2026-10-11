@@ -191,8 +191,9 @@
       if (it) { apunta(); arrastre = { tipo: "tam", it, asa, p0: p, o: { ...it } }; return; }
     }
 
-    // la mano, el botón del medio o la barra espaciadora: mover la hoja
-    if (herramienta === "mano" || e.button === 1 || window.__labEspacio) {
+    /* El DERECHO mueve la hoja, en cualquier herramienta. También el del
+       medio, la barra espaciadora y la herramienta mano. */
+    if (herramienta === "mano" || e.button === 2 || e.button === 1 || window.__labEspacio) {
       panEnCurso = { x: e.clientX, y: e.clientY, o: { ...pan } };
       canvas.classList.add("arrastrando");
       return;
