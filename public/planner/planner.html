@@ -1125,6 +1125,8 @@ opacity:0;transition:opacity .3s;z-index:1;}
     <div id="labCanvas">
       <div id="labMundo"></div>
       <svg id="labSvg" width="100%" height="100%"></svg>
+      <!-- las guías de alineación, por encima de todo lo demás -->
+      <svg id="labGuiasSvg" width="100%" height="100%"><g id="labGuias"></g></svg>
       <div id="labSelBox"></div>
       <div class="lab-vacio" id="labVacio">
         <b>Tu laboratorio de portadas</b>
@@ -2444,7 +2446,9 @@ function openModal(videoId=null,defaultStatus='idea'){
     renderIdeas();renderStructure();
     refreshGCalBtn();refreshSEO();
   }catch(e){ console.error('openModal:',e); }
-  setTimeout(()=>{const t=document.getElementById('vTitle');if(t)t.focus();},120);
+  /* Al abrir un video no se enfoca nada: la ventana empieza limpia y el
+     cursor lo pone quien escribe. Enfocar el título movía el texto al final
+     y parecía que estabas a punto de borrarlo. */
 }
 
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}

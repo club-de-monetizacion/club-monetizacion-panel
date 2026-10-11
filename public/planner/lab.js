@@ -65,6 +65,7 @@
       mundo.appendChild(nodo(it));
     });
     pintaSvg(trazos);
+    pintaGuias();
     aplica();
     const vacio = document.getElementById("labVacio");
     if (vacio) vacio.style.display = items.length ? "none" : "block";
@@ -155,6 +156,8 @@
   function aplica() {
     mundo.style.transform = `translate(${pan.x}px,${pan.y}px) scale(${zoom})`;
     svg.style.transform = mundo.style.transform;
+    const gu = document.getElementById("labGuiasSvg");
+    if (gu) gu.style.transform = mundo.style.transform;
     const z = document.getElementById("labZoomLabel");
     if (z) z.textContent = Math.round(zoom * 100) + "%";
   }
@@ -209,6 +212,84 @@
     e.preventDefault();
     if (/^https?:\/\//i.test(txt)) enlace(txt, cx - 150, cy - 105);
     else nota(cx - 95, cy - 65, txt);
+  }
+
+  /* ════════ GUÍAS DE ALINEACIÓN ════════
+     Cuando lo que arrastras se alinea con otra cosa —por un borde o por el
+     centro—, aparece una línea y la pieza se pega sola. Es lo que hace que
+     un tablero quede recto sin tener que medir nada. */
+  const IMAN_PX = 9;              // a cuántos píxeles de pantalla engancha
+  let guias = [];                 // las líneas que se están enseñando
+
+  /* los seis puntos de interés de un elemento */
+  function bordes(it) {
+    if (it.x == null) {           // flechas y líneas: su caja envolvente
+      const x = Math.min(it.x1, it.x2), y = Math.min(it.y1, it.y2);
+      const w = Math.abs(it.x2 - it.x1), h = Math.abs(it.y2 - it.y1);
+      return { x1:x, cx:x + w/2, x2:x + w, y1:y, cy:y + h/2, y2:y + h, w, h };
+    }
+    return { x1:it.x, cx:it.x + it.w/2, x2:it.x + it.w,
+             y1:it.y, cy:it.y + it.h/2, y2:it.y + it.h, w:it.w, h:it.h };
+  }
+
+  /* Busca con qué se alinea lo que se mueve y devuelve cuánto hay que
+     correrlo para que encaje, más las líneas que hay que dibujar. */
+  function buscaGuias(movidos) {
+    const tol = IMAN_PX / zoom;
+    const quietos = items.filter(i => !movidos.includes(i));
+    if (!quietos.length) return { dx:0, dy:0, lineas:[] };
+
+    /* la caja que envuelve todo lo que se arrastra */
+    const bs = movidos.map(bordes);
+    const caja = {
+      x1: Math.min(...bs.map(b => b.x1)), x2: Math.max(...bs.map(b => b.x2)),
+      y1: Math.min(...bs.map(b => b.y1)), y2: Math.max(...bs.map(b => b.y2)),
+    };
+    caja.cx = (caja.x1 + caja.x2) / 2;
+    caja.cy = (caja.y1 + caja.y2) / 2;
+
+    let mejorX = null, mejorY = null;
+    for (const q of quietos) {
+      const b = bordes(q);
+      /* vertical: izquierda con izquierda, centro con centro, derecha con
+         derecha, y también izquierda con derecha (pegadas) */
+      for (const [ma, qa] of [["x1","x1"],["cx","cx"],["x2","x2"],["x1","x2"],["x2","x1"]]) {
+        const d = b[qa] - caja[ma];
+        if (Math.abs(d) <= tol && (!mejorX || Math.abs(d) < Math.abs(mejorX.d)))
+          mejorX = { d, en: b[qa], a: q };
+      }
+      for (const [ma, qa] of [["y1","y1"],["cy","cy"],["y2","y2"],["y1","y2"],["y2","y1"]]) {
+        const d = b[qa] - caja[ma];
+        if (Math.abs(d) <= tol && (!mejorY || Math.abs(d) < Math.abs(mejorY.d)))
+          mejorY = { d, en: b[qa], a: q };
+      }
+    }
+
+    const lineas = [];
+    if (mejorX) {
+      const b = bordes(mejorX.a);
+      lineas.push({ v:true, en:mejorX.en,
+        desde: Math.min(b.y1, caja.y1 + mejorY?.d || caja.y1) - 24,
+        hasta: Math.max(b.y2, caja.y2) + 24 });
+    }
+    if (mejorY) {
+      const b = bordes(mejorY.a);
+      lineas.push({ v:false, en:mejorY.en,
+        desde: Math.min(b.x1, caja.x1) - 24,
+        hasta: Math.max(b.x2, caja.x2) + 24 });
+    }
+    return { dx: mejorX ? mejorX.d : 0, dy: mejorY ? mejorY.d : 0, lineas };
+  }
+
+  function pintaGuias() {
+    const c = document.getElementById("labGuias");
+    if (!c) return;
+    if (!guias.length) { c.innerHTML = ""; return; }
+    const g = 1 / zoom;           // que la línea se vea igual de fina con cualquier zoom
+    c.innerHTML = guias.map(l => l.v
+      ? `<line x1="${l.en}" y1="${l.desde}" x2="${l.en}" y2="${l.hasta}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`
+      : `<line x1="${l.desde}" y1="${l.en}" x2="${l.hasta}" y2="${l.en}" stroke="#ff3d7f" stroke-width="${g}" stroke-dasharray="${5*g} ${4*g}"/>`
+    ).join("");
   }
 
   /* ════════ RATÓN ════════ */
@@ -304,13 +385,22 @@
     const dx = p.x - (arrastre.p0 ? arrastre.p0.x : 0), dy = p.y - (arrastre.p0 ? arrastre.p0.y : 0);
 
     if (arrastre.tipo === "mover") {
+      const movidos = [];
       sel.forEach(id => {
         const it = items.find(x => x.id === id), o = arrastre.o[id];
         if (!it || !o) return;
         if (it.t === "flecha" || it.t === "linea") {
           it.x1 = o.x1 + dx; it.y1 = o.y1 + dy; it.x2 = o.x2 + dx; it.y2 = o.y2 + dy;
         } else { it.x = o.x + dx; it.y = o.y + dy; }
+        movidos.push(it);
       });
+      /* y ahora se pega a lo que tenga cerca */
+      const g = buscaGuias(movidos);
+      if (g.dx || g.dy) movidos.forEach(it => {
+        if (it.x == null) { it.x1 += g.dx; it.x2 += g.dx; it.y1 += g.dy; it.y2 += g.dy; }
+        else { it.x += g.dx; it.y += g.dy; }
+      });
+      guias = g.lineas;
       pinta(); return;
     }
     if (arrastre.tipo === "dibuja") {
@@ -357,7 +447,7 @@
       });
       c.style.display = "none"; cajaSel = null; pinta(); return;
     }
-    if (arrastre) { guarda(); arrastre = null; pinta(); }
+    if (arrastre) { guarda(); arrastre = null; guias = []; pinta(); }
   }
 
   const ruta = pts => pts.map((p, i) => (i ? "L" : "M") + Math.round(p[0]) + "," + Math.round(p[1])).join(" ");
