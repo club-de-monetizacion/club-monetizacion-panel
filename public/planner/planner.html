@@ -575,9 +575,11 @@ textarea{min-height:90px;line-height:1.6;}
 /* La portada de bienvenida no se enseña de entrada: dentro del Panel ya has
    iniciado sesión y lo único que hacía era parpadear antes de desaparecer.
    Solo sale si de verdad hiciera falta identificarse (ver más abajo). */
-#loginGate{display:none;}
+#loginGate{position:fixed;inset:0;z-index:5000;background:radial-gradient(1200px 600px at 50% -10%,rgba(201,160,64,.10),transparent 60%),var(--bg);align-items:center;justify-content:center;padding:24px;
+  /* NO se enseña. Va aquí, después de la regla de arriba, porque si no esa
+     la pisaba con su display:flex y la portada seguía apareciendo. */
+  display:none;}
 #loginGate.hace-falta{display:flex;}
-#loginGate{position:fixed;inset:0;z-index:5000;background:radial-gradient(1200px 600px at 50% -10%,rgba(201,160,64,.10),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
 #loginGate.hidden{display:none;}
 .login-card{width:100%;max-width:400px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 34px 32px;box-shadow:0 24px 70px rgba(0,0,0,.55);}
 .login-logo{width:96px;height:96px;object-fit:contain;margin:0 auto 20px;filter:drop-shadow(0 0 18px rgba(201,160,64,.4));}
