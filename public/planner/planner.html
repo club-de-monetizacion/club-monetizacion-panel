@@ -2893,80 +2893,13 @@ const SPY_KEY='yt_spy_v1';
 function spySavedLoad(){try{return JSON.parse(localStorage.getItem(SPY_KEY))||[];}catch{return[];}}
 function spySavedSave(a){localStorage.setItem(SPY_KEY,JSON.stringify(a));}
 
-function openYtSpy(btn){
-  if(covActive)closeCoverAll();
-  spyActive=true;
-  setActiveNav(btn);
-  document.getElementById('boardWrap').style.display='none';
-  document.getElementById('treeCanvas').style.display='none';
-  document.getElementById('ytSpyPanel').style.display='flex';
-  document.getElementById('platTitle').textContent='Investigar Canales';
-  document.getElementById('platSub').textContent='YouTube Data API · estadísticas en tiempo real';
-  document.querySelector('.view-toggle').style.display='none';
-  document.querySelector('.btn.btn-primary').style.display='none';
-  document.querySelector('.fab').style.display='none';
-  renderSpySaved();
-}
+/* El SPY se quitó de la herramienta. Estas dos quedan vacías a propósito:
+   las llamaba media docena de sitios para cerrarlo antes de abrir lo suyo, y
+   borrarlas sin más dejaba la página con funciones que no existen —que es lo
+   que tumbaba AGENDA y REFERENCIAS—. */
+function openYtSpy(){}
+function closeYtSpy(){ spyActive=false; }
 
-function closeYtSpy(){
-  spyActive=false;
-  document.getElementById('ytSpyPanel').style.display='none';
-  if(view==='tree'){
-    document.getElementById('treeCanvas').style.display='block';
-    setActiveNav('#treeNavBtn');
-  } else {
-    document.getElementById('boardWrap').style.display='';
-    setActiveNav('.nav-btn[data-p="youtube"]');
-  }
-  document.querySelector('.view-toggle').style.display='';
-  document.querySelector('.btn.btn-primary').style.display='';
-  document.querySelector('.fab').style.display='';
-}
-
-function fmtN(n){
-  n=parseInt(n)||0;
-  if(n>=1e9)return(n/1e9).toFixed(1).replace(/\.0$/,'')+'B';
-  if(n>=1e6)return(n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
-  if(n>=1e3)return(n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
-  return n.toString();
-}
-
-function parseDur(iso){
-  if(!iso)return'';
-  const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if(!m)return'';
-  const h=parseInt(m[1])||0,mi=parseInt(m[2])||0,s=parseInt(m[3])||0;
-  if(h>0)return`${h}:${String(mi).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  return`${mi}:${String(s).padStart(2,'0')}`;
-}
-
-function fmtDateShort(iso){
-  if(!iso)return'';
-  const d=new Date(iso);
-  return d.toLocaleDateString('es-MX',{year:'numeric',month:'short',day:'numeric'});
-}
-
-function spyExtract(q){
-  q=q.trim();
-  if(/^UC[a-zA-Z0-9_-]{22}$/.test(q))return{type:'id',val:q};
-  const m1=q.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]{22})/);
-  if(m1)return{type:'id',val:m1[1]};
-  const m2=q.match(/youtube\.com\/@([^/?&#]+)/);
-  if(m2)return{type:'handle',val:m2[1]};
-  const m3=q.match(/youtube\.com\/(?:c|user)\/([^/?&#]+)/);
-  if(m3)return{type:'search',val:m3[1]};
-  if(q.startsWith('@'))return{type:'handle',val:q.slice(1)};
-  return{type:'search',val:q};
-}
-
-async function spyAPI(url){
-  const r=await fetch(url);
-  const j=await r.json();
-  if(j.error)throw new Error(j.error.message||'Error de API');
-  return j;
-}
-
-let spyMode='canal';
 function spySetMode(m){
   spyMode=m;
   const c=document.getElementById('spyModeCanal'),t2=document.getElementById('spyModeTema');
@@ -3539,7 +3472,7 @@ function openCoverDesigner(btn){
   if(spyActive)closeYtSpy();
   covActive=true; covProjId=null;
   setActiveNav(btn);
-  ['boardWrap','treeCanvas','ytSpyPanel'].forEach(id=>document.getElementById(id).style.display='none');
+  ['boardWrap','treeCanvas'].forEach(id=>{const e=document.getElementById(id); if(e) e.style.display='none';});
   document.getElementById('coverDesigner').style.display='flex';
   document.getElementById('coverCanvas').style.display='none';
   document.getElementById('platTitle').textContent='Constructor de Portadas';
@@ -5239,7 +5172,6 @@ function pmOpenCal(btn){
   setActiveNav(btn);
   document.getElementById('boardWrap').style.display='none';
   document.getElementById('treeCanvas').style.display='none';
-  document.getElementById('ytSpyPanel').style.display='none';
   document.getElementById('platTitle').textContent='Calendario';
   document.getElementById('platSub').textContent='Tus videos por fecha de publicación';
   document.querySelector('.view-toggle').style.display='none';
@@ -5321,7 +5253,6 @@ function pmOpenRefs(btn){
   setActiveNav(btn);
   document.getElementById('boardWrap').style.display='none';
   document.getElementById('treeCanvas').style.display='none';
-  document.getElementById('ytSpyPanel').style.display='none';
   document.getElementById('platTitle').textContent='Referencias';
   document.getElementById('platSub').textContent='Todas tus portadas de referencia en un solo lugar';
   document.querySelector('.view-toggle').style.display='none';
