@@ -115,6 +115,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 #treeCanvas{flex:1;position:relative;overflow:hidden;background-color:#05091a;background-image:radial-gradient(circle,rgba(255,255,255,.065) 1px,transparent 1px);background-size:28px 28px;display:none;}
 #treeCanvas.is-panning{cursor:grabbing !important;}
 #treeCanvas.is-connecting *{cursor:crosshair !important;}
+/* el cursor avisa de que el fondo se puede arrastrar */
+#treeCanvas{cursor:grab;}
+#treeCanvas.is-panning{cursor:grabbing;}
+#treeCanvas .tree-card{cursor:default;}
 #treeWorld{position:absolute;transform-origin:0 0;width:8000px;height:8000px;}
 #treeSvg{position:absolute;top:0;left:0;width:8000px;height:8000px;overflow:visible;pointer-events:none;}
 
@@ -125,9 +129,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 .tree-card .card-cover{border-radius:calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0;overflow:hidden;height:100px;}
 
 /* ─── CONNECTION DOTS ─── */
-.tc-dot{position:absolute;width:14px;height:14px;background:var(--accent);border:2.5px solid #05091a;border-radius:50%;z-index:30;opacity:0;transition:opacity .15s,transform .15s;cursor:crosshair;box-shadow:0 0 8px rgba(201,160,64,.7);}
+.tc-dot{position:absolute;width:15px;height:15px;background:var(--accent);border:2.5px solid #05091a;border-radius:50%;z-index:30;opacity:0;transition:opacity .15s,transform .15s;cursor:crosshair;box-shadow:0 0 8px rgba(201,160,64,.7);}
+/* El punto se ve de 15px pero se agarra en 34: el ratón no tiene que ser
+   preciso al píxel para empezar una flecha. */
+.tc-dot::before{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;
+  transform:translate(-50%,-50%);border-radius:50%;}
 .tree-card:hover .tc-dot,.is-connecting .tc-dot{opacity:1;}
-.tc-dot:hover{transform:scale(1.4) !important;}
+.tc-dot:hover{transform:scale(1.45) !important;}
+/* mientras se traza, el destino posible se enciende solo */
+.tc-dot.cerca{opacity:1 !important;transform:scale(1.7) !important;
+  box-shadow:0 0 0 5px rgba(201,160,64,.25),0 0 14px rgba(201,160,64,.9) !important;}
+.is-connecting .tree-card{transition:box-shadow .15s;}
+.is-connecting .tree-card.cerca{box-shadow:0 0 0 2px var(--accent),0 0 24px rgba(201,160,64,.45);}
 .tc-dot[data-side="left"]  {left:-7px; top:50%; transform:translateY(-50%);}
 .tc-dot[data-side="right"] {right:-7px;top:50%; transform:translateY(-50%);}
 .tc-dot[data-side="top"]   {top:-7px;  left:50%;transform:translateX(-50%);}
@@ -193,6 +206,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 .modal-body{flex:1;overflow-y:auto;padding:20px;}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
+
+/* El título del video, arriba del todo y en cuerpo de H2: es lo que dice de
+   qué va todo lo demás. */
+.pm-titulo{margin-bottom:18px;}
+.pm-titulo input{font-size:23px !important;font-weight:700 !important;line-height:1.3 !important;
+  padding:14px 16px !important;letter-spacing:-.01em;}
+.pm-titulo input::placeholder{font-size:19px;font-weight:600;}
+@media(max-width:640px){
+  .pm-titulo input{font-size:19px !important;padding:12px 13px !important;}
+  .pm-titulo input::placeholder{font-size:16px;}
+}
 
 /* ─── FORM ─── */
 .fgroup{margin-bottom:15px;}
@@ -1302,11 +1326,18 @@ opacity:0;transition:opacity .3s;z-index:1;}
 
       <div class="tab-panel active" id="tab-info">
 
-        <!-- Portada (arriba) -->
+        <!-- El título manda: va lo primero y en grande, para saber de qué video
+             va esto antes de tocar nada más. -->
+        <div class="fgroup pm-titulo">
+          <label class="flabel">Título del video</label>
+          <input type="text" id="vTitle" placeholder="Ej: Cómo crecer en YouTube con IA en 2025..." oninput="refreshGCalBtn()">
+        </div>
+
+        <!-- Portada -->
         <div class="upload-zone" style="margin-bottom:16px" onclick="document.getElementById('imgUpload').click()">
           <input type="file" id="imgUpload" accept="image/*" onchange="onImageUpload(event)">
           <div class="uz-icon">🖼️</div>
-          <div class="uz-main">Arrastra o haz clic — sube tu portada</div>
+                  <div class="uz-main">Arrastra o haz clic — sube tu portada</div>
           <div class="uz-sub">JPG · PNG · WebP</div>
         </div>
         <div class="uz-yt">
@@ -1318,14 +1349,6 @@ opacity:0;transition:opacity .3s;z-index:1;}
           <div class="pmrp-hd">Tus portadas guardadas <button class="pmrp-x" onclick="pmToggleRefPop(false)">✕</button></div>
           <div class="pmrp-body" id="pmRefPopBody"></div>
         </div>
-        <!-- Estilos de portada -->
-        <div class="sect-hd">🎨 Estilos de portada</div>
-        <div class="pm-tmpl-wrap">
-          <button type="button" class="pm-tmpl-arrow left" id="pmTmplL" onclick="pmTmplScroll(-1)">‹</button>
-          <div class="modal-tmpl-strip" id="modalTmplStrip"></div>
-          <button type="button" class="pm-tmpl-arrow right" id="pmTmplR" onclick="pmTmplScroll(1)">›</button>
-        </div>
-
         <!-- Texto sobre la portada -->
         <div class="sect-hd">📝 Texto sobre la portada</div>
         <div class="cover-texts">
@@ -1336,12 +1359,6 @@ opacity:0;transition:opacity .3s;z-index:1;}
 
         <div class="sect-hd" id="modalBancoHd" style="display:none">📌 Portadas guardadas (SPY)</div>
         <div class="modal-banco-strip" id="modalBancoStrip"></div>
-
-        <!-- Título del video -->
-        <div class="fgroup">
-          <label class="flabel">Título del video</label>
-          <input type="text" id="vTitle" placeholder="Ej: Cómo crecer en YouTube con IA en 2025..." oninput="refreshGCalBtn()">
-        </div>
 
         <!-- Descripción -->
         <div class="fgroup">
@@ -1647,6 +1664,22 @@ function setActiveNav(sel){
   document.querySelectorAll('.sidebar .nav-btn').forEach(b=>b.classList.remove('active'));
   const el = typeof sel==='string' ? document.querySelector(sel) : sel;
   if(el) el.classList.add('active');
+  arribaDelTodo();
+}
+
+/* Cada herramienta abría donde se había quedado el scroll de la anterior, y
+   lo primero que veías era la mitad de una vista previa. Todas empiezan
+   arriba. */
+function arribaDelTodo(){
+  const sube=()=>{
+    window.scrollTo(0,0);
+    document.querySelectorAll('.main, #boardWrap, .board-wrap, .view-scroll, #main')
+      .forEach(e=>{ if(e) e.scrollTop=0; });
+    const m=document.querySelector('.main'); if(m) m.scrollTop=0;
+  };
+  sube();
+  requestAnimationFrame(sube);
+  setTimeout(sube,70);
 }
 
 function switchPlatform(p,btn){
@@ -2104,6 +2137,62 @@ function startNodeDrag(e,id){
   nodeMoved=false;
 }
 
+/* ─── EL IMÁN DE LAS FLECHAS ───
+   Antes había que soltar justo encima del puntito de 15px, y si fallabas la
+   flecha se perdía. Ahora se busca el punto más cercano al ratón dentro de un
+   radio generoso: basta con soltar cerca de la tarjeta. */
+const IMAN_PX = 70;           // radio de enganche, en píxeles de pantalla
+
+function dotMasCerca(e, excluirId, excluirSide){
+  const canvas=document.getElementById('treeCanvas');
+  if(!canvas) return null;
+  const rect=canvas.getBoundingClientRect();
+  // el ratón, en coordenadas del lienzo
+  const mx=(e.clientX-rect.left-treePan.x)/treeZoom;
+  const my=(e.clientY-rect.top -treePan.y)/treeZoom;
+  const radio=IMAN_PX/treeZoom;
+  let mejor=null, mejorD=Infinity;
+  for(const id in liveNodes){
+    const pos=liveNodes[id];
+    if(!pos) continue;
+    for(const side of ['left','right','top','bottom']){
+      if(id===excluirId && side===excluirSide) continue;
+      const p=connPt(pos,side);
+      const d=Math.hypot(p.x-mx,p.y-my);
+      if(d<mejorD){ mejorD=d; mejor={id,side,d}; }
+    }
+  }
+  if(mejor && mejorD<=radio) return mejor;
+  /* Si no hay punto cerca pero el ratón está sobre una tarjeta, se engancha
+     igualmente al lado que le quede más a mano. Soltar encima de la tarjeta
+     es lo que la gente hace por instinto. */
+  for(const id in liveNodes){
+    if(id===excluirId) continue;
+    const pos=liveNodes[id];
+    if(!pos) continue;
+    if(mx>=pos.x && mx<=pos.x+CW && my>=pos.y && my<=pos.y+CH){
+      const cx=pos.x+CW/2, cy=pos.y+CH/2;
+      const dx=(mx-cx)/CW, dy=(my-cy)/CH;
+      const side = Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'bottom':'top');
+      if(id===excluirId && side===excluirSide) continue;
+      return {id,side,d:0};
+    }
+  }
+  return null;
+}
+
+/* Mientras se traza, se enciende el punto al que se va a enganchar. */
+function pintaIman(cerca){
+  document.querySelectorAll('.tc-dot.cerca').forEach(d=>d.classList.remove('cerca'));
+  document.querySelectorAll('.tree-card.cerca').forEach(c=>c.classList.remove('cerca'));
+  if(!cerca) return;
+  const card=document.querySelector(`.tree-card[data-id="${cerca.id}"]`);
+  if(!card) return;
+  card.classList.add('cerca');
+  const dot=card.querySelector(`.tc-dot[data-side="${cerca.side}"]`);
+  if(dot) dot.classList.add('cerca');
+}
+
 /* ─── CANVAS PAN ─── */
 function startPan(e){
   if(drawing){cancelDrawing();return;}
@@ -2156,8 +2245,13 @@ function onTreeMousemove(e){
     const f=connPt(fp,drawing.fromSide);
     const fc=ctrlPt(f,drawing.fromSide);
     const rect=document.getElementById('treeCanvas').getBoundingClientRect();
-    const mx=(e.clientX-rect.left-treePan.x)/treeZoom;
-    const my=(e.clientY-rect.top -treePan.y)/treeZoom;
+    let mx=(e.clientX-rect.left-treePan.x)/treeZoom;
+    let my=(e.clientY-rect.top -treePan.y)/treeZoom;
+    /* si hay un punto cerca, la línea se le pega: así se ve a dónde va a
+       enganchar antes de soltar */
+    const cerca=dotMasCerca(e,drawing.fromId,drawing.fromSide);
+    pintaIman(cerca);
+    if(cerca){ const p=connPt(liveNodes[cerca.id],cerca.side); mx=p.x; my=p.y; }
     tempSvgEl.setAttribute('d',`M${f.x},${f.y} C${fc.x},${fc.y} ${mx},${my} ${mx},${my}`);
   }
 }
@@ -2166,23 +2260,26 @@ function onTreeMousemove(e){
 function onTreeMouseup(e){
   if(selBoxActive){ finishSelBox(e); return; }
 
-  // Drag-to-connect: si soltamos sobre un dot ajeno durante un drawing activo
+  // Soltar para conectar: vale el punto exacto o el más cercano al ratón
   if(drawing){
+    pintaIman(null);
     const tgt=e.target;
-    const dot=tgt.classList.contains('tc-dot')?tgt:tgt.closest?.('.tc-dot');
+    let dot=tgt.classList.contains('tc-dot')?tgt:tgt.closest?.('.tc-dot');
+    let toId=null, toSide=null;
     if(dot){
       const card=dot.closest('.tree-card');
-      if(card){
-        const toId=card.dataset.id;
-        const toSide=dot.dataset.side;
-        if(toId!==drawing.fromId||toSide!==drawing.fromSide){
-          handleConnDot(toId,toSide);
-          dragNodeId=null;dragStart=null;dragNodeOrig=null;dragGroupOrig=null;
-          isPanning=false;
-          document.getElementById('treeCanvas').classList.remove('is-panning');
-          return;
-        }
-      }
+      if(card){ toId=card.dataset.id; toSide=dot.dataset.side; }
+    }
+    if(!toId){
+      const cerca=dotMasCerca(e,drawing.fromId,drawing.fromSide);
+      if(cerca){ toId=cerca.id; toSide=cerca.side; }
+    }
+    if(toId && (toId!==drawing.fromId||toSide!==drawing.fromSide)){
+      handleConnDot(toId,toSide);
+      dragNodeId=null;dragStart=null;dragNodeOrig=null;dragGroupOrig=null;
+      isPanning=false;
+      document.getElementById('treeCanvas').classList.remove('is-panning');
+      return;
     }
     // Soltado en espacio vacío: quedamos en modo drawing (usuario puede hacer clic en otro dot)
     dragNodeId=null;dragStart=null;dragNodeOrig=null;dragGroupOrig=null;
@@ -2208,13 +2305,18 @@ function onTreeMouseup(e){
   }
 }
 
-/* ─── CANVAS MOUSEDOWN ─── */
+/* ─── CANVAS MOUSEDOWN ───
+   Arrastrar el fondo mueve la hoja, como en cualquier pizarra. Antes esto
+   abría una caja de selección y no había forma de moverse con el ratón:
+   startPan existía pero no lo llamaba nadie.
+   La selección por caja sigue estando, con Shift. */
 function onTreeCanvasMousedown(e){
   if(e.target.classList.contains('tc-dot')) return;
   if(e.target.classList.contains('tree-card')||e.target.closest?.('.tree-card')) return;
   if(drawing){cancelDrawing();return;}
   if(selEdge){selEdge=null;document.getElementById('delEdgeBtn').style.display='none';drawEdges();}
-  startSelBox(e);
+  if(e.shiftKey){ startSelBox(e); return; }   // Shift = seleccionar varias
+  if(e.button===0 || e.button===1){ e.preventDefault(); startPan(e); }
 }
 
 /* ─── WHEEL — TRACKPAD + MOUSE ─── */
@@ -2280,6 +2382,9 @@ function openModal(videoId=null,defaultStatus='idea'){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelector('.tab-btn[data-tab="info"]')?.classList.add('active');
   document.getElementById('tab-info')?.classList.add('active');
+  /* y arriba del todo: nada de abrirse por la mitad */
+  requestAnimationFrame(modalArriba);
+  setTimeout(modalArriba,60);
 
   // Reset cover type (image is default now)
   document.querySelectorAll('.ctype-btn').forEach(b=>b.classList.remove('active'));
@@ -2331,6 +2436,14 @@ function openModal(videoId=null,defaultStatus='idea'){
 }
 
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
+
+/* El modal recuerda dónde se quedó el scroll de la vez anterior y se abría a
+   media altura, con la vista previa por el medio. Siempre desde arriba. */
+function modalArriba(){
+  const b=document.querySelector('#overlay .modal-body');
+  if(b) b.scrollTop=0;
+  document.querySelectorAll('#overlay .tab-panel').forEach(p=>{ p.scrollTop=0; });
+}
 function onOverlayClick(e){
   if(e.target!==document.getElementById('overlay'))return;
   const titulo=(document.getElementById('vTitle')||{value:''}).value||'';
