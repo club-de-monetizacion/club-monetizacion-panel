@@ -115,8 +115,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 #treeCanvas{flex:1;position:relative;overflow:hidden;background-color:#05091a;background-image:radial-gradient(circle,rgba(255,255,255,.065) 1px,transparent 1px);background-size:28px 28px;display:none;}
 #treeCanvas.is-panning{cursor:grabbing !important;}
 #treeCanvas.is-connecting *{cursor:crosshair !important;}
-/* el cursor avisa de que el fondo se puede arrastrar */
-#treeCanvas{cursor:grab;}
+/* El lienzo no es un documento de texto: arrastrar sobre él tiene que mover
+   la hoja, no seleccionar palabras ni ofrecer el menú del navegador. */
+#treeCanvas{cursor:grab;user-select:none;-webkit-user-select:none;
+  -webkit-touch-callout:none;}
+#treeCanvas img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+/* el texto de las tarjetas sí se puede seleccionar al hacer doble clic */
+#treeCanvas .tree-card:focus-within{user-select:text;}
 #treeCanvas.is-panning{cursor:grabbing;}
 #treeCanvas .tree-card{cursor:default;}
 #treeWorld{position:absolute;transform-origin:0 0;width:8000px;height:8000px;}
@@ -147,7 +152,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 .tc-dot[data-side="bottom"]{bottom:-7px;left:50%;transform:translateX(-50%);}
 
 /* ─── TREE TOOLBAR ─── */
-.tree-toolbar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);border-radius:40px;padding:7px 14px;display:flex;align-items:center;gap:9px;z-index:30;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;pointer-events:all;}
+.tree-toolbar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);border-radius:40px;padding:7px 14px;display:flex;align-items:center;gap:9px;z-index:30;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;}
+/* La barra ocupaba todo el ancho del centro y se tragaba el arrastre: por
+   ahí no se podía mover la hoja y parecía que había un espacio muerto.
+   Ahora solo capturan el ratón sus botones. */
+.tree-toolbar{pointer-events:none;}
+.tree-toolbar button,.tree-toolbar .tz-label,.tree-toolbar .tz-del-btn{pointer-events:auto;}
 .tree-hint{font-size:11px;color:var(--muted);}
 .tz-sep{width:1px;height:14px;background:var(--border);}
 .tz-btn{width:26px;height:26px;border-radius:6px;border:none;background:var(--bg3);color:var(--text);cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .15s;font-family:inherit;}
@@ -561,6 +571,11 @@ textarea{min-height:90px;line-height:1.6;}
 /* ═══════════════════════════════
    LOGIN GATE
 ═══════════════════════════════ */
+/* La portada de bienvenida no se enseña de entrada: dentro del Panel ya has
+   iniciado sesión y lo único que hacía era parpadear antes de desaparecer.
+   Solo sale si de verdad hiciera falta identificarse (ver más abajo). */
+#loginGate{display:none;}
+#loginGate.hace-falta{display:flex;}
 #loginGate{position:fixed;inset:0;z-index:5000;background:radial-gradient(1200px 600px at 50% -10%,rgba(201,160,64,.10),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
 #loginGate.hidden{display:none;}
 .login-card{width:100%;max-width:400px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 34px 32px;box-shadow:0 24px 70px rgba(0,0,0,.55);}
@@ -1049,10 +1064,6 @@ opacity:0;transition:opacity .3s;z-index:1;}
   </button>
 
   <div class="sidebar-sep"></div>
-  <button class="nav-btn" data-p="spy" id="spyNavBtn" onclick="openYtSpy(this)" title="Investigar canales YouTube">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-    SPY
-  </button>
   <button class="nav-btn" data-p="cover" id="coverNavBtn" onclick="pmProximamente()" title="Constructor de portadas — próximamente" style="opacity:.45">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7l-3 4h8l-2.5-3.5-2 2.5z"/></svg>
     🔒 PORTADAS
@@ -1143,51 +1154,6 @@ opacity:0;transition:opacity .3s;z-index:1;}
       <div id="pmCalUpcoming"></div>
       <div class="pm-cal-side-hd">🗂 Sin fecha todavía</div>
       <div id="pmCalNoDate"></div>
-    </div>
-  </div>
-
-  <!-- ═══ YT SPY PANEL ═══ -->
-  <div id="ytSpyPanel">
-    <div class="spy-mode-row">
-      <button class="spy-mode-tab active" id="spyModeCanal" onclick="spySetMode('canal')">🔎 Buscar canal</button>
-      <button class="spy-mode-tab" id="spyModeTema" onclick="spySetMode('tema')">🎯 Buscar tema</button>
-    </div>
-    <div class="spy-search-row">
-      <input type="text" id="spyInp" class="spy-inp" placeholder="Nombre del canal, @handle, URL de YouTube o Channel ID..." onkeydown="if(event.key==='Enter')spySearch()">
-      <button class="spy-go-btn" onclick="spySearch()">🔍 Investigar</button>
-    </div>
-    <div class="spy-niche">
-      <div class="spy-niche-l">🔥 Explora un nicho — portadas y canales top del tema</div>
-      <div class="spy-niche-chips">
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Finanzas personales')">Finanzas personales</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Negocios y emprendimiento')">Negocios y emprendimiento</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Marketing digital')">Marketing digital</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Desarrollo personal')">Desarrollo personal</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Fitness y gym')">Fitness y gym</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Salud y bienestar')">Salud y bienestar</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Relaciones')">Relaciones</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Tecnología')">Tecnología</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Inteligencia artificial')">Inteligencia artificial</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Gaming')">Gaming</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Educación e idiomas')">Educación e idiomas</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Viajes')">Viajes</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Cocina y recetas')">Cocina y recetas</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Belleza y moda')">Belleza y moda</button>
-        <button class="spy-niche-chip" onclick="pmSpyNiche('Espiritualidad')">Espiritualidad</button>
-      </div>
-    </div>
-    <div class="spy-body">
-      <div class="spy-sidebar">
-        <div class="spy-sidebar-hd">Canales guardados</div>
-        <div id="spySavedList"></div>
-      </div>
-      <div class="spy-detail" id="spyDetail">
-        <div class="spy-empty">
-          <div class="spy-empty-i">🔭</div>
-          <div class="spy-empty-h">Investiga cualquier canal</div>
-          <div class="spy-empty-s">Escribe un nombre, @handle o URL en la barra y pulsa Investigar</div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -2828,6 +2794,29 @@ document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){
     if(document.getElementById('overlay').classList.contains('open'))saveVideo();
   }
+
+  /* ── Enter guarda ──
+     Escribir el título y pulsar Enter tenía que guardar la idea, como en
+     cualquier formulario. Solo desde los campos de una línea: en el cuadro de
+     la descripción Enter sigue siendo un salto de línea, que para eso está
+     —ahí se guarda con Cmd/Ctrl+Enter, que ya funcionaba—. */
+  if(e.key==='Enter' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey){
+    const a=document.activeElement;
+    const tag=a?a.tagName:'';
+    const escribiendoVariasLineas = tag==='TEXTAREA' || (a&&a.isContentEditable);
+
+    // el diálogo de confirmar manda sobre todo lo demás
+    const conf=document.getElementById('confirmOverlay');
+    if(conf&&conf.classList.contains('open')){ e.preventDefault(); _confirmOk(); return; }
+
+    if(escribiendoVariasLineas) return;
+    const ov=document.getElementById('overlay');
+    if(ov&&ov.classList.contains('open')){
+      if(tag==='SELECT') return;              // el desplegable usa Enter para elegir
+      if(a&&a.closest&&a.closest('.ideas-input,.struct-input')) return;  // los suyos ya lo usan
+      e.preventDefault(); saveVideo();
+    }
+  }
 });
 
 /* ════════════════════════════════════
@@ -2836,6 +2825,13 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('mousemove',onTreeMousemove);
 document.addEventListener('mouseup',onTreeMouseup);
 document.getElementById('treeCanvas').addEventListener('mousedown',onTreeCanvasMousedown);
+/* Arrastrar con el izquierdo sacaba el menú del navegador y el fantasma de
+   arrastre nativo. Sobre el lienzo mandamos nosotros. */
+document.getElementById('treeCanvas').addEventListener('dragstart',e=>e.preventDefault());
+document.getElementById('treeCanvas').addEventListener('contextmenu',e=>{
+  if(e.target.closest('.tree-card')) return;   // sobre una tarjeta, el de siempre
+  e.preventDefault();
+});
 document.getElementById('treeCanvas').addEventListener('wheel',onWheel,{passive:false});
 
 /* ════════════════════════════════════
@@ -4914,6 +4910,14 @@ window.__showToast=(msg,type)=>{
   clearTimeout(t.__tm);t.__tm=setTimeout(()=>{t.classList.remove('show');},2600);
 };
 // Lo llama el módulo de sincronización cuando localStorage ya quedó sembrado desde la nube.
+/* Red de seguridad: si en 6 segundos nadie arrancó la app, algo pasa con la
+   sesión y entonces sí se enseña la portada con el acceso. */
+setTimeout(function(){
+  if(window.__booted) return;
+  const g=document.getElementById('loginGate');
+  if(g && !g.classList.contains('hidden')) g.classList.add('hace-falta');
+}, 6000);
+
 function __bootApp(user){
   const gate=document.getElementById('loginGate');if(gate)gate.classList.add('hidden');
   if(user){
