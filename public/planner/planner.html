@@ -1072,11 +1072,9 @@ opacity:0;transition:opacity .3s;z-index:1;}
     LAB
   </button>
 
-  <div class="pm-ver" style="margin-top:auto;padding:6px 0 2px;font-size:9px;color:rgba(201,160,64,.55);letter-spacing:.06em;font-weight:700;">v10.76</div>
-  <div class="sidebar-profile" id="sidebarProfile" style="display:none">
-    <img class="sb-avatar" id="sbAvatar" src="" alt="">
-    <button class="sb-logout" id="sbLogout" title="Volver a la plataforma" onclick="if(window.top!==window.self){window.top.location.href='/';}else{window.location.href='/';}">← Panel</button>
-  </div>
+  <!-- Aquí abajo había otra foto de perfil con un «← Panel» y el número de
+       versión. El Panel ya trae los suyos en la barra de arriba: era todo
+       repetido. -->
 </aside>
 
 <!-- ═══ MAIN ═══ -->
@@ -4900,15 +4898,8 @@ setTimeout(function(){
 
 function __bootApp(user){
   const gate=document.getElementById('loginGate');if(gate)gate.classList.add('hidden');
-  if(user){
-    const p=document.getElementById('sidebarProfile');if(p)p.style.display='flex';
-    const av=document.getElementById('sbAvatar');
-    if(av){
-      if(user.photoURL){av.src=user.photoURL;av.style.display='';}
-      else{av.style.display='none';}
-      av.alt=user.displayName||user.email||'';av.title=user.displayName||user.email||'';
-    }
-  }
+  /* La foto del sidebar se fue con el bloque repetido: la que vale es la de
+     la barra de arriba del Panel. */
   if(!__booted){buildPalette();__booted=true;}
   plat='youtube';view='board';
   render();
