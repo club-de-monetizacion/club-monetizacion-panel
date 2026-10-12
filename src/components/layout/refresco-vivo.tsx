@@ -23,8 +23,8 @@ import { usePathname, useRouter } from "next/navigation";
  * herramientas traen su propio tiempo real por dentro.
  */
 export function RefrescoVivo({
-  cada = 8000,
-  cadaDeFondo = 30000,
+  cada = 15000,
+  cadaDeFondo = 45000,
 }: {
   cada?: number;
   cadaDeFondo?: number;
@@ -40,7 +40,11 @@ export function RefrescoVivo({
     if (conHerramienta(ruta ?? "")) return;   // ahí no se refresca nada
 
     let reloj: ReturnType<typeof setInterval> | null = null;
-    let ultimo = 0;
+    /* Arranca el reloj AHORA, no en cero. Con `ultimo = 0` el primer tic caía
+       a los 4 s de entrar y volvía a pedir la pantalla entera cuando todavía
+       se estaba terminando de abrir: la herramienta se sentía lenta justo al
+       llegar, que es cuando más se nota. */
+    let ultimo = Date.now();
 
     const aLaVista = () =>
       document.visibilityState === "visible" || document.hasFocus();
@@ -61,7 +65,7 @@ export function RefrescoVivo({
       tic();
     };
 
-    reloj = setInterval(tic, Math.min(cada, 4000));
+    reloj = setInterval(tic, Math.min(cada, 5000));
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("focus", alVolver);
     window.addEventListener("online", alVolver);
