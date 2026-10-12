@@ -4940,8 +4940,14 @@ function __bootApp(user){
     const tc=document.getElementById('treeCanvas'); if(tc) tc.style.display='block';
     const tb=document.getElementById('treeNavBtn'); if(tb) tb.classList.add('active');
     renderTree();
-  } else if(s&&s.view==='lab' && typeof abrirLab==='function'){
-    abrirLab(document.getElementById('labNavBtn'));
+  } else if(s&&s.view==='lab'){
+    /* lab.js se carga al final del documento: si la sesión se resuelve antes
+       que él, abrirLab todavía no existe y el laboratorio no se abría. Se le
+       espera un momento en vez de dejarlo en el tablero. */
+    (function vuelveAlLab(intentos){
+      if(typeof abrirLab==='function'){ abrirLab(document.getElementById('labNavBtn')); return; }
+      if(intentos>0) setTimeout(function(){ vuelveAlLab(intentos-1); },60);
+    })(25);
   }
 }
 /* ══ Extras del Máster: portada por link (proxy ytThumb del panel) + referencias ══ */
