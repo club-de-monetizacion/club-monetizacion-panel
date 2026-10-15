@@ -45,3 +45,6 @@ _respaldos/
 
 ._*
 .DS_Store
+
+# copias de seguridad antes de cada cambio (se quedan en la carpeta, no se suben)
+*.bak

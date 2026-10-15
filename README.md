@@ -19,34 +19,36 @@ fondo animado.
 - Una base de datos PostgreSQL. Recomendado: [Neon](https://neon.tech) o
   [Vercel Postgres](https://vercel.com/storage/postgres) (ambos tienen un
   plan gratuito y funcionan de inmediato con Vercel).
-- Nada más: el inicio de sesión lo valida el panel del Club, que ya está en marcha.
+- Nada más: el inicio de sesión es la sesión del Club (ver abajo).
 
 ## 2. El inicio de sesión
 
-Se entra con **el mismo correo y contraseña del panel del Club**
-(`panel.clubdemonetizacion.com`), y solo los administradores. No hay nada que
-configurar: el panel ya está en marcha y esta app solo le pregunta.
+**No hay login propio.** Tareas es una herramienta más del Club: se entra y se sale
+con la misma sesión que clubdemonetizacion.com, la Bóveda, el Arsenal y el
+Analizador (Diego, 15 oct 2026: «ES UNA MISMA HERRAMIENTA… SI INGRESO O CIERRO
+SESIÓN ES EL MISMO PROTOCOLO»).
 
-Cómo funciona, en corto:
+Cómo funciona, en corto (todo en `src/lib/club-sso.ts`):
 
-1. El formulario de `/login` manda correo y contraseña al proveedor de credenciales.
-2. `src/lib/panel-club.ts` se los pasa al panel (`action: "entrarEquipo"`) y obedece su
-   respuesta. **Aquí no se guarda ninguna contraseña**: no hay columna para ellas y no
-   se cifra nada.
-3. El papel que devuelve el panel decide el rol: `maestro` y `equipo` son `ADMIN`,
-   `mirar` es solo consulta, cualquier otro **no entra**.
-4. Cada cinco minutos se le vuelve a preguntar al panel si la persona sigue teniendo
-   acceso (`action: "yo"`). Así, quitarle el acceso en el panel surte efecto aquí casi
-   al instante. Si el panel estuviera caído, **no se echa a nadie**.
+1. El Club deja la cookie `club_sesion` (HttpOnly, en `.clubdemonetizacion.com`), que
+   le llega también a `tareas.`. El portero (`authorized` en `src/auth.ts`) la mira en
+   cada página.
+2. Sin esa cookie → al acceso del Club (`https://clubdemonetizacion.com/?volver=…`),
+   que al entrar te devuelve aquí. Nunca se ve un formulario de tareas.
+3. Con ella → `/api/entrar-club` se la reenvía al Club (`POST /api/sesion`,
+   `{action:"yo"}`, igual que el Analizador: sin secretos) y el Club dice quién es.
+   `propietario`, `admin` y `equipo` entran como `ADMIN`; cualquier otro papel vuelve
+   al Club. Se crea la sesión de Auth.js y se sigue.
+4. Cada cuarto de hora se le vuelve a preguntar al Club. Si no contesta, **no se echa
+   a nadie**.
+5. Cerrar sesión (`/api/salir-club`) borra `club_sesion`, `club_hay` y `club_nom` del
+   dominio padre y la sesión de aquí, y lleva a la portada del Club: se sale de todo
+   el Club a la vez. Y si se sale desde otra herramienta, `vigila-sesion.tsx` saca
+   también esta pestaña.
 
-El panel es un sistema en producción con alumnos que pagaron: desde aquí **solo se
-consulta, nunca se modifica**.
-
-Para comprobar que esta parte sigue funcionando:
-
-```bash
-node --experimental-strip-types pruebas/panel-club.mts
-```
+El Club es un sistema en producción con alumnos que pagaron: desde aquí **solo se
+consulta, nunca se modifica**. Para probar en local sin tocarlo, `CLUB_SESION_URL`
+apunta a un Club simulado.
 
 ## 3. Variables de entorno
 

@@ -146,9 +146,12 @@ export function PendientesBoard({ inicial }: { inicial: PendienteVista[] }) {
     });
   }, [lista0, filtro, busca, etiqueta]);
 
+  /* Las etiquetas de lo que sigue vivo. Se calculan desde `lista0` (de la que
+     sale `vivos`) para que la dependencia sea la de verdad: con `vivos` dentro y
+     `[lista0]` fuera, el compilador de React se negaba a optimizar el tablero. */
   const etiquetas = useMemo(
-    () => [...new Set(vivos.flatMap((p) => p.etiquetas))].sort(),
-    [lista0] // eslint-disable-line react-hooks/exhaustive-deps
+    () => [...new Set(lista0.filter((p) => !p.hecho).flatMap((p) => p.etiquetas))].sort(),
+    [lista0]
   );
 
   function agregar() {

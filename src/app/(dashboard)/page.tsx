@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { CheckCircle2, LifeBuoy, Users, Video } from "lucide-react";
 import { auth } from "@/auth";
@@ -5,8 +6,23 @@ import { getDashboardData } from "@/lib/data";
 import { MiniTaskRow } from "@/components/board/mini-task-row";
 import { PLATFORM_INFO } from "@/lib/constants";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import Cargando from "./loading";
 
+/* ⚠️ LA PÁGINA SE MANDA ANTES QUE LOS DATOS.
+   Al entrar desde el Club, Next no enviaba ni una línea hasta que terminaban
+   las seis consultas: la pestaña se quedaba en blanco y parecía que la
+   herramienta no abría. Con el <Suspense> la estructura sale de inmediato y
+   los números entran encima cuando llegan. El `loading.tsx` solo cubría las
+   navegaciones de dentro, no la primera carga. */
 export default async function DashboardPage() {
+  return (
+    <Suspense fallback={<Cargando />}>
+      <Tablero />
+    </Suspense>
+  );
+}
+
+async function Tablero() {
   const session = await auth();
   const user = session!.user;
   const data = await getDashboardData(user.id);
@@ -26,7 +42,7 @@ export default async function DashboardPage() {
     <div className="animate-fade-in space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-[var(--ink-0)]">
-          {greeting}, {firstName} 👋
+          {greeting}, {firstName}
         </h2>
         <p className="text-sm text-[var(--ink-2)]">
           Esto es lo que está pasando en el equipo hoy.
@@ -71,7 +87,7 @@ export default async function DashboardPage() {
             ))}
             {data.myTasks.length === 0 && (
               <p className="px-2 py-4 text-sm text-[var(--ink-3)]">
-                No tienes tareas pendientes asignadas. 🎉
+                No tienes tareas pendientes asignadas.
               </p>
             )}
           </div>

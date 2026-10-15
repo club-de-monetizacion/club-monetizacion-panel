@@ -108,6 +108,19 @@ Están en el JSON de su Mac. **Hay que pasarlas a Postgres antes de retirar esa 
 con respaldo y comprobando una por una. No se apaga nada hasta que estén aquí y él las
 vea.
 
+## Sin login propio: la sesión del Club  ✅ hecho (15 oct 2026)
+
+**Esto sustituye a la sección de abajo.** `/login` ya no es un formulario: tareas se
+abre con la cookie `club_sesion` del Club y con ninguna otra, y cerrar sesión aquí
+cierra todo el Club. Quién entra lo decide el papel en el Club: `propietario`,
+`admin` y `equipo` → `ADMIN`; los demás vuelven al Club. Detalle en el README
+(«2. El inicio de sesión») y en `src/lib/club-sso.ts`.
+
+Para César: ya no se entra con correo y contraseña del panel. Hay que tener sesión
+en clubdemonetizacion.com con una cuenta que tenga papel de equipo (Diego la da desde
+el panel del Club, pestaña Usuarios). `lib/panel-club.ts` sigue ahí pero el login ya
+no lo usa.
+
 ## El login: ya se entra con las cuentas del Club  ✅ hecho
 
 **Hecho el 30 sep 2026 en la rama `login-club`, sin fusionar todavía.** Google ya no

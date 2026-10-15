@@ -29,6 +29,7 @@ function titleFromPathname(pathname: string) {
 
 export function DashboardShell({
   user,
+  pie,
   children,
 }: {
   user: {
@@ -37,6 +38,8 @@ export function DashboardShell({
     image?: string | null;
     role: Role;
   };
+  /** El pie del Club, escrito en el servidor. */
+  pie?: ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -46,6 +49,7 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const title = titleFromPathname(pathname ?? "/");
+  const aSangre = (pathname ?? "").startsWith("/youtube-planner");
 
   useEffect(() => {
     // Client-only read of the viewer's saved preference; deferred to an
@@ -111,6 +115,10 @@ export function DashboardShell({
           user={user}
         />
         <main className="zona-contenido flex-1 p-4 md:p-6">{children}</main>
+        {/* El pie del Club al final de cada página, en el flujo (nunca encima del
+            contenido). El YouTube Planner no lo lleva: es una herramienta a
+            pantalla completa que trae su propio pie. */}
+        {!aSangre && pie}
       </div>
     </div>
   );

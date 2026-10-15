@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Los «._archivo» que macOS deja junto a cada archivo en un disco externo
+    // (exFAT): no son código, y ESLint fallaba al intentar leerlos.
+    "**/._*",
   ]),
 ]);
 

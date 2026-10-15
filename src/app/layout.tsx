@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -41,6 +42,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/* ⚠️ SIN ZOOM EN EL CELULAR, igual que el resto del Club: la misma etiqueta
+   viewport (`maximum-scale=1, user-scalable=no`). Safari de iPhone ignora
+   `user-scalable=no` al pellizcar: eso lo corta el script de abajo. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#05091a",
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
@@ -52,6 +65,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         className="min-h-full flex flex-col"
         style={{ background: "#05091a" }}
       >
+        {/* El pellizco de Safari (iPhone y iPad) llega como `gesture*`: sin esto
+            hacía zoom aunque la etiqueta viewport lo prohíba. Va antes de que
+            cargue React para que no haya un primer segundo con zoom. No es un
+            escuchador de rueda ni de `touchmove`: el scroll no se toca. */}
+        <Script id="sin-zoom" strategy="beforeInteractive">
+          {`["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()})})`}
+        </Script>
         {children}
       </body>
     </html>

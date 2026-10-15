@@ -44,7 +44,7 @@ export function MyTasksPanel({
         ))}
         {tasks.length === 0 && (
           <p className="px-2 py-4 text-sm text-[var(--ink-3)]">
-            No tienes tareas pendientes asignadas. 🎉
+            No tienes tareas pendientes asignadas.
           </p>
         )}
       </div>

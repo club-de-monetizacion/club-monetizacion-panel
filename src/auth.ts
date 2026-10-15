@@ -3,26 +3,22 @@ import type { DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import { entraComoDueno, entrarEquipo, papelDelRol, sigueValida } from "@/lib/panel-club";
+import {
+  GALLETA,
+  aEntrarEnElClub,
+  huellaDe,
+  origenPublico,
+  papelEnTareas,
+  preguntaAlClub,
+} from "@/lib/club-sso";
 import type { BackgroundType, Role } from "@prisma/client";
 
 /**
- * Quién entra y con qué papel lo decide el panel del Club (ver `lib/panel-club.ts`).
- * Esta lista solo queda como salida de emergencia: si el panel estuviera caído y
- * hubiera que entrar, un correo de aquí se trata como ADMIN. Puede quedar vacía.
- */
-const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
-/**
- * Cada cuánto se le vuelve a preguntar al panel si la persona sigue teniendo acceso.
+ * Cada cuánto se le vuelve a preguntar al Club si la persona sigue siendo del equipo.
  *
- * Esa pregunta va dentro de una navegación, así que se paga en la pantalla: con cinco
- * minutos, la primera navegación de cada rato tardaba dos segundos. Con un cuarto de
- * hora se paga cuatro veces menos y «Quitar acceso» sigue surtiendo efecto pronto.
- * El tope de espera del panel son 2 s (ver `lib/panel-club.ts`).
+ * Esa pregunta va dentro de una navegación, así que se paga en la pantalla: con un
+ * cuarto de hora se paga poco y «quitar acceso» en el Club surte efecto pronto. Si
+ * el Club no contesta en 2 s no se echa a nadie (ver `lib/club-sso.ts`).
  */
 const REVALIDAR_CADA_MS = 15 * 60 * 1000;
 
@@ -36,16 +32,20 @@ declare module "next-auth" {
       backgroundColor: string;
       particlesEnabled: boolean;
     } & DefaultSession["user"];
+    /** De qué cookie del Club salió esta sesión: un resumen, nunca la cookie. */
+    huella?: string;
   }
 }
 
 declare module "@auth/core/jwt" {
   interface JWT {
     id?: string;
-    /** El token que devolvió el panel del Club, para revalidar la sesión. */
-    panelTok?: string;
-    /** Cuándo se revalidó por última vez contra el panel. */
-    panelVisto?: number;
+    /** La cookie del Club con la que se entró, para volver a preguntarle al Club. */
+    clubTok?: string;
+    /** Su resumen: si la cookie del navegador cambia, la sesión de aquí ya no vale. */
+    huella?: string;
+    /** Cuándo se le preguntó al Club por última vez. */
+    clubVisto?: number;
     role?: Role;
     accentColor?: string;
     backgroundType?: BackgroundType;
@@ -60,110 +60,133 @@ const nextAuth = NextAuth({
   trustHost: true,
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   providers: [
     /**
-     * Se entra con la misma cuenta del panel del Club. `authorize` **no comprueba
-     * ninguna contraseña**: se la pasa al panel y obedece su respuesta. Aquí no se
-     * guarda, ni se copia, ni se cifra ninguna contraseña.
+     * LA MISMA SESIÓN DEL CLUB, Y NINGUNA OTRA.
+     *
+     * No pide nada: recibe la cookie del Club que ya trae el navegador y le pregunta
+     * al Club de quién es. Solo el equipo entra. Aquí no hay formulario de correo y
+     * contraseña ni clave maestra: entrar y salir es el mismo protocolo que en el
+     * resto del Club (Diego: «ES UNA MISMA HERRAMIENTA»).
      */
     Credentials({
-      credentials: {
-        email: { label: "Correo", type: "email" },
-        password: { label: "Contraseña", type: "password" },
-        // Solo Diego: entra al panel con su clave maestra, no con contraseña de
-        // equipo. Si viene PIN, se valida por esa vía.
-        pin: { label: "PIN", type: "password" },
-      },
+      id: "club",
+      name: "Club de Monetización",
+      credentials: { galleta: { type: "text" } },
       async authorize(datos) {
-        const email = String(datos?.email ?? "").trim().toLowerCase();
-        const clave = String(datos?.password ?? "");
-        if (!email || !clave) return null;
+        const valor = String(datos?.galleta ?? "");
+        const r = await preguntaAlClub(valor);
+        if (r.estado !== "dentro") return null;
+        const papel = papelEnTareas(r.quien.rol);
+        if (!papel) return null; // un alumno no entra a los tableros internos
 
-        const pin = String(datos?.pin ?? "").trim();
-
-        let papel: Role | null = null;
-        let nombre: string | null = null;
-        let tokPanel: string | undefined;
-
-        if (pin) {
-          // El dueño: clave maestra + PIN. No se guarda ninguna de las dos.
-          const dueno = await entraComoDueno(clave, pin);
-          if (!dueno.ok) return null;
-          papel = "ADMIN";
-        } else {
-          const entrada = await entrarEquipo(email, clave);
-          if (!entrada.ok) return null;
-          papel = papelDelRol(entrada.rol) ?? (adminEmails.includes(email) ? "ADMIN" : null);
-          nombre = entrada.nombre;
-          tokPanel = entrada.tok;
-        }
-        if (!papel) return null;   // un papel que no conocemos no entra
-
-        // El usuario se crea en el primer login y se identifica por el correo. La
-        // base guarda sus tareas y preferencias, nunca su contraseña.
-        const persona = await prisma.user.upsert({
+        const { email, nombre, foto } = r.quien;
+        // La persona se identifica por su correo. La foto del Club solo se usa si
+        // aquí no tiene una propia: la que alguien subió en su perfil manda.
+        const previa = await prisma.user.findUnique({
           where: { email },
-          update: { role: papel, ...(nombre ? { name: nombre } : {}) },
-          create: { email, name: nombre ?? email, role: papel },
+          select: { image: true },
         });
+        const persona = previa
+          ? await prisma.user.update({
+              where: { email },
+              data: {
+                role: papel,
+                ...(nombre ? { name: nombre } : {}),
+                ...(!previa.image && foto ? { image: foto } : {}),
+              },
+            })
+          : await prisma.user.create({
+              data: { email, name: nombre || email, role: papel, image: foto || null },
+            });
 
         return {
           id: persona.id,
           email,
           name: persona.name,
           image: persona.image,
-          panelTok: tokPanel,
+          clubTok: valor,
+          huella: await huellaDe(valor),
         };
       },
     }),
   ],
   callbacks: {
-    authorized({ auth, request }) {
-      const isLoggedIn = !!auth?.user;
-      const ruta = request.nextUrl.pathname;
+    /**
+     * EL PORTERO DE CADA PÁGINA (lo ejecuta `proxy.ts`).
+     *
+     * ⚠️ Sin la cookie del Club no hay sesión aquí, aunque quede la de Auth.js: si
+     * se cerró sesión en el Club (o en cualquier herramienta), aquí también. Y si la
+     * cookie del Club cambió (entró otra persona), se vuelve a entrar con la nueva.
+     * Nada de esto pregunta al Club: es mirar una cookie, sale gratis.
+     */
+    async authorized({ auth, request }) {
+      const aqui = request.nextUrl;
+      const ruta = aqui.pathname;
 
       /* La app de escritorio no tiene sesión de navegador: se identifica con su
-         llave en la cabecera y la comprueba la propia ruta. Si se le exigiera
-         sesión aquí, recibiría el HTML del login en vez de sus pendientes. */
-      if (ruta.startsWith("/api/pendientes/")) return true;
-      if (ruta === "/api/perfil/foto") return true;
-      if (ruta === "/api/latido") return true;
+         llave en la cabecera y la comprueba la propia ruta. (Las /api/ ya quedan
+         fuera del `matcher`; esto es por si algún día se amplía.) */
+      if (ruta.startsWith("/api/")) return true;
 
-      const isOnLogin = ruta.startsWith("/login");
-      if (isOnLogin) {
-        if (isLoggedIn) {
-          return Response.redirect(new URL("/", request.nextUrl));
-        }
-        return true;
+      const enLaPuerta = ruta.startsWith("/login");
+      const valor = request.cookies.get(GALLETA)?.value ?? "";
+
+      // Sin sesión del Club: al acceso del Club, que al entrar te devuelve aquí.
+      if (!valor) {
+        const origen = origenPublico(request.headers, aqui);
+        return Response.redirect(
+          aEntrarEnElClub(origen + (enLaPuerta ? "/" : ruta + aqui.search)),
+        );
       }
-      // Sin sesión se manda a /login **sin** el `?callbackUrl=…` que añade Auth.js:
-      // el enlace que se comparte por WhatsApp quedaba kilométrico. Después de
-      // entrar se va a la portada, que es a donde lleva el formulario de todas formas.
-      if (!isLoggedIn) return Response.redirect(new URL("/login", request.nextUrl));
+
+      // La pantalla de carga que vuelve a probar cuando el Club no contestó.
+      if (enLaPuerta && aqui.searchParams.has("reintento")) return true;
+
+      const misma = !!auth?.user && auth.huella === (await huellaDe(valor));
+      if (!misma) {
+        const volver = enLaPuerta ? "/" : ruta + aqui.search;
+        return Response.redirect(
+          new URL("/api/entrar-club?volver=" + encodeURIComponent(volver), aqui),
+        );
+      }
+      if (enLaPuerta) return Response.redirect(new URL("/", aqui));
       return true;
     },
     async signIn({ user }) {
-      // El papel ya lo asignó `authorize` con lo que dijo el panel del Club.
+      // El papel ya lo asignó `authorize` con lo que dijo el Club.
       return !!user.email;
     },
     async jwt({ token, user, trigger }) {
       if (user) {
-        token.panelTok = (user as { panelTok?: string }).panelTok;
-        token.panelVisto = Date.now();
+        const delClub = user as { clubTok?: string; huella?: string };
+        token.clubTok = delClub.clubTok;
+        token.huella = delClub.huella;
+        token.clubVisto = Date.now();
       }
       if (!token.email) return token;
 
-      // Se le pregunta al panel de tanto en tanto si la persona sigue dentro. Un
-      // panel caído no echa a nadie: solo un «no» explícito (401/403) cierra la
-      // sesión, para no dejar al equipo fuera por un fallo pasajero.
-      if (token.panelTok && Date.now() - (token.panelVisto ?? 0) > REVALIDAR_CADA_MS) {
-        const estado = await sigueValida(token.panelTok);
-        token.panelVisto = Date.now();
+      /* Se le pregunta al Club de tanto en tanto si la persona sigue siendo del
+         equipo. Un Club caído no echa a nadie: solo un «no» explícito cierra la
+         sesión, para no dejar al equipo fuera por un fallo pasajero. */
+      if (token.clubTok && Date.now() - (token.clubVisto ?? 0) > REVALIDAR_CADA_MS) {
+        const r = await preguntaAlClub(token.clubTok, 2000);
+        token.clubVisto = Date.now();
+        if (r.estado === "fuera") return null;
+        if (r.estado === "dentro") {
+          const papel = papelEnTareas(r.quien.rol);
+          if (!papel) return null;
+          if (papel !== token.role) {
+            await prisma.user.updateMany({ where: { email: token.email }, data: { role: papel } });
+            token.role = papel;
+          }
+        }
 
         /* Y de paso se recargan las preferencias: el token guardaba los colores de
-           cuando se entró, así que un cambio de identidad (o de color en el perfil)
-           no se veía hasta volver a entrar. */
+           cuando se entró, así que un cambio de color en el perfil no se veía hasta
+           volver a entrar. */
         const fresco = await prisma.user.findUnique({
           where: { email: token.email },
           select: {
@@ -178,20 +201,7 @@ const nextAuth = NextAuth({
           token.backgroundColor = fresco.backgroundColor;
           token.particlesEnabled = fresco.particlesEnabled;
           token.name = fresco.name;
-          token.picture = fresco.image;
-        }
-        if (!estado.ok && estado.caducada) return null;
-        if (estado.ok) {
-          const papel = papelDelRol(estado.rol);
-          if (!papel) return null;
-          if (papel !== token.role) {
-            // Un cambio de papel en el panel se refleja aquí sin volver a entrar.
-            await prisma.user.updateMany({
-              where: { email: token.email },
-              data: { role: papel },
-            });
-            token.role = papel;
-          }
+          token.picture = fresco.image ?? token.picture;
         }
       }
       if (!token.id || trigger === "update") {
@@ -206,7 +216,8 @@ const nextAuth = NextAuth({
           token.backgroundColor = dbUser.backgroundColor;
           token.particlesEnabled = dbUser.particlesEnabled;
           token.name = dbUser.name;
-          token.picture = dbUser.image;
+          // ⚠️ sin foto propia se queda la del Club, no un hueco
+          token.picture = dbUser.image ?? token.picture;
         }
       }
       return token;
@@ -220,6 +231,7 @@ const nextAuth = NextAuth({
       session.user.particlesEnabled = token.particlesEnabled ?? true;
       if (token.name) session.user.name = token.name;
       if (token.picture) session.user.image = token.picture;
+      session.huella = token.huella;
       return session;
     },
   },

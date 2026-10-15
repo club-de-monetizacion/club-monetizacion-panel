@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* ⚠️ EL HUECO AL ESTIRAR EN EL MÓVIL.
+   El fondo lo pintaba solo el body; al estirar la página con el dedo se veía
+   el html sin pintar, una franja de otro color. Con el html del mismo azul, el
+   rebote ya no deja ver nada distinto.
+   ⚠️ NADA de `overscroll-behavior` en <html> ni en <body>: en Safari, junto a
+   cualquier escuchador de rueda no pasivo (el planner y el LAB los tienen),
+   deja la página sin scroll. Es lo que rompió el scroll de todo el dominio. */
+html { background: #05091a; }
+
+
 /* ══════════ SISTEMA VISUAL DEL CLUB DE MONETIZACIÓN ══════════
    Los mismos valores que `club.css`, que usan el panel y la Bóveda. Si cambian
    allá, cambian aquí: es una sola identidad, no tres parecidas. */
@@ -423,3 +433,186 @@ h1, h2, h3 {
   border-radius: 0;
   display: block;
 }
+
+/* ══════════ NADA DE ZOOM Y NADA DE DOBLE TOQUE ══════════
+   Lo mismo que el Club:
+   · `touch-action:manipulation` quita la espera de 300 ms con la que el
+     navegador comprueba si vas a hacer doble toque (por eso a veces había que
+     tocar dos veces un botón) y quita el zoom del doble toque.
+   · El pellizco lo cortan la etiqueta viewport y el script `sin-zoom` del
+     layout. El scroll no se toca: `manipulation` deja desplazar con el dedo. */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+* { touch-action: manipulation; }
+a, button, [role="button"], [role="menuitem"], input, select, textarea, label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(201, 160, 64, 0.18);
+}
+
+/* ══════════ «VOLVER AL PANEL» ══════════
+   El mismo botón de todo el dominio (`club-volver.js`): mismo texto, mismo
+   destino (el panel del Club) y mismo sitio, arriba a la izquierda, lo primero
+   de la cabecera. */
+.club-volver {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  padding: 8px 14px 8px 11px; border-radius: 11px; text-decoration: none;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer;
+  color: #a8b8d0; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(120, 150, 200, 0.18);
+  transition: color 0.16s, border-color 0.16s, background 0.16s;
+  /* como en club-volver.js: sin el cuadro gris del toque ni selección al
+     mantener pulsado, y el resalte solo con ratón (en el celular se quedaba
+     «encendido» después de tocar) */
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+  -webkit-user-select: none; user-select: none;
+}
+@media (hover: hover) {
+  .club-volver:hover { color: #fff; border-color: rgba(201, 160, 64, 0.45); background: rgba(255, 255, 255, 0.07); }
+}
+.club-volver:active { transform: scale(0.98); }
+.club-volver svg { width: 15px; height: 15px; flex: none; }
+@media (max-width: 560px) {
+  .club-volver { padding: 8px 12px 8px 10px; font-size: 12.4px; }
+}
+
+/* ══════════ TU CUENTA: SOLO LA FOTO Y EL PUNTO VERDE ══════════
+   Igual que `.club-cuenta` del Club. ⚠️ Sin anillo, sin fondo y sin sombra
+   detrás de la foto: el degradado y el aro del avatar asomaban por el borde y
+   se veía un segundo círculo; y el resalte del toque pintaba un cuadrado. La
+   foto va sola: ella es el botón. 46 px en la compu, 44 en el celular. */
+.cuenta-club {
+  position: relative; display: block; flex: none;
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; line-height: 0; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; outline: none;
+  transition: transform 0.15s;
+}
+@media (hover: hover) { .cuenta-club:hover { transform: translateY(-1px); } }
+.cuenta-club:focus-visible { box-shadow: 0 0 0 2px var(--ring); }
+.cuenta-club img, .cuenta-club .ini {
+  width: 100%; height: 100%; border-radius: 50%; display: block;
+  object-fit: cover; object-position: center; background: none;
+}
+.cuenta-club .ini {
+  display: grid; place-items: center; line-height: 1;
+  font-size: 16px; font-weight: 800; color: #1a1200;
+  background: linear-gradient(135deg, var(--oro-xclaro), var(--oro));
+}
+/* el puntito verde: avisa de que ahí dentro hay algo */
+.cuenta-club::after {
+  content: ""; position: absolute; right: 1px; bottom: 1px;
+  width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box;
+  background: var(--verde); border: 2.5px solid #05091a;
+}
+@media (max-width: 760px) {
+  .cuenta-club { width: 44px; height: 44px; }
+}
+
+/* ══════════ EL PIE DEL CLUB ══════════
+   Copia de `club-pie.css`, el pie de todas las webs del dominio, con los
+   colores tal como se ven allá (sus variables dan #6b7c99 en los enlaces).
+   ⚠️ Va en el flujo, al final de la página: nunca fijo ni flotando encima del
+   contenido. Y sin hueco debajo: el pie cierra la página. */
+.pie-club {
+  /* ⚠️ Debajo del último texto solo su margen y, en el iPhone, el área segura
+     de la barra de inicio (la etiqueta viewport lleva `viewport-fit=cover`). */
+  margin-top: 38px; padding: 26px 0 calc(18px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(120, 150, 200, 0.14);
+  background: linear-gradient(180deg, rgba(7, 13, 31, 0), rgba(7, 13, 31, 0.6));
+}
+.pie-club .pc-in {
+  max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 26px);
+  display: flex; flex-direction: column; gap: 22px;
+}
+.pie-club .pc-alto { display: flex; align-items: flex-start; justify-content: space-between; gap: 26px; flex-wrap: wrap; }
+.pie-club .pc-marca { display: flex; align-items: center; gap: 11px; text-decoration: none; flex: none; }
+.pie-club .pc-marca img { height: 34px; width: auto; object-fit: contain; filter: drop-shadow(0 0 12px rgba(201, 160, 64, 0.4)); }
+.pie-club .pc-marca b {
+  font-family: var(--font-space-grotesk), "Space Grotesk", sans-serif; font-weight: 700;
+  font-size: 14px; letter-spacing: 0.03em; line-height: 1.2; color: #fff; display: block;
+}
+.pie-club .pc-marca i {
+  display: block; font-style: normal; font-size: 9.5px; letter-spacing: 0.2em;
+  color: #c9a040; font-weight: 500; margin-top: 2px; line-height: 1.55;
+}
+.pie-club .pc-lks { display: flex; gap: 7px 20px; flex-wrap: wrap; align-items: center; }
+.pie-club .pc-lks a { font-size: 13px; line-height: 1.55; color: #6b7c99; text-decoration: none; transition: color 0.15s; }
+.pie-club .pc-lks a:hover { color: #ffd97d; }
+/* ⚠️ El soporte va a la DERECHA DEL TODO, separado de las redes. */
+.pie-club .pc-der { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
+.pie-club .pc-redes { display: flex; gap: 8px; }
+.pie-club .pc-redes a {
+  width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+  border: 1px solid rgba(120, 150, 200, 0.14); color: #6b7c99;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s, background 0.2s;
+}
+.pie-club .pc-redes a:hover { color: #fff; border-color: rgba(201, 160, 64, 0.5); background: rgba(201, 160, 64, 0.1); transform: translateY(-2px); }
+.pie-club .pc-redes svg { width: 17px; height: 17px; fill: currentColor; }
+.pie-club .pc-sop {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 11px;
+  font-size: 13px; font-weight: 700; line-height: 1.55; text-decoration: none; flex: none;
+  color: #1a1200; background: linear-gradient(135deg, #e8c060, #c9a040);
+  transition: filter 0.15s, transform 0.15s;
+}
+.pie-club .pc-sop:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.pie-club .pc-sop svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pie-club .pc-bajo {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding-top: 18px; border-top: 1px solid rgba(120, 150, 200, 0.14);
+}
+.pie-club .pc-cr { font-size: 11.6px; line-height: 1.6; color: #6b7c99; max-width: 720px; text-wrap: pretty; }
+.pie-club .pc-cr b { color: #6b7c99; font-weight: 600; }
+.pie-club .pc-ver { font-size: 10.5px; line-height: 1.55; color: #6b7c99; opacity: 0.6; flex: none; }
+@media (max-width: 760px) {
+  .pie-club { margin-top: 26px; padding: 20px 0 calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .pie-club .pc-alto { flex-direction: column; align-items: flex-start; gap: 18px; }
+  /* ⚠️ También en el móvil: redes a la izquierda, soporte a la derecha. */
+  .pie-club .pc-der { width: 100%; justify-content: space-between; gap: 12px; }
+  .pie-club .pc-lks { gap: 6px 16px; }
+  .pie-club .pc-lks a { font-size: 12.6px; }
+}
+
+/* ══════════ LA PANTALLA DE CARGA DEL CLUB ══════════
+   La de `club-carga.js`, igual: tapa desde el primer pixel mientras se entra o
+   se sale, para que nunca se vea una pantalla a medias. */
+.club-carga {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: #05091a;
+}
+.club-carga .cc-cielo {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(900px 520px at 50% -10%, rgba(36, 104, 255, 0.22), transparent 62%),
+    radial-gradient(640px 420px at 12% 108%, rgba(201, 160, 64, 0.12), transparent 64%),
+    radial-gradient(520px 380px at 88% 100%, rgba(36, 104, 255, 0.12), transparent 64%);
+}
+.club-carga .cc-trama {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+.club-carga .cc-in { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
+.club-carga .cc-logo { width: 96px; height: 96px; object-fit: contain; animation: ccLate 2.2s ease-in-out infinite; }
+@keyframes ccLate {
+  0%, 100% { filter: drop-shadow(0 0 7px rgba(201, 160, 64, 0.3)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 30px rgba(201, 160, 64, 0.75)); transform: scale(1.045); }
+}
+.club-carga .cc-t {
+  font-family: var(--font-space-grotesk), "Space Grotesk", Inter, system-ui, sans-serif;
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.4em; padding-left: 0.4em;
+  text-align: center; white-space: nowrap;
+  background: linear-gradient(100deg, #8a6620 20%, #fff4d8 40%, #ffe7a8 50%, #fff4d8 60%, #8a6620 80%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: ccBrillo 2.4s linear infinite;
+}
+@keyframes ccBrillo { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+.club-carga .cc-bar { width: 168px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+.club-carga .cc-bar i {
+  display: block; height: 100%; width: 40%; border-radius: 3px;
+  background: linear-gradient(90deg, #1e5ce8, #ffe7a8);
+  animation: ccBarra 1.15s ease-in-out infinite;
+}
+@keyframes ccBarra { 0% { transform: translateX(-110%); } 100% { transform: translateX(290%); } }

@@ -13,7 +13,7 @@ export default async function IdeasPage() {
   return (
     <div className="animate-fade-in">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-[var(--ink-0)]">💡 Ideas</h2>
+        <h2 className="text-lg font-semibold text-[var(--ink-0)]">Ideas</h2>
         <p className="text-xs text-[var(--ink-3)]">
           Anota ideas rápidas o desarróllalas en la pizarra.
         </p>
