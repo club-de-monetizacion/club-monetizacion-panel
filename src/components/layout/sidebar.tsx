@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -262,13 +262,10 @@ function NavLink({
   return (
     <Link
       href={href}
-      /* ⚠️ SIN `prefetch` (el automático de Next). Con `prefetch` a secas cada
-         enlace del menú pedía su página COMPLETA al servidor nada más cargar, y
-         otra vez con cada refresco vivo: 14 páginas enteras (con sus consultas
-         a la base) cada 15 s por pestaña abierta. Eso es lo que hacía lenta la
-         herramienta y que a veces hubiera que pulsar dos veces. El automático
-         solo adelanta el esqueleto de carga (`loading.tsx`): el clic responde
-         al instante y los datos llegan detrás. */
+      /* ⚠️ Es `Enlace` (components/ui/enlace.tsx), no el `Link` de Next: la
+         página se adelanta solo al acercar el ratón o el dedo. Con el
+         automático los 14 enlaces del menú volvían a pedirse al servidor tras
+         cada refresco vivo (cada 15 s por pestaña abierta). */
       className={cn(
         "focus-ring flex items-center gap-[11px] rounded-xl border border-transparent px-[13px] py-[11px] text-sm font-medium transition-[color,background,border-color] duration-150",
         active

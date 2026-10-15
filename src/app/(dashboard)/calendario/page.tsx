@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { auth } from "@/auth";
 import { getAssignableMembers, getProjects, getTasksInRange } from "@/lib/data";

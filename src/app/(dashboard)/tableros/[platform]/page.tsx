@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { Link2 } from "lucide-react";
 import {
   getContentTasks,

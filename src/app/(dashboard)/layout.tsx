@@ -34,7 +34,8 @@ export default async function DashboardLayout({
       <RefrescoVivo />
       {/* Si se cierra sesión en el Club o en otra herramienta, aquí también. */}
       <VigilaSesion />
-      <Providers>
+      {/* La huella de la cookie del Club no le hace falta al navegador. */}
+      <Providers session={{ ...session, huella: undefined }}>
         <DashboardShell user={user} pie={<PieDelClub />}>
           {children}
         </DashboardShell>

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { CheckCircle2, LifeBuoy, Users, Video } from "lucide-react";
 import { auth } from "@/auth";
 import { getDashboardData } from "@/lib/data";

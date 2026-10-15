@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { ExternalLink, Maximize2, MonitorPlay } from "lucide-react";
 import { DIAPOSITIVAS } from "@/components/presentacion/titulos";
 

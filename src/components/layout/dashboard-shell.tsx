@@ -19,6 +19,7 @@ function titleFromPathname(pathname: string) {
   if (pathname.startsWith("/equipo")) return "Equipo";
   if (pathname.startsWith("/tareas-diarias-soporte")) return "Tareas diarias Soporte";
   if (pathname.startsWith("/perfil")) return "Mi perfil";
+  if (pathname.startsWith("/youtube-planner")) return "YouTube Planner";
   if (pathname.startsWith("/tableros/")) {
     const slug = pathname.split("/")[2]?.toUpperCase() as Platform | undefined;
     if (slug && PLATFORM_INFO[slug]) return `Tablero — ${PLATFORM_INFO[slug].label}`;
@@ -49,7 +50,6 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const title = titleFromPathname(pathname ?? "/");
-  const aSangre = (pathname ?? "").startsWith("/youtube-planner");
 
   useEffect(() => {
     // Client-only read of the viewer's saved preference; deferred to an
@@ -106,7 +106,11 @@ export function DashboardShell({
         collapsed={collapsed}
         role={user.role}
       />
-      <div className="flex min-h-screen w-full flex-1 flex-col">
+      {/* ⚠️ `min-w-0`: sin él la columna crece hasta lo que mida el tablero
+          Kanban (más ancho que la pantalla) y la página entera se salía 22 px a
+          la derecha en compu, con cabecera y pie incluidos. Con él, el tablero
+          se desplaza dentro de su caja y lo demás se queda en la pantalla. */}
+      <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col">
         <Topbar
           title={title}
           onMenuClick={() => setOpen(true)}
@@ -116,9 +120,10 @@ export function DashboardShell({
         />
         <main className="zona-contenido flex-1 p-4 md:p-6">{children}</main>
         {/* El pie del Club al final de cada página, en el flujo (nunca encima del
-            contenido). El YouTube Planner no lo lleva: es una herramienta a
-            pantalla completa que trae su propio pie. */}
-        {!aSangre && pie}
+            contenido). También bajo el YouTube Planner: la herramienta ocupa la
+            pantalla y el pie aparece al bajar, como en el resto del Club (el
+            planner no trae pie propio). */}
+        {pie}
       </div>
     </div>
   );

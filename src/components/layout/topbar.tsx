@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Menu, LogOut, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, TouchEvent } from "react";
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Diapositiva } from "./diapositivas";

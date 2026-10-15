@@ -13,7 +13,9 @@ export function TabsList({
   return (
     <TabsPrimitive.List
       className={cn(
-        "glass-panel inline-flex items-center gap-1 rounded-lg p-1",
+        /* `max-w-full flex-wrap`: con 5 o 6 pestañas la fila medía 600 px y en
+           el celular se salía de la pantalla; ahora baja a otra línea. */
+        "glass-panel inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg p-1",
         className
       )}
       {...props}

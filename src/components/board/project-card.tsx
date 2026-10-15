@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { ExternalLink, MoreVertical, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import {
   DropdownMenu,

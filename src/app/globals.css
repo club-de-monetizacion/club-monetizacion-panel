@@ -541,7 +541,10 @@ a, button, [role="button"], [role="menuitem"], input, select, textarea, label {
 /* ⚠️ El soporte va a la DERECHA DEL TODO, separado de las redes. */
 .pie-club .pc-der { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
 .pie-club .pc-redes { display: flex; gap: 8px; }
+/* ⚠️ `content-box`: en el Club los botones de redes miden 36 + 1 px de borde por
+   lado = 38 px. Tailwind pone `border-box` a todo y aquí salían de 36. */
 .pie-club .pc-redes a {
+  box-sizing: content-box;
   width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
   border: 1px solid rgba(120, 150, 200, 0.14); color: #6b7c99;
   transition: color 0.2s, border-color 0.2s, transform 0.2s, background 0.2s;
@@ -557,12 +560,12 @@ a, button, [role="button"], [role="menuitem"], input, select, textarea, label {
 .pie-club .pc-sop:hover { filter: brightness(1.07); transform: translateY(-1px); }
 .pie-club .pc-sop svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pie-club .pc-bajo {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px 14px; flex-wrap: wrap;
   padding-top: 18px; border-top: 1px solid rgba(120, 150, 200, 0.14);
 }
 .pie-club .pc-cr { font-size: 11.6px; line-height: 1.6; color: #6b7c99; max-width: 720px; text-wrap: pretty; }
 .pie-club .pc-cr b { color: #6b7c99; font-weight: 600; }
-.pie-club .pc-ver { font-size: 10.5px; line-height: 1.55; color: #6b7c99; opacity: 0.6; flex: none; }
+.pie-club .pc-ver { font-size: 10.5px; line-height: 1.6; color: #6b7c99; opacity: 0.6; flex: none; }
 @media (max-width: 760px) {
   .pie-club { margin-top: 26px; padding: 20px 0 calc(14px + env(safe-area-inset-bottom, 0px)); }
   .pie-club .pc-alto { flex-direction: column; align-items: flex-start; gap: 18px; }

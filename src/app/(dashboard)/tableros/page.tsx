@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace as Link } from "@/components/ui/enlace";
 import { ArrowRight } from "lucide-react";
 import { getPlatformSummary } from "@/lib/data";
 import { PLATFORM_INFO, PLATFORM_ORDER } from "@/lib/constants";
