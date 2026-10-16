@@ -10,6 +10,7 @@ export const DIAPOSITIVAS = [
   { id: "horarios-latam", titulo: "Tu hora: Latinoamérica y España" },
   { id: "horarios-eeuu", titulo: "Tu hora: Estados Unidos" },
   { id: "activa-tu-cuenta", titulo: "Activa tu cuenta" },
+  { id: "ya-disponible", titulo: "Nuevo: Monetiza con Avatars" },
   { id: "actualizaciones", titulo: "Actualizaciones" },
   { id: "cierre", titulo: "Cierre" },
 ] as const;

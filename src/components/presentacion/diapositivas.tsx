@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Share2,
   ShieldAlert,
+  Sparkles,
   User,
   UserX,
 } from "lucide-react";
@@ -531,13 +532,84 @@ function ActivaTuCuenta() {
   );
 }
 
-/* ───────────────────────── 5 · Actualizaciones ───────────────────────── */
+/* ───────────────────────── 5 · Ya disponible ───────────────────────── */
 
+/** El aviso del curso que acaba de salir. Al estrenar otro, cambiar el texto y la foto. */
+function YaDisponible() {
+  return (
+    <>
+      <Fondo />
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(900px 640px at 74% 50%, rgba(201,160,64,0.2), transparent 70%)" }}
+      />
+<Contenido>
+      <Marca />
+
+      <div className="absolute left-[140px] top-[220px] w-[800px]">
+        <Rotulo>Nuevo curso</Rotulo>
+        <Entra d={300} className="mt-10">
+          <span
+            className={cn(e.pulso, "inline-flex items-center gap-4 rounded-full px-8 py-4 text-[34px] font-bold uppercase tracking-[0.12em]")}
+            style={{ background: "linear-gradient(135deg,#ffd97d,#e8c060 50%,#c9a040)", color: "#1a1200" }}
+          >
+            <Sparkles size={36} strokeWidth={2.4} />
+            ¡Ya disponible!
+          </span>
+        </Entra>
+        <Entra d={450} className={cn(e.titulo, "mt-10 text-[112px] font-bold leading-[0.98] text-white")}>
+          Monetiza con
+          <br />
+          <span className={e.oroTexto}>Avatars</span>
+        </Entra>
+        <Entra d={650} className="mt-9 text-[46px] font-light" style={{ color: "#d6e0ee" }}>
+          Crea tu primer avatar de IA.
+        </Entra>
+        <Entra d={800} className="mt-4 text-[34px]" style={{ color: "#a8b8d0" }}>
+          Entra a Cursos y empiézalo hoy.
+        </Entra>
+      </div>
+
+      <Entra zoom d={400} className="absolute left-[960px] top-[268px]">
+        <div
+          className={cn(e.anilloOro, "rounded-[40px] p-[6px]")}
+          style={{ transform: "rotate(-2.5deg)", boxShadow: "0 40px 120px -20px rgba(0,0,0,0.75), 0 0 90px rgba(232,192,96,0.28)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/presentacion/cursos/avatars.jpg"
+            alt="Miniatura del curso Monetiza con Avatars"
+            className="block h-[452px] w-[840px] rounded-[34px] object-cover"
+            draggable={false}
+          />
+        </div>
+        {/* La insignia tapa además la esquina donde la captura traía el botón «⋯». */}
+        <span
+          className={cn(e.anilloOro, e.pulso, "absolute -right-6 -top-8 flex h-[150px] w-[150px] rotate-[10deg] flex-col items-center justify-center rounded-full text-center font-bold leading-none")}
+          style={{ color: "#1a1200", boxShadow: "0 18px 40px rgba(0,0,0,0.5)" }}
+        >
+          <Sparkles size={34} strokeWidth={2.4} />
+          <span className="mt-2 text-[30px] uppercase tracking-[0.08em]">Nuevo</span>
+        </span>
+      </Entra>
+</Contenido>
+    </>
+  );
+}
+
+/* ───────────────────────── 6 · Actualizaciones ───────────────────────── */
+
+/* Las fotos salen de las miniaturas de Skool (`public/presentacion/cursos`). Las de
+   «imagenes» y «youtube» venían de una captura con la etiqueta «Borrador» arriba a la
+   izquierda, y la de «avatars» con el botón «⋯» arriba a la derecha: las etiquetas de
+   cada tarjeta van justo encima de esas esquinas. */
 const ACTUALIZACIONES = [
-  { titulo: "Infracciones y baneos", foto: "infracciones", estado: "Próximamente" },
-  { titulo: "Mentalidad de creador", foto: "mentalidad", estado: "Próximamente" },
-  { titulo: "Monetiza con Avatars", foto: "avatars", detalle: "Crea tu primer avatar de IA", estado: "Próximamente" },
-  { titulo: "Automatizaciones de contenido", foto: "automatizaciones", estado: "Próximamente" },
+  { titulo: "Monetiza con Avatars", foto: "avatars", detalle: "Crea tu primer avatar de IA", disponible: true },
+  { titulo: "Monetización de Imágenes", foto: "imagenes", disponible: false },
+  { titulo: "Automatización de YouTube", foto: "youtube", disponible: false },
+  { titulo: "Infracciones y baneos", foto: "infracciones", disponible: false },
+  { titulo: "Mentalidad de creador", foto: "mentalidad", disponible: false },
+  { titulo: "Automatizaciones de contenido", foto: "automatizaciones", disponible: false },
 ] as const;
 
 function Actualizaciones() {
@@ -549,52 +621,67 @@ function Actualizaciones() {
 
       <div className="absolute left-[140px] top-[84px]">
         <Rotulo>Novedades de las clases</Rotulo>
-        <Entra d={250} className={cn(e.titulo, "mt-7 text-[150px] font-bold leading-none text-white")}>
+        <Entra d={250} className={cn(e.titulo, "mt-6 text-[120px] font-bold leading-none text-white")}>
           Actualizaciones
         </Entra>
       </div>
 
-      <div className="absolute left-[140px] top-[400px] grid w-[1640px] grid-cols-4 gap-8">
+      <div className="absolute left-[140px] top-[338px] grid w-[1640px] grid-cols-3 gap-x-8 gap-y-7">
         {ACTUALIZACIONES.map((c, i) => (
           <Entra
             key={c.titulo}
-            d={500 + i * 160}
-            className={cn(e.cristal, "overflow-hidden rounded-[32px]")}
-            style={{ height: 590 }}
+            d={450 + i * 120}
+            className={cn(e.cristal, "relative overflow-hidden rounded-[30px]")}
+            style={{
+              height: 330,
+              ...(c.disponible && {
+                borderColor: "rgba(232,192,96,0.9)",
+                boxShadow: "0 0 0 2px rgba(232,192,96,0.6), 0 0 70px rgba(232,192,96,0.3), 0 30px 80px -30px rgba(0,0,0,0.7)",
+              }),
+            }}
           >
-            <div className="relative h-[262px] overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/presentacion/cursos/${c.foto}.jpg`}
-                alt=""
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-              <div
-                className="absolute inset-0"
-                style={{ background: "linear-gradient(180deg, transparent 55%, rgba(8,14,34,0.7) 100%)" }}
-              />
-              <span
-                className="absolute left-5 top-5 flex h-12 w-12 items-center justify-center rounded-full text-[20px] font-bold"
-                style={{ background: "rgba(5,9,26,0.7)", border: "1.5px solid rgba(232,192,96,0.7)", color: "#e8c060" }}
-              >
-                {i + 1}
-              </span>
-            </div>
-            <div className="px-8 pb-8 pt-7">
-              <div className={cn(e.titulo, "text-[38px] font-bold leading-[1.12] text-white")}>{c.titulo}</div>
-              {"detalle" in c && (
-                <div className="mt-4 text-balance text-[26px] leading-snug" style={{ color: "#a8b8d0" }}>
-                  {c.detalle}
-                </div>
-              )}
-              {"estado" in c && (
-                <div
-                  className="mt-6 inline-flex items-center gap-3 rounded-full px-5 py-2.5 text-[22px] font-semibold uppercase tracking-[0.12em]"
-                  style={{ color: "#e8c060", border: "1.5px solid rgba(232,192,96,0.55)", background: "rgba(232,192,96,0.08)" }}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/presentacion/cursos/${c.foto}.jpg`}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              style={c.disponible ? undefined : { filter: "saturate(0.85) brightness(0.85)" }}
+              draggable={false}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, rgba(5,9,26,0.1) 30%, rgba(5,9,26,0.92) 100%)" }}
+            />
+            {c.disponible ? (
+              <>
+                <span
+                  className="absolute left-5 top-5 inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 text-[22px] font-bold uppercase tracking-[0.1em]"
+                  style={{ background: "linear-gradient(135deg,#ffd97d,#e8c060 50%,#c9a040)", color: "#1a1200" }}
                 >
-                  <Clock size={22} />
-                  {c.estado}
+                  <Sparkles size={22} strokeWidth={2.6} />
+                  ¡Ya disponible!
+                </span>
+                <span
+                  className={cn(e.anilloOro, e.pulso, "absolute right-3 top-3 flex h-[84px] w-[84px] items-center justify-center rounded-full text-[18px] font-bold uppercase")}
+                  style={{ color: "#1a1200" }}
+                >
+                  Nuevo
+                </span>
+              </>
+            ) : (
+              <span
+                className="absolute left-5 top-5 inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 text-[21px] font-semibold uppercase tracking-[0.12em]"
+                style={{ color: "#e8c060", border: "1.5px solid rgba(232,192,96,0.6)", background: "rgba(5,9,26,0.82)" }}
+              >
+                <Clock size={21} />
+                Próximamente
+              </span>
+            )}
+            <div className="absolute inset-x-7 bottom-6">
+              <div className={cn(e.titulo, "text-[36px] font-bold leading-[1.08] text-white")}>{c.titulo}</div>
+              {"detalle" in c && (
+                <div className="mt-1.5 text-[24px] leading-snug" style={{ color: "#ffd97d" }}>
+                  {c.detalle}
                 </div>
               )}
             </div>
@@ -606,7 +693,7 @@ function Actualizaciones() {
   );
 }
 
-/* ───────────────────────── 6 · Cierre ───────────────────────── */
+/* ───────────────────────── 7 · Cierre ───────────────────────── */
 
 function Cierre() {
   return (
@@ -642,6 +729,7 @@ const CONTENIDO: Record<IdDiapositiva, () => ReactNode> = {
   "horarios-latam": HorariosLatam,
   "horarios-eeuu": HorariosEeuu,
   "activa-tu-cuenta": ActivaTuCuenta,
+  "ya-disponible": YaDisponible,
   actualizaciones: Actualizaciones,
   cierre: Cierre,
 };
