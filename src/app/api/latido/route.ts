@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Un latido para que la app no se quede dormida.
+ * Un latido: dice si la base responde.
  *
- * Sin esto, la primera persona que entraba tras un rato de calma pagaba casi un
- * segundo de más: la función del servidor arrancaba de cero y la base de datos
- * (Neon, que se suspende sola) tenía que despertar. Un cron lo llama cada pocos
- * minutos y los dos se quedan calientes.
+ * Antes lo llamaba un cron cada 5 min para que la base (Neon, que se suspende sola)
+ * no se durmiera nunca. Eso la tenía encendida las 24 horas y, lo más probable,
+ * agotó la cuota gratis: el 17 oct 2026 Tareas dejó de abrir. El cron ya no existe
+ * (`vercel.json`); la ruta se queda para comprobar a mano si la base está viva.
  *
  * No toca nada ni devuelve nada de nadie.
  */
@@ -20,8 +20,11 @@ export async function GET() {
       { headers: { "cache-control": "no-store" } }
     );
   } catch (e) {
+    /* ⚠️ El detalle, solo al log. El mensaje de Prisma trae el nombre del servidor
+       de la base («Can't reach database server at …»), y esta ruta es pública. */
+    console.error("[latido] la base no respondió:", e);
     return NextResponse.json(
-      { ok: false, error: String((e as Error)?.message || e).slice(0, 120) },
+      { ok: false, error: "La base no responde" },
       { status: 503, headers: { "cache-control": "no-store" } }
     );
   }

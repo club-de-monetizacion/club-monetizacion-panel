@@ -108,6 +108,39 @@ Están en el JSON de su Mac. **Hay que pasarlas a Postgres antes de retirar esa 
 con respaldo y comprobando una por una. No se apaga nada hasta que estén aquí y él las
 vea.
 
+## La base no se despierta de más  ✅ hecho (19 oct 2026)
+
+**Desde el 17 oct Tareas no abría para nadie:** la base de Neon dejó de responder.
+Lo más probable es que se agotara la cuota gratis, que se mide en horas con la base
+encendida, y la teníamos encendida las 24 horas. Con el plan gratis (100 CU-h al
+mes) y la base al mínimo (0,25 CU), encendida sin parar dura unos 16 días: justo
+el 17. Levantarla es cosa de Diego en Neon (subir de plan o esperar al 1 nov).
+
+Lo que cambió para que no vuelva a pasar:
+
+- `vercel.json`: **fuera el cron** que llamaba a `/api/latido` cada 5 min. Nada más
+  lo usaba; solo ahorraba un segundo a la primera entrada tras un rato de calma, y
+  no dejaba dormir nunca a la base. Si algún día hace falta calentarla, que no sea
+  con un cron.
+- `components/layout/refresco-vivo.tsx`: con la pestaña de fondo (oculta **y** sin
+  foco) ya no refresca nada; antes lo hacía cada 45 s aunque nadie mirara. Al volver
+  a la pestaña refresca una vez. Con la pestaña a la vista sigue cada 15 s.
+- `api/entrar-club`: si la base (o el Club) sigue sin responder tras los dos
+  reintentos, sale la página «Tareas no está disponible ahora», con «Volver al Club»
+  y «Volver a intentar». Antes regresaba al Club sin decir nada. Sin zoom, como el
+  resto del dominio (también `touch-action:manipulation`, por el doble toque).
+- `app/(dashboard)/error.tsx` (nuevo): el mismo aviso para quien **ya tenía Tareas
+  abierto** cuando se cae la base. Antes, a los 15 s el refresco ponía el error
+  genérico de Next en inglés («This page couldn’t load… Reload»). Ahora sale la
+  tarjeta dentro del menú, la cabecera y el pie; «Volver a intentar» pide la
+  pantalla otra vez sin recargar, y si la base ya contesta vuelve lo de antes.
+- `lib/version.ts`: v1.3.
+- `api/latido`: el error ya no enseña el nombre del servidor de la base (la ruta es
+  pública). El detalle va al log.
+
+Sin cambios de esquema, de rutas ni de cómo se entra: la app de escritorio no nota
+nada.
+
 ## Sin login propio: la sesión del Club  ✅ hecho (15 oct 2026)
 
 **Esto sustituye a la sección de abajo.** `/login` ya no es un formulario: tareas se
