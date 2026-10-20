@@ -10,9 +10,10 @@ import { rutaSegura } from "@/lib/club-sso";
  * portero (`authorized` en `auth.ts`) con redirecciones del servidor: sin sesión
  * del Club, al acceso del Club; con ella, a entrar sola.
  *
- * Esta página solo se pinta cuando el Club no contestó a tiempo: es la pantalla
- * de carga del Club, que vuelve a probar sola. Si sigue sin contestar, se va al
- * Club. Nunca se ve un campo de correo ni de contraseña.
+ * Esta página solo se pinta cuando el Club (o la base) no contestó a tiempo: es
+ * la pantalla de carga del Club, que vuelve a probar sola. Si sigue sin contestar
+ * tras dos intentos, `/api/entrar-club` enseña la página «Tareas no está
+ * disponible ahora». Nunca se ve un campo de correo ni de contraseña.
  */
 export default async function LoginPage({
   searchParams,

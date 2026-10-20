@@ -23,6 +23,11 @@ const MINIMO_AL_VOLVER = 2000;
  * una webview, el navegador embebido de una app) informan mal de `visibilityState`:
  * dicen «hidden» aunque se esté usando. Con el foco puesto, se refresca igual.
  *
+ * **Con el aviso «Tareas no está disponible ahora» en pantalla, se calla** (20 oct
+ * 2026). Refrescar no quita ese aviso (es el límite de error de Next), así que
+ * quien vuelve a probar es el aviso (`app/(dashboard)/error.tsx`), con este mismo
+ * ritmo. Si los dos pidieran, serían dos peticiones cada 15 s.
+ *
  * Un solo reloj para toda la plataforma: va en el layout, no en cada pantalla.
  *
  * **Se calla en las pantallas que llevan una herramienta dentro de un marco** (el
@@ -54,6 +59,8 @@ export function RefrescoVivo({ cada = 15000 }: { cada?: number }) {
       document.visibilityState === "visible" || document.hasFocus();
     const sinRed = () =>
       typeof navigator.onLine === "boolean" && !navigator.onLine;
+    // El aviso de error.tsx está en pantalla: él se encarga de volver a probar.
+    const conAviso = () => !!document.querySelector("[data-tareas-no-disponible]");
 
     const refresca = () => {
       ultimo = Date.now();
@@ -62,6 +69,13 @@ export function RefrescoVivo({ cada = 15000 }: { cada?: number }) {
     };
 
     const tic = () => {
+      /* Con el aviso no se pide nada, y al quitarse (la pantalla ya viene fresca)
+         el reloj empieza de cero. */
+      if (conAviso()) {
+        ultimo = Date.now();
+        debe = false;
+        return;
+      }
       // De fondo o sin conexión no se pide nada: se queda debiendo para la vuelta.
       if (!aLaVista() || sinRed()) {
         debe = true;
@@ -72,6 +86,7 @@ export function RefrescoVivo({ cada = 15000 }: { cada?: number }) {
     };
 
     const alVolver = () => {
+      if (conAviso()) return;   // al volver, el aviso prueba por su cuenta
       if (!aLaVista() || sinRed()) {
         debe = true;   // se fue de la pestaña: a partir de aquí no se pide nada
         return;

@@ -11,6 +11,7 @@ const SIDEBAR_COLLAPSED_KEY = "ccm-sidebar-collapsed";
 
 function titleFromPathname(pathname: string) {
   if (pathname === "/") return "Inicio";
+  if (pathname.startsWith("/pendientes")) return "Pendientes";
   if (pathname.startsWith("/calendario")) return "Calendario";
   if (pathname.startsWith("/ideas")) return "Ideas";
   if (pathname.startsWith("/tareas-personales")) return "Tareas personales";

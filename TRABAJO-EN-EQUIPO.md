@@ -141,6 +141,24 @@ Lo que cambió para que no vuelva a pasar:
 Sin cambios de esquema, de rutas ni de cómo se entra: la app de escritorio no nota
 nada.
 
+**Repaso del 20 oct (v1.3.1):**
+
+- `app/(dashboard)/error.tsx`: el aviso **se quita solo** cuando la base vuelve.
+  Antes, el refresco vivo pedía la pantalla pero eso no quita un límite de error de
+  Next, y seguía «no disponible» hasta pulsar. Ahora el aviso vuelve a probar
+  (`retry`) cada 15 s con la pestaña a la vista y una vez al volver a ella; de
+  fondo, nada. Sin «Intentando…»: eso solo sale al pulsar el botón.
+- `refresco-vivo.tsx`: se calla mientras el aviso está en pantalla (lo reconoce por
+  `data-tareas-no-disponible`), para no pedir dos veces cada 15 s.
+- `api/entrar-club`: la página del aviso al entrar lleva el pie del Club completo
+  (marca, enlaces, redes y **Soporte**). Usa los datos que ahora exporta
+  `pie-del-club.tsx`; los estilos van copiados en la página. ⚠️ Si cambias el
+  marcado del pie, cámbialo en los dos sitios.
+- `dashboard-shell.tsx`: en Pendientes la cabecera decía «Panel»; ya dice
+  «Pendientes».
+- Comentarios al día en `login/page.tsx` y `api/entrar-club`: lo peor que se ve ya
+  no es regresar al Club, sino la página «no disponible».
+
 ## Sin login propio: la sesión del Club  ✅ hecho (15 oct 2026)
 
 **Esto sustituye a la sección de abajo.** `/login` ya no es un formulario: tareas se

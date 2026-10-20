@@ -9,6 +9,7 @@ import {
   preguntaAlClub,
   rutaSegura,
 } from "@/lib/club-sso";
+import { ENLACES, REDES, SOPORTE, fuera } from "@/components/layout/pie-del-club";
 import { VERSION } from "@/lib/version";
 
 /**
@@ -16,7 +17,8 @@ import { VERSION } from "@/lib/version";
  *
  * Aquí llega el portero (`authorized` en `auth.ts`) cuando trae la cookie del
  * Club y todavía no hay sesión de tareas, o es de otra persona. Nadie ve nada:
- * todo son redirecciones del servidor, y en el peor caso la pantalla de carga.
+ * todo son redirecciones del servidor, en el peor caso la pantalla de carga y, si
+ * nada contesta, la página «Tareas no está disponible ahora».
  *
  * Vive en una ruta y no en una página porque `signIn` solo puede dejar su cookie
  * desde una ruta o una acción de servidor; desde una página se traga el error.
@@ -102,6 +104,34 @@ const esc = (t: string) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 
+/** El pie del Club (`PieDelClub`) en HTML suelto, para la página de abajo. */
+function pieDelClub(): string {
+  const enlaces = ENLACES.map(
+    (l) =>
+      `<a href="${esc(l.h)}"${fuera(l.h) ? ' target="_blank" rel="noopener"' : ""}>${esc(l.t)}</a>`,
+  ).join("");
+  const redes = REDES.map(
+    (r) =>
+      `<a href="${esc(r.h)}" target="_blank" rel="noopener" title="${esc(r.n)}" aria-label="${esc(r.n)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${esc(r.d)}"/></svg></a>`,
+  ).join("");
+  return `<footer class="pie-club">
+  <div class="pc-in">
+    <div class="pc-alto">
+      <a class="pc-marca" href="${esc(CLUB)}"><img src="/branding/logo-club.png" alt=""><span><b>CLUB DE MONETIZACIÓN</b><i>Diego Cabrera 22</i></span></a>
+      <div class="pc-lks">${enlaces}</div>
+      <div class="pc-der">
+        <div class="pc-redes">${redes}</div>
+        <a class="pc-sop" href="${esc(SOPORTE)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-3.3A8.4 8.4 0 1 1 21 11.5z"/></svg>Soporte</a>
+      </div>
+    </div>
+    <div class="pc-bajo">
+      <div class="pc-cr">© ${new Date().getFullYear()} Diego Cabrera 22 · <b>Club de Monetización</b>. Este programa no garantiza resultados económicos.</div>
+      <span class="pc-ver">· ${esc(VERSION)}</span>
+    </div>
+  </div>
+</footer>`;
+}
+
 /**
  * «TAREAS NO ESTÁ DISPONIBLE AHORA»
  *
@@ -113,6 +143,11 @@ const esc = (t: string) =>
  * Sin zoom, igual que el resto del dominio: la etiqueta viewport, el script de
  * `gesture*` (el pellizco de Safari) y `touch-action:manipulation` (el doble
  * toque del iPhone), lo mismo que el bloque «NADA DE ZOOM» de `globals.css`.
+ *
+ * Abajo, el pie de todo el dominio (20 oct 2026): marca, enlaces, redes y
+ * Soporte, justo cuando algo falla. Es el marcado de `PieDelClub` con los datos
+ * de allí y sus estilos de `globals.css` copiados aquí (`.pie-club`): si cambia
+ * uno, se cambia el otro.
  */
 function noDisponible(volver: string): Response {
   const otraVez = "/api/entrar-club?volver=" + encodeURIComponent(volver);
@@ -154,7 +189,30 @@ p{color:var(--ink-2);font-size:15.5px;line-height:1.65;margin:14px auto 0;max-wi
 .btn-fantasma:hover{color:#fff;border-color:rgba(120,150,200,.32);background:rgba(255,255,255,.045)}
 .btn:active{transform:scale(.97)}
 .btn:focus-visible{outline:2px solid var(--oro-claro);outline-offset:3px}
-.pie{position:relative;z-index:1;text-align:center;font-size:12px;color:var(--ink-3);padding:0 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.pie-club{position:relative;z-index:1;margin-top:38px;padding:26px 0 calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--linea);background:linear-gradient(180deg,rgba(7,13,31,0),rgba(7,13,31,.6))}
+.pc-in{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,26px);display:flex;flex-direction:column;gap:22px}
+.pc-alto{display:flex;align-items:flex-start;justify-content:space-between;gap:26px;flex-wrap:wrap}
+.pc-marca{display:flex;align-items:center;gap:11px;text-decoration:none;flex:none}
+.pc-marca img{height:34px;width:auto;object-fit:contain;filter:drop-shadow(0 0 12px rgba(201,160,64,.4))}
+.pc-marca b{font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;font-size:14px;letter-spacing:.03em;line-height:1.2;color:#fff;display:block}
+.pc-marca i{display:block;font-style:normal;font-size:9.5px;letter-spacing:.2em;color:var(--oro);font-weight:500;margin-top:2px;line-height:1.55}
+.pc-lks{display:flex;gap:7px 20px;flex-wrap:wrap;align-items:center}
+.pc-lks a{font-size:13px;line-height:1.55;color:var(--ink-3);text-decoration:none;transition:color .15s}
+.pc-lks a:hover{color:var(--oro-xclaro)}
+.pc-der{display:flex;align-items:center;gap:16px;flex-wrap:wrap;width:100%;justify-content:space-between}
+.pc-redes{display:flex;gap:8px}
+.pc-redes a{box-sizing:content-box;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;border:1px solid var(--linea);color:var(--ink-3);transition:color .2s,border-color .2s,transform .2s,background .2s}
+.pc-redes a:hover{color:#fff;border-color:rgba(201,160,64,.5);background:rgba(201,160,64,.1);transform:translateY(-2px)}
+.pc-redes svg{width:17px;height:17px;fill:currentColor}
+.pc-sop{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:11px;font-size:13px;font-weight:700;line-height:1.55;text-decoration:none;flex:none;color:#1a1200;background:linear-gradient(135deg,var(--oro-claro),var(--oro));transition:filter .15s,transform .15s}
+.pc-sop:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.pc-sop svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pc-sop:focus-visible,.pc-lks a:focus-visible,.pc-redes a:focus-visible,.pc-marca:focus-visible{outline:2px solid var(--oro-claro);outline-offset:3px}
+.pc-bajo{display:flex;align-items:center;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--linea)}
+.pc-cr{font-size:11.6px;line-height:1.6;color:var(--ink-3);max-width:720px;text-wrap:pretty}
+.pc-cr b{color:var(--ink-3);font-weight:600}
+.pc-ver{font-size:10.5px;line-height:1.6;color:var(--ink-3);opacity:.6;flex:none}
+@media (max-width:760px){.pie-club{margin-top:26px;padding:20px 0 calc(14px + env(safe-area-inset-bottom,0px))}.pc-alto{flex-direction:column;align-items:flex-start;gap:18px}.pc-der{gap:12px}.pc-lks{gap:6px 16px}.pc-lks a{font-size:12.6px}}
 @media (max-width:480px){.caja{padding:32px 20px 24px}.acc{flex-direction:column}.btn{width:100%}}
 @media (prefers-reduced-motion:reduce){.caja{animation:none}.btn-oro::after{animation:none;opacity:0}}
 </style>
@@ -173,7 +231,7 @@ p{color:var(--ink-2);font-size:15.5px;line-height:1.65;margin:14px auto 0;max-wi
     </div>
   </section>
 </main>
-<div class="pie">Tareas · ${esc(VERSION)}</div>
+${pieDelClub()}
 </body>
 </html>`;
   return new Response(html, {
