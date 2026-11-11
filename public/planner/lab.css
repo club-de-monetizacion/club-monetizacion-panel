@@ -119,3 +119,6 @@
   .lab-h{width:34px;height:34px;}
   .lab-pista{display:none;}
 }
+
+/* segundo toque para vaciar (11 nov 2026) */
+#labBorra.confirma{background:rgba(255,90,90,.22)!important;color:#ff8f8f!important;box-shadow:0 0 0 1px rgba(255,90,90,.6);}

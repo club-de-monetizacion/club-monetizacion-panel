@@ -1039,6 +1039,16 @@ opacity:0;transition:opacity .3s;z-index:1;}
   #wm{display:none;}
 }
 </style>
+<style id="pmAuditoria">
+/* Auditoría 11 nov 2026 (Diego: «sigue teniendo las mismas cosas que ya no quería»). */
+.fab{display:none!important;}                       /* repetía «+ Nuevo video» y tapaba el LAB */
+.card-cover-icon svg,.empty-state .ei svg{width:34px;height:34px;}
+.card-cover-icon{opacity:.28;color:#a8b8d0;}
+.uz-icon svg{width:30px;height:30px;color:var(--accent);}
+.pm-cal-pill-cov .card-cover-icon svg{width:18px;height:18px;}
+.pm-cal-title{text-transform:none!important;}
+.custom-date-btn svg{opacity:.6;flex-shrink:0;}
+</style>
 <style id="pmCarga">
 /* Mientras llegan los datos no se enseña la herramienta vacía (ni el panel propio
    vacío un instante antes de abrir el compartido): solo el fondo. 11 nov 2026. */
@@ -1154,7 +1164,7 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <div id="introIni"></div>
       <div id="introName"></div>
     </div>
-    <div class="login-sub">Organiza y planifica tus próximos videos de YouTube. Tu contenido se guarda en la nube con tu cuenta del Máster y lo ves desde cualquier dispositivo.</div>
+    <div class="login-sub">Organiza y planifica tus próximos videos de YouTube. Tu contenido se guarda en la nube con tu cuenta del Club y lo ves desde cualquier dispositivo.</div>
     <a class="google-btn" id="panelBtn" href="/" target="_top" style="display:none;text-decoration:none">← Volver a la plataforma</a>
     <div class="login-status" id="loginStatus"></div>
     <div class="login-alt" id="loginAlt" style="display:none">
@@ -1260,10 +1270,10 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <button class="tz-btn" onclick="treeZoomOut()">−</button>
       <span class="tz-label" id="zoomLabel">100%</span>
       <button class="tz-btn" onclick="treeZoomIn()">+</button>
-      <button class="tz-btn" onclick="treeResetView()" style="font-size:10px;width:auto;padding:0 7px;">Reset</button>
+      <button class="tz-btn" onclick="treeResetView()" style="font-size:10px;width:auto;padding:0 7px;">Centrar</button>
       <div class="tz-sep"></div>
-      <button id="delSelBtn" class="tz-del-btn" onclick="deleteSelectedNodes()" style="display:none">🗑 Eliminar selección (<span id="selCount">0</span>)</button>
-      <button id="delEdgeBtn" class="tz-del-btn" onclick="deleteSelectedEdge()" style="display:none">🗑 Eliminar flecha</button>
+      <button id="delSelBtn" class="tz-del-btn" onclick="deleteSelectedNodes()" style="display:none">Eliminar selección (<span id="selCount">0</span>)</button>
+      <button id="delEdgeBtn" class="tz-del-btn" onclick="deleteSelectedEdge()" style="display:none">Eliminar flecha</button>
     </div>
   </div>
 
@@ -1304,7 +1314,7 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <button id="labMenos">−</button>
       <span id="labZoomLabel">100%</span>
       <button id="labMas">+</button>
-      <button id="labReset" style="width:auto;padding:0 9px;font-size:11px">Reset</button>
+      <button id="labReset" style="width:auto;padding:0 9px;font-size:11px">Centrar</button>
     </div>
     <div class="lab-pista">V seleccionar · H mano · N nota · T texto · R rect · O elipse · F flecha · L lápiz · ⌘V pegar</div>
   </div>
@@ -1320,8 +1330,8 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <div class="pmr-acts">
         <input id="pmrYt" placeholder="Pega el link de un video de YouTube…">
         <button class="pmr-btn" onclick="pmRefsYt()">Traer portada</button>
-        <button class="pmr-btn alt" onclick="document.getElementById('pmrFile').click()">＋ Subir imagen</button>
-        <button class="pmr-btn alt" onclick="pmRefsPaint()" title="Volver a leer tus portadas">↻</button>
+        <button class="pmr-btn alt" onclick="document.getElementById('pmrFile').click()">Subir imagen</button>
+        <button class="pmr-btn alt" onclick="pmRefsPaint()" title="Volver a leer tus portadas" aria-label="Volver a leer tus portadas" style="display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
         <input type="file" id="pmrFile" accept="image/*" multiple style="display:none" onchange="pmRefsUp(event)">
       </div>
     </div>
@@ -1346,9 +1356,9 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <div class="pm-cal-hint">Toca un día vacío para planear un video con esa fecha · toca un video para abrirlo.</div>
     </div>
     <div class="pm-cal-side">
-      <div class="pm-cal-side-hd">📅 Próximos programados</div>
+      <div class="pm-cal-side-hd">Próximos programados</div>
       <div id="pmCalUpcoming"></div>
-      <div class="pm-cal-side-hd">🗂 Sin fecha todavía</div>
+      <div class="pm-cal-side-hd">Sin fecha todavía</div>
       <div id="pmCalNoDate"></div>
     </div>
   </div>
@@ -1410,7 +1420,7 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
       <div class="cov-tb-sep"></div>
       <button class="cov-tbtn" onclick="covZoomOut()">−</button>
       <button class="cov-tbtn" onclick="covZoomIn()">+</button>
-      <button class="cov-tbtn" onclick="covResetView()" style="font-size:10px">Reset</button>
+      <button class="cov-tbtn" onclick="covResetView()" style="font-size:10px">Centrar</button>
       <div class="cov-tb-sep"></div>
       <button class="cov-tbtn" style="color:#4cda8a;border-color:rgba(0,200,100,.25)" onclick="covExportPDF()" id="covPdfBtn">⬇ PDF</button>
       <input type="file" id="covImgInput" accept="image/*" multiple style="display:none" onchange="onCovFileInput(event)">
@@ -1498,21 +1508,21 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
         <!-- Portada -->
         <div class="upload-zone" style="margin-bottom:16px" onclick="document.getElementById('imgUpload').click()">
           <input type="file" id="imgUpload" accept="image/*" onchange="onImageUpload(event)">
-          <div class="uz-icon">🖼️</div>
+          <div class="uz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="m21 16-5.5-5.5L5 20"/></svg></div>
                   <div class="uz-main">Arrastra o haz clic — sube tu portada</div>
           <div class="uz-sub">JPG · PNG · WebP</div>
         </div>
         <div class="uz-yt">
           <input type="text" id="imgUrl" placeholder="…o pega el link de un video de YouTube">
-          <button type="button" id="imgUrlBtn" onclick="pmModalYtFetch()">⬇ Obtener portada</button>
-          <button type="button" id="pmRefsBtn" onclick="pmToggleRefPop()" title="Elegir una de tus portadas guardadas">🖼 Referencias</button>
+          <button type="button" id="imgUrlBtn" onclick="pmModalYtFetch()">Obtener portada</button>
+          <button type="button" id="pmRefsBtn" onclick="pmToggleRefPop()" title="Elegir una de tus portadas guardadas">Referencias</button>
         </div>
         <div id="pmRefPop">
           <div class="pmrp-hd">Tus portadas guardadas <button class="pmrp-x" onclick="pmToggleRefPop(false)">✕</button></div>
           <div class="pmrp-body" id="pmRefPopBody"></div>
         </div>
         <!-- Texto sobre la portada -->
-        <div class="sect-hd">📝 Texto sobre la portada</div>
+        <div class="sect-hd">Texto sobre la portada</div>
         <div class="cover-texts">
           <div class="ct-row"><span class="ct-num">1</span><input type="text" id="coverText1" placeholder="Texto principal — impacto máximo" oninput="refreshCoverOverlay()"></div>
           <div class="ct-row"><span class="ct-num">2</span><input type="text" id="coverText2" placeholder="Subtítulo o texto secundario" oninput="refreshCoverOverlay()"></div>
@@ -1525,19 +1535,19 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
         <!-- Descripción -->
         <div class="fgroup">
           <label class="flabel">Descripción / Idea principal</label>
-          <textarea id="vDesc" rows="6" style="min-height:130px" placeholder="Baja todas tus ideas aquí — ¿cuál es el ángulo del video? ¿Qué promete el título? ¿Qué incluirá el hook? ¿A quién va dirigido? Escribe todo lo que se te ocurra, sin filtros..."></textarea>
+          <textarea id="vDesc" rows="6" style="min-height:130px" placeholder="Baja todas tus ideas aquí — ¿cuál es el ángulo del video? ¿Qué promete el título? ¿Qué incluirá el gancho? ¿A quién va dirigido? Escribe todo lo que se te ocurra, sin filtros..."></textarea>
         </div>
 
         <!-- Estado del video -->
         <div class="fgroup">
           <label class="flabel">Estado del video</label>
           <select id="vStatus">
-            <option value="idea">💭 Idea</option>
-            <option value="scripting">✍️ Escribiendo guión</option>
-            <option value="filming">🎬 Grabando</option>
-            <option value="editing">✂️ Editando</option>
-            <option value="scheduled">📅 Programado</option>
-            <option value="published">✅ Publicado</option>
+            <option value="idea">Idea</option>
+            <option value="scripting">Escribiendo guion</option>
+            <option value="filming">Grabando</option>
+            <option value="editing">Editando</option>
+            <option value="scheduled">Programado</option>
+            <option value="published">Publicado</option>
           </select>
         </div>
 
@@ -1547,7 +1557,7 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
           <div class="custom-date-wrap" id="datePickerWrap">
             <button type="button" class="custom-date-btn" id="datePickerBtn" onclick="toggleDatePicker()">
               <span id="datePickerLabel">Seleccionar fecha</span>
-              <span style="font-size:14px;opacity:.6">📅</span>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
             </button>
             <div class="date-picker-popup" id="datePickerPopup" style="display:none">
               <div class="dp-header">
@@ -1571,7 +1581,7 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
 
         <!-- Ocultos: preview (para guardar el cover) + paletas -->
         <div style="display:none">
-          <div class="cover-preview" id="coverPreview"><span id="coverIcon">🎬</span>
+          <div class="cover-preview" id="coverPreview"><span id="coverIcon"></span>
             <div class="cover-text-overlay" id="coverTextOverlay"><span class="cto1" id="cto1"></span><span class="cto2" id="cto2"></span><span class="cto3" id="cto3"></span></div>
           </div>
           <div id="colorPalette"></div>
@@ -1583,8 +1593,8 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
     </div><!-- /modal-body -->
 
     <div class="modal-foot">
-      <button class="btn btn-danger" id="deleteBtn" onclick="deleteVideo()" style="display:none">🗑 Eliminar</button>
-      <a id="gcalBtn" class="btn btn-gcal" href="#" target="_blank" rel="noopener" style="display:none">📅 Google Calendar</a>
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteVideo()" style="display:none">Eliminar</button>
+      <a id="gcalBtn" class="btn btn-gcal" href="#" target="_blank" rel="noopener" style="display:none">Google Calendar</a>
       <div class="foot-right">
         <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveVideo()">Guardar</button>
@@ -1705,12 +1715,12 @@ const MATRIX_KEY= 'content_matrix_v1';
 const CW = 210, CH = 160;
 
 const STATUSES=[
-  {k:'idea',      label:'Idea',       emoji:'💭'},
-  {k:'scripting', label:'Guión',      emoji:'✍️'},
-  {k:'filming',   label:'Grabando',   emoji:'🎬'},
-  {k:'editing',   label:'Editando',   emoji:'✂️'},
-  {k:'scheduled', label:'Programado', emoji:'📅'},
-  {k:'published', label:'Publicado',  emoji:'✅'},
+  {k:'idea',      label:'Idea',       emoji:''},
+  {k:'scripting', label:'Guión',      emoji:''},
+  {k:'filming',   label:'Grabando',   emoji:''},
+  {k:'editing',   label:'Editando',   emoji:''},
+  {k:'scheduled', label:'Programado', emoji:''},
+  {k:'published', label:'Publicado',  emoji:''},
 ];
 
 const PLATS={
@@ -1932,7 +1942,7 @@ function buildKanban(wrap,videos){
     const stV=videos.filter(v=>v.status===st.k);
     const col=document.createElement('div');col.className='column';
     const head=document.createElement('div');head.className='col-header';
-    head.innerHTML=`<span class="col-title">${st.emoji} ${st.label}<span class="col-count" id="cnt-${st.k}">${stV.length}</span></span>`;
+    head.innerHTML=`<span class="col-title">${st.label}<span class="col-count" id="cnt-${st.k}">${stV.length}</span></span>`;
     col.appendChild(head);
     const list=document.createElement('div');list.className='cards-list';list.dataset.status=st.k;
     stV.forEach(v=>list.appendChild(makeCard(v)));
@@ -1945,7 +1955,7 @@ function buildKanban(wrap,videos){
 }
 
 function buildGrid(wrap,videos){
-  if(!videos.length){wrap.innerHTML=`<div class="empty-state"><div class="ei">🎬</div><h3>Sin videos todavía</h3></div>`;return;}
+  if(!videos.length){wrap.innerHTML=`<div class="empty-state"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8z" fill="currentColor"/></svg></div><h3>Sin videos todavía</h3></div>`;return;}
   const grid=document.createElement('div');grid.className='grid';grid.id='gridEl';
   videos.forEach(v=>grid.appendChild(makeCard(v)));
   wrap.appendChild(grid);
@@ -1960,20 +1970,20 @@ function makeCard(video){
     <div class="card-body">
       <div class="card-title">${esc(video.title||'Sin título')}</div>
       <div class="card-footer">
-        <span class="badge b-${video.status}">${st.emoji} ${st.label}</span>
+        <span class="badge b-${video.status}">${st.label}</span>
         ${video.ideas?.length?`<span class="card-ideas">💡 ${video.ideas.length}</span>`:''}
       </div>
-      ${video.date?`<div class="card-date">📅 ${fmtDate(video.date)}</div>`:''}
+      ${video.date?`<div class="card-date">${fmtDate(video.date)}</div>`:''}
     </div>`;
   card.addEventListener('click',()=>openModal(video.id));
   return card;
 }
 
 function coverInner(c){
-  if(!c||c.type==='none') return '<span class="card-cover-icon">🎬</span>';
+  if(!c||c.type==='none') return '<span class="card-cover-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8z" fill="currentColor"/></svg></span>';
   if(c.type==='tmpl'){
     const t2=(typeof COV_TEMPLATES!=='undefined')?COV_TEMPLATES.find(x=>x.id===c.value):null;
-    return t2?('<div class="pm-tmpl-cover">'+t2.preview+'</div>'):'<span class="card-cover-icon">🎬</span>';
+    return t2?('<div class="pm-tmpl-cover">'+t2.preview+'</div>'):'<span class="card-cover-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8z" fill="currentColor"/></svg></span>';
   }
   if(c.type==='color')    return `<div style="width:100%;height:100%;background:${c.value}"></div>`;
   if(c.type==='gradient') return `<div style="width:100%;height:100%;background:${c.value}"></div>`;
@@ -1988,7 +1998,7 @@ function onKanbanDragEnd(evt){
   if(vid&&newSt){
     vid.status=newSt;
     const b=evt.item.querySelector('.badge'), st2=STATUSES.find(s=>s.k===newSt);
-    if(b&&st2){ b.className='badge b-'+newSt; b.textContent=st2.emoji+' '+st2.label; }
+    if(b&&st2){ b.className='badge b-'+newSt; b.textContent=st2.label; }
   }
   const order=Array.from(document.querySelectorAll('.cards-list .video-card')).map(c=>c.dataset.id);
   const reordered=order.map(id=>videos.find(v=>v.id===id)).filter(Boolean);
@@ -2055,10 +2065,10 @@ function makeTreeCard(video,pos){
     <div class="card-body" style="padding:8px 10px 9px">
       <div class="card-title" style="font-size:11px;margin-bottom:5px">${esc(video.title||'Sin título')}</div>
       <div class="card-footer">
-        <span class="badge b-${video.status}" style="font-size:9px">${st.emoji} ${st.label}</span>
+        <span class="badge b-${video.status}" style="font-size:9px">${st.label}</span>
         ${video.ideas?.length?`<span class="card-ideas">💡${video.ideas.length}</span>`:''}
       </div>
-      ${video.date?`<div class="card-date">📅 ${fmtDate(video.date)}</div>`:''}
+      ${video.date?`<div class="card-date">${fmtDate(video.date)}</div>`:''}
     </div>`;
 
   // Card drag
@@ -2743,7 +2753,7 @@ function switchCoverType(type,btn){
 
 function onImageUpload(evt){
   const file=evt.target.files[0];if(!file)return;
-  if(file.size>5*1024*1024){alert('La imagen supera 5 MB');return;}
+  if(file.size>5*1024*1024){window.__showToast&&window.__showToast('La imagen pesa más de 5 MB','err');return;}
   const r=new FileReader();
   r.onload=e=>{curCover={type:'image',value:e.target.result};refreshCoverPreview();};
   r.readAsDataURL(file);
@@ -4188,7 +4198,7 @@ async function covExportPDF(){
     pdf.save(`${name}.pdf`);
     // Restore
     frameEl.style.display=frameWas; covSelId=prevSel; covUpdSel();
-  }catch(err){alert('Error al exportar: '+err.message);}
+  }catch(err){window.__showToast&&window.__showToast('No se pudo exportar: '+err.message,'err');}
   finally{if(btn){btn.textContent='⬇ Exportar PDF';btn.disabled=false;}}
 }
 
@@ -4357,7 +4367,7 @@ function covUpdateTxtColor(color){
 async function covRemoveBg(){
   const proj=covGetProj(covProjId);
   const el=proj?.elements?.find(e=>e.id===covSelId&&e.type==='image');
-  if(!el){alert('Selecciona una imagen primero.');return;}
+  if(!el){window.__showToast&&window.__showToast('Selecciona una imagen primero','err');return;}
   const btn=document.getElementById('covRmBgBtn');
   if(btn){btn.textContent='⏳ Procesando...';btn.disabled=true;}
   try{
@@ -4378,7 +4388,7 @@ async function covRemoveBg(){
     };
     reader.readAsDataURL(result);
   }catch(err){
-    alert('Error al quitar fondo: '+err.message);
+    window.__showToast&&window.__showToast('No se pudo quitar el fondo: '+err.message,'err');
   }finally{
     if(btn){btn.textContent='✂ Quitar fondo';btn.disabled=false;}
   }
@@ -5383,7 +5393,7 @@ const pmDLocal=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'
 function pmCalItem(v){
   const st=STATUSES.find(s=>s.k===v.status)||STATUSES[0];
   return `<div class="pm-cal-item" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" onclick="openModal('${v.id}')">
-    <div class="pm-cal-item-t">${st.emoji} ${esc(v.title||'Sin título')}</div>
+    <div class="pm-cal-item-t">${esc(v.title||'Sin título')}</div>
     <div class="pm-cal-item-d">${v.date?('📅 '+fmtDate(v.date)):'Aún sin fecha · arrástralo a un día'} · ${st.label}</div>
   </div>`;
 }
@@ -5407,7 +5417,7 @@ function pmRenderCal(){
   if(!pmCalMes){ const h=new Date(); pmCalMes=new Date(h.getFullYear(),h.getMonth(),1); }
   const vids=getPVids(plat);
   const y=pmCalMes.getFullYear(), m=pmCalMes.getMonth();
-  document.getElementById('pmCalTitle').textContent=pmCalMes.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  (function(){ const s=pmCalMes.toLocaleDateString('es-MX',{month:'long',year:'numeric'}); document.getElementById('pmCalTitle').textContent=s.charAt(0).toUpperCase()+s.slice(1); })();
   const start=(new Date(y,m,1).getDay()+6)%7, dias=new Date(y,m+1,0).getDate();
   const hoy=pmDLocal(new Date());
   const porDia={};
@@ -5467,9 +5477,10 @@ function pmRefsFuentes(){
   var secs=[
     {t:'Mis fotos', d:'las que tú subiste o trajiste de YouTube', k:'res',
      items:mias.map(function(r,i){return {src:r.src,cap:r.name||'',i:i};})},
-    {t:'Banco del SPY', d:'portadas que guardaste espiando canales', k:'bank',
-     items:bank.map(function(b,i){return {src:b.thumb,cap:b.title||'',i:i};})}
   ];
+  /* El SPY ya no existe (11 oct): sus portadas guardadas solo salen si las hay, y sin su nombre. */
+  if(bank.length) secs.push({t:'Portadas guardadas', d:'las que guardaste antes', k:'bank',
+     items:bank.map(function(b,i){return {src:b.thumb,cap:b.title||'',i:i};})});
   Object.keys(porOrg).forEach(function(o){ secs.push({t:o, d:'viene de tu formulario', k:'form', items:porOrg[o]}); });
   return secs;
 }
@@ -5479,10 +5490,10 @@ function pmRefsPaint(){
   body.innerHTML=secs.map(function(s){
     n+=s.items.length;
     var grid=s.items.length? '<div class="pmr-grid">'+s.items.map(function(it,k){
-        var tools='<button title="Ver grande" onclick="event.stopPropagation();pmRefsBig('+"'"+s.k+"'"+','+k+')">⤢</button>';
-        if(s.k!=='res')tools+='<button title="Guardar en Mis fotos" onclick="event.stopPropagation();pmRefsToRes('+"'"+s.k+"'"+','+k+')">＋</button>';
-        if(s.k==='res')tools+='<button title="Quitar" onclick="event.stopPropagation();pmRefsDel('+it.i+')">✕</button>';
-        if(s.k==='bank')tools+='<button title="Quitar del banco" onclick="event.stopPropagation();pmRefsDelBank('+it.i+')">✕</button>';
+        var tools='<button title="Ver grande" onclick="event.stopPropagation();pmRefsBig('+"'"+s.k+"'"+','+k+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>';
+        if(s.k!=='res')tools+='<button title="Guardar en Mis fotos" onclick="event.stopPropagation();pmRefsToRes('+"'"+s.k+"'"+','+k+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>';
+        if(s.k==='res')tools+='<button title="Quitar" onclick="event.stopPropagation();pmRefsDel('+it.i+')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
+        if(s.k==='bank')tools+='<button title="Quitar del banco" onclick="event.stopPropagation();pmRefsDelBank('+it.i+')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
         return '<div class="pmr-i" onclick="pmRefsBig('+"'"+s.k+"'"+','+k+')"><img src="'+it.src+'" loading="lazy">'
              + '<div class="tools">'+tools+'</div>'
              + (it.cap?'<div class="cap">'+String(it.cap).replace(/</g,'&lt;')+'</div>':'')+'</div>';
@@ -5537,7 +5548,7 @@ async function pmRefsYt(){
 }
 function pmToastRef(m){
   var t=document.getElementById('cloudToast');
-  if(!t){ alert(m); return; }
+  if(!t){ return; }
   t.textContent=m; t.style.display='block'; t.style.opacity='1';
   clearTimeout(window.__pmrT); window.__pmrT=setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){t.style.display='none';},300); },2200);
 }
@@ -5950,5 +5961,6 @@ window.__signOut=async()=>{
 
 <div id="covEraseCursor"></div>
 <script src="lab.js"></script>
+<script src="club-select.js"></script>
 </body>
 </html>

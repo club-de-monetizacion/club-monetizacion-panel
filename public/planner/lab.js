@@ -740,9 +740,21 @@
     document.getElementById("labMas").onclick = () => { zoom = Math.min(4, zoom * 1.15); aplica(); };
     document.getElementById("labMenos").onclick = () => { zoom = Math.max(0.2, zoom / 1.15); aplica(); };
     document.getElementById("labReset").onclick = () => { zoom = 1; pan = { x: 0, y: 0 }; aplica(); };
-    document.getElementById("labBorra").onclick = () => {
+    /* Vaciar pide un segundo toque en el mismo botón (nada de ventanas del sistema,
+       11 nov 2026). Y se puede deshacer con Cmd+Z: se apunta antes de borrar. */
+    let borraTm = null;
+    document.getElementById("labBorra").onclick = (e) => {
       if (!items.length) return;
-      if (!confirm("¿Vaciar el laboratorio? Esto no se puede deshacer desde aquí.")) return;
+      const btn = e.currentTarget;
+      if (!btn.classList.contains("confirma")) {
+        btn.classList.add("confirma");
+        btn.title = "Toca otra vez para vaciar el laboratorio";
+        if (typeof window.__showToast === "function") window.__showToast("Toca otra vez la papelera para vaciar el laboratorio");
+        clearTimeout(borraTm);
+        borraTm = setTimeout(() => { btn.classList.remove("confirma"); btn.title = ""; }, 3000);
+        return;
+      }
+      clearTimeout(borraTm); btn.classList.remove("confirma"); btn.title = "";
       apunta(); items = []; sel.clear(); guarda(); pinta();
     };
     carga();
