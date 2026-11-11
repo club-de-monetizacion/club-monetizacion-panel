@@ -242,11 +242,33 @@ export function Sidebar({
   );
 }
 
-/** A la ventana anterior. Si no hay (pestaña abierta directo), al panel del Club. */
+/**
+ * Regresar: a la página del Club desde la que entraste a Tareas (el panel, el Arsenal…).
+ *
+ * Con `history.back()` se ciclaba (Diego, 11 nov 2026: «el botón de regresar es un bucle»):
+ * dentro de Tareas cada página y el marco del Planner dejan su paso en el historial, así
+ * que «atrás» te movía de una pantalla de Tareas a otra. Ahora se apunta, al llegar, de qué
+ * página del Club venías, y Regresar te lleva ahí. Si no se sabe, al panel del Club.
+ */
+const ORIGEN = "tareas_origen";
+const CLUB = "https://clubdemonetizacion.com";
 function Regresar() {
+  useEffect(() => {
+    try {
+      if (!document.referrer) return;
+      const r = new URL(document.referrer);
+      if (r.host === window.location.host) return;                       // otra página de Tareas
+      if (!/(^|\.)clubdemonetizacion\.com$/.test(r.hostname)) return;   // de fuera del Club
+      r.searchParams.delete("volver");   // el ?volver= del Club te devolvería aquí: sería otro ciclo
+      sessionStorage.setItem(ORIGEN, r.href);
+    } catch {
+      // Sin sessionStorage: Regresar lleva al panel del Club.
+    }
+  }, []);
   const vuelve = () => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = "https://clubdemonetizacion.com";
+    let destino = CLUB;
+    try { destino = sessionStorage.getItem(ORIGEN) || CLUB; } catch {}
+    window.location.href = destino;
   };
   return (
     <button
