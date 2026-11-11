@@ -339,3 +339,15 @@ En `public/planner/planner.html`: el panel ajeno vive solo en la memoria de la p
 que no se mezcle con el tuyo en el navegador), y el guardado se intercepta en
 `Storage.prototype` porque en **Safari** el truco de antes (`localStorage.setItem = …`) no
 funcionaba y los cambios nunca se subían.
+
+## Tareas v1.5: Planner de Diego para todos, Regresar y sin Mi perfil  ✅ hecho (11 nov 2026)
+
+- **El Planner de Diego lo ven y lo editan todos los administradores** sin que nadie marque
+  nada (`SIEMPRE_COMPARTIDO` en `api/planner/route.ts`). César: al abrir el Planner entras
+  directo al de Diego; «Volver a mi panel» te deja en el tuyo.
+- **Una sola vista de videos: las tarjetas.** Ya no arranca en columnas.
+- **«Volver al panel» ya no está en la cabecera.** Es «Regresar», arriba del menú lateral, y
+  lleva a la ventana anterior (si no hay, al panel del Club).
+- **«Mi perfil» ya no está en Tareas**: el perfil se edita en el panel del Club. `/perfil`
+  redirige allá y la foto de arriba también. `profile-form.tsx` y `actions/profile.ts` quedan sin
+  uso; no se borraron.
