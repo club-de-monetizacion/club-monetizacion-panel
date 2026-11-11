@@ -7,11 +7,11 @@ import {
   LifeBuoy,
   FolderKanban,
   Users,
-  Settings,
   CalendarDays,
   Lightbulb,
   ClipboardCheck,
   ClipboardList,
+  ChevronLeft,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -119,6 +119,12 @@ export function Sidebar({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Regresar: a la ventana anterior, sea de Tareas o del Club (Diego, 11 nov
+            2026: «necesito que regrese a una ventana anterior, no hasta el panel»). Vive
+            aquí y no en la cabecera: allá quedaba encima de cada herramienta. */}
+        <Regresar />
+        <div className="mx-[13px] my-1.5 h-px bg-[var(--linea)]" />
 
         <NavLink href="/" icon={<Home className="h-4 w-4" />} active={isActive("/")}>
           Inicio
@@ -229,22 +235,28 @@ export function Sidebar({
           </NavLink>
         )}
 
-        <div className="mt-auto space-y-1 pt-4">
-          <NavLink
-            href="/perfil"
-            icon={<Settings className="h-4 w-4" />}
-            active={isActive("/perfil")}
-          >
-            Mi perfil
-          </NavLink>
-
-          {/* «Volver al Club» ya no va aquí: el botón de volver es uno solo en
-              todo el dominio, «Volver al panel», arriba a la izquierda de la
-              cabecera (ver topbar.tsx). Dos botones distintos para lo mismo era
-              justo lo que había que quitar. */}
-        </div>
+        {/* «Mi perfil» ya no está en Tareas: el perfil se edita en el panel del Club
+            (Diego, 11 nov 2026). La foto de arriba lleva allá. */}
       </aside>
     </>
+  );
+}
+
+/** A la ventana anterior. Si no hay (pestaña abierta directo), al panel del Club. */
+function Regresar() {
+  const vuelve = () => {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = "https://clubdemonetizacion.com";
+  };
+  return (
+    <button
+      type="button"
+      onClick={vuelve}
+      className="focus-ring flex w-full items-center gap-[11px] rounded-xl border border-transparent px-[13px] py-[11px] text-left text-sm font-medium text-[var(--ink-2)] transition-[color,background,border-color] duration-150 hover:bg-white/[0.045] hover:text-[var(--ink-0)]"
+    >
+      <ChevronLeft className="h-4 w-4" />
+      Regresar
+    </button>
   );
 }
 

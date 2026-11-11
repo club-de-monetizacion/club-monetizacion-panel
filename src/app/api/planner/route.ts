@@ -50,6 +50,19 @@ const DUENO_LEGADO = "diegocabrerarosas@gmail.com";
 const VERSION_HERRAMIENTA = 2;
 
 type Permiso = "ver" | "editar";
+/** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
+type Guardado = Permiso | "no";
+
+/**
+ * Lo que se comparte sin que nadie tenga que marcarlo. Diego, 11 nov 2026: «quiero
+ * compartir mi calendario con los administradores. Punto. Que puedan ver lo que estoy
+ * acomodando yo, y que puedan editarlo». Su panel lo ven y lo editan TODOS los
+ * administradores («*»), como cuando era la copia del equipo. En Compartir puede bajar a
+ * alguien a «Ver» o quitarlo («No» se guarda como "no").
+ */
+const SIEMPRE_COMPARTIDO: Record<string, Record<string, Guardado>> = {
+  [DUENO_LEGADO]: { "*": "editar" },
+};
 
 const correo = (s: unknown) => String(s ?? "").trim().toLowerCase();
 const fila = (dueno: string, clave: string) =>
@@ -64,12 +77,12 @@ const claveDe = (dueno: string, key: string) =>
 const fotoLigera = (s: string | null | undefined) =>
   s && s.length < 400_000 ? s : "";
 
-function leeMapa(texto: string | null | undefined): Record<string, Permiso> {
-  const limpio: Record<string, Permiso> = {};
+function leeMapa(texto: string | null | undefined): Record<string, Guardado> {
+  const limpio: Record<string, Guardado> = {};
   try {
     const m = JSON.parse(texto || "{}");
     for (const [k, v] of Object.entries(m || {})) {
-      if (v === "ver" || v === "editar") limpio[correo(k)] = v;
+      if (v === "ver" || v === "editar" || v === "no") limpio[k === "*" ? "*" : correo(k)] = v;
     }
   } catch {
     // Una fila ilegible cuenta como «no compartido con nadie».
@@ -77,15 +90,22 @@ function leeMapa(texto: string | null | undefined): Record<string, Permiso> {
   return limpio;
 }
 
+/** Lo guardado por el dueño encima de lo que se comparte siempre. */
 async function compartidoPor(dueno: string) {
   const f = await prisma.plannerDoc.findUnique({ where: { key: filaCompartir(dueno) } });
-  return leeMapa(f?.value);
+  return { ...(SIEMPRE_COMPARTIDO[dueno] || {}), ...leeMapa(f?.value) };
+}
+
+/** El permiso que de verdad tiene una persona con ese mapa: el suyo, o el de «todos». */
+function efectivo(m: Record<string, Guardado>, quien: string): Permiso | null {
+  const v = m[quien] ?? m["*"];
+  return v === "ver" || v === "editar" ? v : null;
 }
 
 /** Lo que puede hacer `yo` con el panel de `dueno`: editar, ver o nada. */
 async function permisoSobre(yo: string, dueno: string): Promise<Permiso | null> {
   if (yo === dueno) return "editar";
-  return (await compartidoPor(dueno))[yo] ?? null;
+  return efectivo(await compartidoPor(dueno), yo);
 }
 
 const respuesta = (cuerpo: object, status = 200) => NextResponse.json(cuerpo, { status });
@@ -193,31 +213,49 @@ export async function POST(req: Request) {
       select: { email: true, name: true, image: true },
       orderBy: { name: "asc" },
     });
+    const mapa = await compartidoPor(yo);
+    const lista = gente.map((g) => ({ email: correo(g.email), name: g.name || "", image: fotoLigera(g.image) }));
     return respuesta({
       ok: true,
-      gente: gente.map((g) => ({ email: correo(g.email), name: g.name || "", image: fotoLigera(g.image) })),
-      compartido: await compartidoPor(yo),
+      gente: lista,
+      /* Lo que cada quien puede hacer hoy con mi panel (ya con «todos» aplicado). */
+      compartido: Object.fromEntries(lista.map((g) => [g.email, efectivo(mapa, g.email) || ""])),
     });
   }
 
   if (accion === "compartirGuardar") {
-    const pedido = leeMapa(JSON.stringify(cuerpo.compartido || {}));
-    delete pedido[yo];
+    /* Llega solo lo que se tocó: { correo: "ver" | "editar" | "" }. «""» = No. */
+    const pedido: Record<string, Guardado> = {};
+    for (const [k, v] of Object.entries(cuerpo.compartido || {})) {
+      const c = correo(k);
+      if (!c || c === yo || c === "*") continue;
+      pedido[c] = v === "ver" || v === "editar" ? v : "no";
+    }
     /* Solo personas que existen en la plataforma (o sea, administradores). */
     const existen = await prisma.user.findMany({
       where: { email: { in: Object.keys(pedido), mode: "insensitive" } },
       select: { email: true },
     });
     const validos = new Set(existen.map((e) => correo(e.email)));
-    const limpio: Record<string, Permiso> = {};
-    for (const [k, v] of Object.entries(pedido)) if (validos.has(k)) limpio[k] = v;
     const k = filaCompartir(yo);
+    const antes = await prisma.plannerDoc.findUnique({ where: { key: k } });
+    const guardado = leeMapa(antes?.value);
+    for (const [c, v] of Object.entries(pedido)) if (validos.has(c)) guardado[c] = v;
     await prisma.plannerDoc.upsert({
       where: { key: k },
-      update: { value: JSON.stringify(limpio), updatedBy: yo },
-      create: { key: k, value: JSON.stringify(limpio), updatedBy: yo },
+      update: { value: JSON.stringify(guardado), updatedBy: yo },
+      create: { key: k, value: JSON.stringify(guardado), updatedBy: yo },
     });
-    return respuesta({ ok: true, compartido: limpio });
+    /* Lo que de verdad quedó para cada quien (con «todos» aplicado). */
+    const mapa = await compartidoPor(yo);
+    const gente = await prisma.user.findMany({
+      where: { NOT: { email: { equals: yo, mode: "insensitive" } } },
+      select: { email: true },
+    });
+    return respuesta({
+      ok: true,
+      compartido: Object.fromEntries(gente.map((g) => [correo(g.email), efectivo(mapa, correo(g.email)) || ""])),
+    });
   }
 
   /* ── Compartidos conmigo: los paneles que otros me abrieron ── */
@@ -226,10 +264,15 @@ export async function POST(req: Request) {
       where: { key: { startsWith: "compartir/" } },
       select: { key: true, value: true },
     });
-    const mios: { dueno: string; permiso: Permiso }[] = [];
+    const mapas = new Map<string, Record<string, Guardado>>();
+    for (const [dueno, m] of Object.entries(SIEMPRE_COMPARTIDO)) mapas.set(dueno, { ...m });
     for (const f of filas) {
       const dueno = f.key.slice("compartir/".length);
-      const p = leeMapa(f.value)[yo];
+      mapas.set(dueno, { ...(mapas.get(dueno) || {}), ...leeMapa(f.value) });
+    }
+    const mios: { dueno: string; permiso: Permiso }[] = [];
+    for (const [dueno, m] of mapas) {
+      const p = efectivo(m, yo);
       if (p && dueno !== yo) mios.push({ dueno, permiso: p });
     }
     if (!mios.length) return respuesta({ ok: true, paneles: [] });

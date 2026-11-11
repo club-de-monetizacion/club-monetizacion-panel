@@ -1039,6 +1039,13 @@ opacity:0;transition:opacity .3s;z-index:1;}
   #wm{display:none;}
 }
 </style>
+<style id="pmCarga">
+/* Mientras llegan los datos no se enseña la herramienta vacía (ni el panel propio
+   vacío un instante antes de abrir el compartido): solo el fondo. 11 nov 2026. */
+html:not(.pm-listo) .sidebar, html:not(.pm-listo) .main{visibility:hidden;}
+html.pm-listo .sidebar, html.pm-listo .main{animation:pmAparece .22s ease-out;}
+@keyframes pmAparece{from{opacity:0}to{opacity:1}}
+</style>
 <style id="pmCompartir">
 /* ══ Compartir mi panel · Compartidos (10 nov 2026) ══ */
 .nav-btn.active[data-p="comp"]{background:rgba(201,160,64,.12);color:var(--accent);}
@@ -1787,7 +1794,10 @@ const setPTree=(p,pt)=>{const t=loadTree();t[p]=pt;saveTree(t);};
 /* ════════════════════════════════════
    GLOBAL STATE
 ════════════════════════════════════ */
-let plat='youtube', view='board', editId=null;
+/* Una sola vista para el tablero: las tarjetas (Diego, 11 nov 2026: «ya define la
+   estética de esta herramienta»). Antes arrancaba en columnas y, después de pasar por
+   el LAB, salía en tarjetas: cambiaba sola. */
+let plat='youtube', view='grid', editId=null;
 let spyActive=false, spyCurId=null, spyVidMode='top';
 let covActive=false, covProjId=null;
 let covDrawing=false, covCurStroke=null, covCurSvgPath=null;
@@ -1860,7 +1870,7 @@ function switchPlatform(p,btn){
   if(covActive)closeCoverAll();
   plat=p;
   // El botón del planificador siempre regresa al tablero (si venías del Árbol)
-  if(view==='tree') view='board';
+  if(view!=='grid') view='grid';
   setActiveNav(btn);
   // Mostrar tablero, ocultar árbol
   document.getElementById('boardWrap').style.display='';
@@ -5072,6 +5082,7 @@ setTimeout(function(){
 
 function __bootApp(user){
   const gate=document.getElementById('loginGate');if(gate)gate.classList.add('hidden');
+  document.documentElement.classList.add('pm-listo');
   /* La foto del sidebar se fue con el bloque repetido: la que vale es la de
      la barra de arriba del Panel. */
   if(!__booted){buildPalette();__booted=true;}
@@ -5080,7 +5091,7 @@ function __bootApp(user){
      lienzo en el mismo sitio. Si no hay nada guardado, al tablero de siempre. */
   const s=leeSitio();
   plat = (s&&s.plat) || 'youtube';
-  view = (s&&s.view==='tree') ? 'tree' : 'board';
+  view = (s&&s.view==='tree') ? 'tree' : 'grid';
   if(s&&s.pan){ treePan={x:s.pan.x,y:s.pan.y}; }
   if(s&&s.zoom){ treeZoom=s.zoom; }
   render();
@@ -5576,7 +5587,8 @@ function pmHace(ms){
 }
 async function pmIrAPanel(de){
   try{ await window.__flushPending(); }catch(e){}
-  location.href=location.pathname+(de?('?de='+encodeURIComponent(de)):'');
+  /* «?mio=1»: lo pediste tú, así que tu panel se queda aunque esté vacío. */
+  location.href=location.pathname+(de?('?de='+encodeURIComponent(de)):'?mio=1');
 }
 function pmVuelveAMiPanel(){ pmIrAPanel(''); }
 
@@ -5644,7 +5656,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const ov=document
 function pmEstadoCompartir(txt,err){
   const s=document.getElementById('psEstado'); if(!s) return;
   if(txt){ s.textContent=txt; s.className=err?'err':''; return; }
-  const n=Object.keys(pmCompartido).length;
+  const n=Object.values(pmCompartido).filter(Boolean).length;
   s.className='';
   s.textContent=n===1?'Lo puede abrir 1 persona además de\u00a0ti.':n?('Lo pueden abrir '+n+' personas además de\u00a0ti.'):'Ahora solo tú ves tu\u00a0panel.';
 }
@@ -5665,11 +5677,11 @@ function pmPintaGente(){
 function pmMarca(b){
   const seg=b.parentNode, de=seg.dataset.de, v=b.dataset.v;
   if((pmCompartido[de]||'')===v) return;
-  if(v) pmCompartido[de]=v; else delete pmCompartido[de];
+  pmCompartido[de]=v;
   seg.querySelectorAll('button').forEach(x=>{ x.classList.toggle('on',x===b); x.setAttribute('aria-checked',String(x===b)); });
   const quien=pmPila(pmGente.find(g=>g.email===de)||{email:de});
   pmEstadoCompartir('Guardando…');
-  const pedido=Object.assign({},pmCompartido);
+  const pedido={}; pedido[de]=v;
   pmGuardando=pmGuardando.then(()=>pmApi('compartirGuardar',{compartido:pedido})).then(r=>{
     pmCompartido=r.compartido||pedido;
     pmEstadoCompartir();
@@ -5720,7 +5732,7 @@ let avisoSoloVer = 0;
 /* Si me quitan el acceso mientras lo tengo abierto, de vuelta a mi panel. */
 function sinAccesoYa(){
   window.__showToast && window.__showToast('Este panel ya no está compartido contigo','err');
-  setTimeout(()=>{ location.replace(location.pathname); }, 1800);
+  setTimeout(()=>{ location.replace(location.pathname+'?mio=1'); }, 1800);
 }
 
 /* Lo que se guarda es de todo el equipo, así que se anota quién lo tocó y cuándo
@@ -5850,10 +5862,9 @@ async function boot(intento){
   const st=me.me||{};
   window.__YO={ email:String(st.email||'').toLowerCase(), name:st.name||'', photo:st.photo||'' };
   // ¿Me mandaron a mi propio panel por su correo? Es el mío: sin «?de=».
-  if(PANEL_DE && PANEL_DE===window.__YO.email){ location.replace(location.pathname); return; }
+  if(PANEL_DE && PANEL_DE===window.__YO.email){ location.replace(location.pathname+'?mio=1'); return; }
   mostrarIntro(st);
 
-  const t0=Date.now();
   let pulled=null, fallo=null;
   try{ pulled=await call('plannerGet',{}); }catch(e){ fallo=e; if(!e.sinAcceso) console.error('nube',e); }
 
@@ -5863,7 +5874,7 @@ async function boot(intento){
   if(!pulled){
     if(fallo && fallo.sinAcceso){
       setStatus('Este panel ya no está compartido contigo. Te llevo al tuyo…',true);
-      setTimeout(()=>location.replace(location.pathname), 2200);
+      setTimeout(()=>location.replace(location.pathname+'?mio=1'), 2200);
     } else if(fallo && fallo.viejo){
       setStatus('El Planner se actualizó: recarga la página.',true);
     } else {
@@ -5881,12 +5892,27 @@ async function boot(intento){
     else window.__rawRemove(k);
   });
   permiso = pulled.permiso || 'editar';
+
+  /* Tu panel sin un solo video y alguien te compartió el suyo: se abre el suyo
+     (Diego, 11 nov: César tiene que ver su Planner al entrar, sin buscarlo). Si
+     vienes de «Volver a mi panel» o «Mi panel» (?mio=1), te quedas en el tuyo. */
+  if(!PANEL_DE && !/[?&]mio=1/.test(location.search)){
+    let videos=0;
+    try{ const o=JSON.parse((pulled.values||{}).content_os_v2||'{}')||{};
+         Object.keys(o).forEach(p=>{ if(Array.isArray(o[p])) videos+=o[p].length; }); }catch(e){}
+    if(!videos){
+      try{
+        const r=await call('compartidosConmigo',{});
+        const p=(r.paneles||[]).slice().sort((a,b)=>(b.cuando||0)-(a.cuando||0))[0];
+        if(p){ location.replace(location.pathname+'?de='+encodeURIComponent(p.email)); return; }
+      }catch(e){}
+    }
+  }
   if(PANEL_DE){
     window.__DUENO = pulled.dueno || { email: PANEL_DE };
     window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO, permiso);
   }
 
-  const falta=900-(Date.now()-t0); if(falta>0) await new Promise(r=>setTimeout(r,falta));
   window.__setCloud({pushKey});
   window.__bootApp({displayName:st.name||'',email:st.email||'',photoURL:st.photo||''});
   arrancaTiempoReal((pulled&&pulled.cuando)||{});

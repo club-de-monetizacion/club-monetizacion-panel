@@ -19,7 +19,6 @@ function titleFromPathname(pathname: string) {
   if (pathname.startsWith("/proyectos")) return "Proyectos";
   if (pathname.startsWith("/equipo")) return "Equipo";
   if (pathname.startsWith("/tareas-diarias-soporte")) return "Tareas diarias Soporte";
-  if (pathname.startsWith("/perfil")) return "Mi perfil";
   if (pathname.startsWith("/youtube-planner")) return "YouTube Planner";
   if (pathname.startsWith("/tableros/")) {
     const slug = pathname.split("/")[2]?.toUpperCase() as Platform | undefined;

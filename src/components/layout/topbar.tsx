@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Menu, LogOut, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { Enlace as Link } from "@/components/ui/enlace";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +16,9 @@ import { ROLE_INFO } from "@/lib/constants";
 import { initials } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 
-/* El panel del Club: a donde lleva «Volver al panel» en todo el dominio. */
-const PANEL_DEL_CLUB = "https://clubdemonetizacion.com";
+/* El perfil se edita en el panel del Club, no aquí (Diego, 11 nov 2026: «Tareas es una
+   herramienta incorporada dentro del Club… las personas editan su perfil desde el panel»). */
+const PERFIL_DEL_CLUB = "https://clubdemonetizacion.com/perfil";
 
 export function Topbar({
   title,
@@ -48,13 +48,9 @@ export function Topbar({
   return (
     <header className="glass-panel sticky top-0 z-20 flex h-16 items-center justify-between gap-3 px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-2 md:gap-3">
-        {/* El mismo botón de todo el dominio, lo primero de la cabecera. */}
-        <a href={PANEL_DEL_CLUB} className="club-volver" title="Volver al panel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          <span>Volver al panel</span>
-        </a>
+        {/* «Volver al panel» ya no va aquí (Diego, 11 nov 2026: «pónmelo en otro lado,
+            no dentro de la misma interfaz»). Ahora es «Regresar», arriba del menú
+            lateral, y lleva a la ventana anterior (ver sidebar.tsx). */}
         <button
           onClick={onMenuClick}
           className="focus-ring shrink-0 rounded-md p-1.5 text-[var(--ink-2)] hover:bg-[var(--panel)] md:hidden"
@@ -109,10 +105,10 @@ export function Topbar({
             {ROLE_INFO[user.role].label}
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/perfil" className="flex items-center gap-2">
+            <a href={PERFIL_DEL_CLUB} className="flex items-center gap-2">
               <Settings className="h-3.5 w-3.5" />
-              Configuración de perfil
-            </Link>
+              Mi perfil
+            </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={cerrarSesion} className="text-red-400">
