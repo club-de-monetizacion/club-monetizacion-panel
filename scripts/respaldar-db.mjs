@@ -37,6 +37,7 @@ const MODELOS = [
   "attachment", "comment", "cannedResponse", "faqItem", "quickLink",
   "idea", "ideaConnection", "ideaNode", "ideaNodeConnection",
   "dailyTaskItem", "dailyTaskLog", "personalTask",
+  "plannerDoc",   // el YouTube Planner: secciones, permisos e imágenes (img/<huella>)
 ];
 
 const datos = {};

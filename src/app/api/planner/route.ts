@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,6 +39,48 @@ const ES_CLAVE = new Set(CLAVES);
 /** Un JSON de sección puede ser grande (lleva imágenes en base64). */
 const MAX = 4_500_000;
 
+/**
+ * LAS IMÁGENES VAN APARTE (11 nov 2026). Antes cada portada viajaba en base64 dentro
+ * de su sección, y los videos ya pesaban 4.2 MB: Vercel no recibe más de 4.5 MB por
+ * petición, así que las portadas que César subió esa tarde nunca se guardaron (413) y
+ * al recargar ya no estaban. Ahora cada imagen es su propia fila `img/<huella>` y la
+ * sección solo lleva su dirección (`/api/planner/img/<huella>`). La huella sale del
+ * contenido: la misma imagen siempre cae en la misma fila y nunca se sube dos veces.
+ * Las filas de imagen no se borran nunca.
+ */
+const filaImg = (id: string) => `img/${id}`;
+const urlImg = (id: string) => `/api/planner/img/${id}`;
+/** Solo estos tipos se sirven sueltos (un SVG puede llevar código: ese se queda dentro). */
+const IMG_DENTRO = /data:image\/(?:png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=]+/g;
+/** Las miniaturas chiquitas (avatares, iconos) se quedan donde están. */
+const MIN_APARTE = 8_000;
+/** Una imagen sola tiene que caber en una petición. */
+const MAX_IMG = 4_400_000;
+const huella = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 40);
+
+async function guardaImagen(data: string, yo: string) {
+  const id = huella(data);
+  const k = filaImg(id);
+  const ya = await prisma.plannerDoc.findUnique({ where: { key: k }, select: { key: true } });
+  if (!ya) {
+    try {
+      await prisma.plannerDoc.create({ data: { key: k, value: data, updatedBy: yo } });
+    } catch {
+      // Otra persona subió la misma imagen en el mismo instante: ya está guardada.
+    }
+  }
+  return id;
+}
+
+/** Saca de una sección las imágenes que vengan dentro y deja su dirección. */
+async function sacaImagenes(value: string, yo: string) {
+  const grandes = [...new Set((value.match(IMG_DENTRO) || []).filter((s) => s.length >= MIN_APARTE))];
+  if (!grandes.length) return value;
+  const ids = new Map<string, string>();
+  for (const d of grandes) ids.set(d, await guardaImagen(d, yo));
+  return value.replace(IMG_DENTRO, (m) => (ids.has(m) ? urlImg(ids.get(m)!) : m));
+}
+
 /** Dueño de la copia que antes era de todo el equipo: sus filas no llevan prefijo. */
 const DUENO_LEGADO = "diegocabrerarosas@gmail.com";
 
@@ -53,7 +96,7 @@ const VERSION_HERRAMIENTA = 3;
  * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
  * porque tenía abierta la de antes).
  */
-const HERRAMIENTA_PUBLICADA = 4;
+const HERRAMIENTA_PUBLICADA = 5; // 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
@@ -125,6 +168,7 @@ export async function POST(req: Request) {
 
   let cuerpo: {
     action?: string; key?: string; value?: string; de?: string; v?: number;
+    base?: number; data?: string;
     compartido?: Record<string, string>;
   } = {};
   try {
@@ -135,7 +179,7 @@ export async function POST(req: Request) {
   const accion = cuerpo.action;
 
   /* ── Las tres acciones de datos: piden la herramienta nueva y permiso ── */
-  if (accion === "plannerGet" || accion === "plannerSet" || accion === "plannerCuando") {
+  if (accion === "plannerGet" || accion === "plannerSet" || accion === "plannerCuando" || accion === "plannerImg") {
     if (Number(cuerpo.v) < VERSION_HERRAMIENTA || !cuerpo.v) {
       return respuesta(
         { ok: false, viejo: true, error: "El Planner se actualizó: recarga la página." },
@@ -181,22 +225,68 @@ export async function POST(req: Request) {
         return respuesta({ ok: false, soloVer: true, error: "Este panel solo lo puedes ver." }, 403);
       }
       const key = String(cuerpo.key || "");
-      const value = String(cuerpo.value ?? "");
       if (!ES_CLAVE.has(key)) {
         return respuesta({ ok: false, error: "Sección desconocida" }, 400);
       }
+      /* Lo que todavía traiga imágenes dentro (una pestaña vieja) se guarda igual: las
+         imágenes salen a su fila y la sección queda ligera. */
+      const value = await sacaImagenes(String(cuerpo.value ?? ""), yo);
       if (value.length > MAX) {
         return respuesta({ ok: false, error: "Esa sección pesa demasiado para guardarla" }, 413);
       }
       const k = fila(dueno, key);
-      const guardada = await prisma.plannerDoc.upsert({
-        where: { key: k },
-        update: { value, updatedBy: yo },
-        create: { key: k, value, updatedBy: yo },
-      });
+      /* Sin pisar a nadie. La herramienta dice sobre qué versión hizo su cambio (`base`, la
+         hora de la última copia que conoce). Si alguien guardó encima mientras tanto, aquí
+         no se escribe: se le devuelve lo de ahora para que junte los dos cambios y vuelva a
+         guardar. Antes ganaba el último, y una pestaña con una copia vieja borraba lo que
+         otra persona acababa de subir. Una pestaña vieja no manda `base`: guarda como antes. */
+      const conBase = cuerpo.base !== undefined && cuerpo.base !== null && Number.isFinite(Number(cuerpo.base));
+      let guardada;
+      if (conBase) {
+        const base = Number(cuerpo.base);
+        try {
+          guardada = base > 0
+            ? await prisma.plannerDoc.update({
+                where: { key: k, updatedAt: new Date(base) },
+                data: { value, updatedBy: yo },
+              })
+            : await prisma.plannerDoc.create({ data: { key: k, value, updatedBy: yo } });
+        } catch {
+          const ahora = await prisma.plannerDoc.findUnique({ where: { key: k } });
+          return respuesta({
+            ok: false, conflicto: true,
+            value: ahora?.value ?? null,
+            cuando: ahora ? ahora.updatedAt.getTime() : 0,
+            quien: ahora?.updatedBy || "",
+          }, 409);
+        }
+      } else {
+        guardada = await prisma.plannerDoc.upsert({
+          where: { key: k },
+          update: { value, updatedBy: yo },
+          create: { key: k, value, updatedBy: yo },
+        });
+      }
       /* La hora que quedó guardada, no la de ahora mismo: es la que va a devolver el
          sondeo, y así quien acaba de guardar reconoce su propio cambio sin margen. */
-      return respuesta({ ok: true, ahora: guardada.updatedAt.getTime() });
+      return respuesta({ ok: true, ahora: guardada.updatedAt.getTime(), value });
+    }
+
+    /* Una imagen sola, antes de guardar la sección que la usa: así ninguna petición pasa
+       del límite por muchas portadas que tenga el panel. */
+    if (accion === "plannerImg") {
+      if (permiso !== "editar") {
+        return respuesta({ ok: false, soloVer: true, error: "Este panel solo lo puedes ver." }, 403);
+      }
+      const data = String(cuerpo.data || "");
+      if (!/^data:image\/(?:png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=]+$/.test(data)) {
+        return respuesta({ ok: false, error: "Eso no es una imagen" }, 400);
+      }
+      if (data.length > MAX_IMG) {
+        return respuesta({ ok: false, error: "La imagen pesa demasiado" }, 413);
+      }
+      const id = await guardaImagen(data, yo);
+      return respuesta({ ok: true, id, url: urlImg(id) });
     }
 
     /* plannerCuando — para el tiempo real: cuándo se tocó cada sección, sin el contenido. */

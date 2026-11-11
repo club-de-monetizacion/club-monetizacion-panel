@@ -18,14 +18,22 @@
   var de='';
   try{ de=(new URLSearchParams(location.search).get('de')||'').trim().toLowerCase(); }catch(e){}
   window.__PANEL_DE=de;
-  if(!de) return;
-  document.documentElement.classList.add('panel-ajeno');
-  var AISLADAS=['content_os_v2','content_tree_v3','content_matrix_v1','yt_spy_v1','cover_os_v1','cov_resources_v1','thumb_bank_v1','planner_sitio_v1'];
+  if(de) document.documentElement.classList.add('panel-ajeno');
+  /* 11 nov 2026: también tu propio panel vive solo en la memoria de la pestaña. Lo que
+     manda es la plataforma (se trae entera al abrir), y el navegador no guarda más de
+     ~5 MB por página: con las portadas en base64 el panel de Diego ya no abría
+     («exceeded the quota»). */
+  var SECCIONES=['content_os_v2','content_tree_v3','content_matrix_v1','yt_spy_v1','cover_os_v1','cov_resources_v1','thumb_bank_v1'];
+  /* «Dónde me quedé» sí se recuerda en tu panel; en el de otra persona, tampoco se guarda. */
+  var AISLADAS=de ? SECCIONES.concat(['planner_sitio_v1']) : SECCIONES;
   var P=Storage.prototype, oG=P.getItem, oS=P.setItem, oR=P.removeItem, mem={};
   var aislada=function(s,k){ return s===window.localStorage && AISLADAS.indexOf(String(k))>=0; };
   P.getItem=function(k){ return aislada(this,k) ? (Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null) : oG.call(this,k); };
   P.setItem=function(k,v){ if(aislada(this,k)){ mem[k]=String(v); return; } return oS.call(this,k,v); };
   P.removeItem=function(k){ if(aislada(this,k)){ delete mem[k]; return; } return oR.call(this,k); };
+  /* La copia que quedó en el navegador de antes ya no se usa (la de la plataforma manda):
+     se quita cuando ya llegó la buena, para dejarle sitio al resto de la página. */
+  window.__limpiaCopiaVieja=function(){ SECCIONES.forEach(function(k){ try{ oR.call(window.localStorage,k); }catch(e){} }); };
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -5119,11 +5127,15 @@ const __origRemove=(k)=>__protoRemove.call(localStorage,k);
 window.__rawSet=(k,v)=>__origSet(k,v);
 window.__rawRemove=(k)=>__origRemove(k);
 const __pendingKeys=new Set();
+/* Secciones con un cambio que la plataforma todavía no confirmó (por subir, subiéndose o
+   que falló). Mientras una esté aquí, nada de fuera la pisa y la pestaña no se recarga. */
+window.__sinSubir=new Set();
 // Intercept writes to synced keys → push to cloud (debounced). Other keys behave normally.
 __P.setItem=function(k,v){
   __protoSet.call(this,k,v);
   if(this!==window.localStorage) return;
   if(__cloud&&SYNC_KEYS.includes(k)){
+    window.__sinSubir.add(k);
     __pendingKeys.add(k);
     clearTimeout(__pushTimers[k]);
     __pushTimers[k]=setTimeout(()=>{ __pendingKeys.delete(k); __cloud.pushKey(k,v); },700);
@@ -5131,14 +5143,16 @@ __P.setItem=function(k,v){
 };
 // Guardado inmediato de cualquier cambio pendiente (al ocultar/cerrar la pestaña o al salir).
 window.__flushPending=async()=>{
-  if(!__cloud) return;
+  if(!__cloud) return true;
   const ps=[];
-  __pendingKeys.forEach(k=>{
+  /* Lo pendiente y también lo que falló antes: todo se vuelve a intentar. */
+  new Set([...__pendingKeys, ...window.__sinSubir]).forEach(k=>{
     clearTimeout(__pushTimers[k]);
     ps.push(__cloud.pushKey(k, localStorage.getItem(k)));
   });
   __pendingKeys.clear();
   try{ await Promise.all(ps); }catch(e){ console.error(e); }
+  return window.__sinSubir.size===0;
 };
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') window.__flushPending(); });
 window.addEventListener('pagehide',()=>{ window.__flushPending(); });
@@ -5790,7 +5804,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 4;
+const VERSION_PLANNER = 5;
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -5802,6 +5816,7 @@ async function call(action,payload){
   if(!r.ok||j.ok===false){
     const e=new Error((j&&j.error)||('HTTP '+r.status));
     e.sinAcceso=!!j.sinAcceso; e.soloVer=!!j.soloVer; e.viejo=!!j.viejo;
+    e.conflicto=!!j.conflicto; e.datos=j; e.status=r.status;
     throw e;
   }
   return j;
@@ -5826,10 +5841,170 @@ const tocadoPorMi = {};
    equipo de un cambio que no existe. */
 const ultimoSabido = {};
 
+/* ══ GUARDAR SIN PERDER NADA (11 nov 2026) ══════════════════════════════════════
+   Lo que pasó: César subió portadas y recursos, la sección de videos ya pesaba 4.2 MB
+   porque cada portada iba dentro en base64, Vercel no recibe más de 4.5 MB por
+   petición y esos guardados fallaron (413). La pestaña siguió enseñándolos, pero al
+   llegar la copia del servidor (o al recargar) ya no estaban. Tres reglas desde hoy:
+   1. Cada imagen se sube sola y la sección solo lleva su dirección: ya no hay tope.
+   2. Se guarda sobre una versión conocida (`base`). Si alguien guardó encima, se juntan
+      los dos cambios en vez de que gane el último.
+   3. Lo que no se pudo guardar se queda en la pestaña, se reintenta solo y nada de
+      fuera lo pisa mientras tanto (ni el tiempo real ni la recarga por versión nueva). */
+const baseDe = {};          // por sección: la hora de la copia del servidor sobre la que trabajo
+const subidas = new Map();  // imagen en base64 → su dirección, para no subirla dos veces
+const enCurso = {};         // una sola subida por sección a la vez
+const reintento = {}, intentos = {};
+let avisoFallo = 0;
+const RE_IMG = /data:image\/(?:png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=]+/g;
+const IMG_MIN = 8000, IMG_MAX = 4400000;
+
+/* Una imagen que ni sola cabe en una petición se achica (lado mayor y calidad). */
+function achica(src){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    im.onload=()=>{
+      const mayor=Math.max(im.naturalWidth,im.naturalHeight)||1;
+      let lado=Math.min(2560,mayor);
+      for(let i=0;i<8;i++){
+        const k=lado/mayor, c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.naturalWidth*k)); c.height=Math.max(1,Math.round(im.naturalHeight*k));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        let out=c.toDataURL('image/webp',.86);
+        if(!/^data:image\/webp/.test(out)) out=c.toDataURL('image/jpeg',.86);
+        if(out.length<=IMG_MAX) return res(out);
+        lado=Math.round(lado*.78);
+      }
+      rej(new Error('La imagen es demasiado grande'));
+    };
+    im.onerror=()=>rej(new Error('No se pudo leer la imagen'));
+    im.src=src;
+  });
+}
+
+/* Sube aparte las imágenes que vengan dentro de la sección y deja su dirección. */
+async function aligera(json){
+  const halladas=[...new Set((json.match(RE_IMG)||[]).filter(s=>s.length>=IMG_MIN))];
+  for(const d of halladas){
+    if(subidas.has(d)) continue;
+    const dato = d.length>IMG_MAX ? await achica(d) : d;
+    const r = await call('plannerImg',{data:dato});
+    subidas.set(d, r.url);
+  }
+  return halladas.length ? json.replace(RE_IMG, m=>subidas.get(m)||m) : json;
+}
+
+/* Junta dos versiones hechas sobre la misma base: lo que cambió cada quien se queda.
+   Listas de cosas con id (videos, nodos, recursos…): por id; lo nuevo de los dos se
+   queda, lo borrado por uno sin que el otro lo tocara se va. Listas de textos (como los
+   tres textos de portada): casilla por casilla. Si los dos cambiaron lo mismo, gana lo
+   mío, que es lo último que se hizo. */
+const mismo=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const esObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
+function junta(base,mio,suyo){
+  if(mismo(mio,suyo)) return mio;
+  if(base!==undefined&&mismo(mio,base)) return suyo;
+  if(base!==undefined&&mismo(suyo,base)) return mio;
+  if(Array.isArray(mio)&&Array.isArray(suyo)){
+    const b=Array.isArray(base)?base:[];
+    const deObjetos=[mio,suyo,b].every(a=>a.every(x=>x&&typeof x==='object'));
+    if(!deObjetos){
+      if(mio.length===suyo.length&&mio.length===b.length) return mio.map((x,i)=>junta(b[i],x,suyo[i]));
+      return mio;
+    }
+    const llave=x=>(x&&x.id!=null)?'id:'+x.id:'json:'+JSON.stringify(x);
+    const B=new Map(b.map(x=>[llave(x),x])), M=new Map(mio.map(x=>[llave(x),x])), S=new Map(suyo.map(x=>[llave(x),x]));
+    const sale=[];
+    mio.forEach(x=>{
+      const k=llave(x);
+      if(S.has(k)) sale.push(junta(B.get(k),x,S.get(k)));
+      else if(!B.has(k)||!mismo(x,B.get(k))) sale.push(x);   // nuevo mío, o lo cambié yo
+      // si no: el otro lo borró y yo no lo toqué → se va
+    });
+    /* Lo nuevo del otro entra junto a lo que tenía delante en su lista. */
+    suyo.forEach((x,i)=>{
+      const k=llave(x);
+      if(M.has(k)) return;
+      if(B.has(k)&&mismo(x,B.get(k))) return;                 // yo lo borré y él no lo tocó
+      let pos=0;
+      for(let j=i-1;j>=0;j--){ const p=sale.findIndex(y=>llave(y)===llave(suyo[j])); if(p>=0){ pos=p+1; break; } }
+      sale.splice(pos,0,x);
+    });
+    return sale;
+  }
+  if(esObj(mio)&&esObj(suyo)){
+    const b=esObj(base)?base:{}, sale={};
+    new Set([...Object.keys(mio),...Object.keys(suyo)]).forEach(k=>{
+      const enM=k in mio, enS=k in suyo, enB=k in b;
+      if(enM&&enS) sale[k]=junta(enB?b[k]:undefined,mio[k],suyo[k]);
+      else if(enM){ if(!(enB&&mismo(mio[k],b[k]))) sale[k]=mio[k]; }
+      else { if(!(enB&&mismo(suyo[k],b[k]))) sale[k]=suyo[k]; }
+    });
+    return sale;
+  }
+  return mio;
+}
+function juntaTexto(baseTxt,mioTxt,suyoTxt){
+  if(suyoTxt==null) return mioTxt;
+  let base, mio, suyo;
+  try{ mio=JSON.parse(mioTxt); suyo=JSON.parse(suyoTxt); }catch(e){ return mioTxt; }
+  try{ base=baseTxt==null?undefined:JSON.parse(baseTxt); }catch(e){ base=undefined; }
+  return JSON.stringify(junta(base,mio,suyo));
+}
+
+function avisaFallo(){
+  if (Date.now() - avisoFallo < 8000) return;
+  avisoFallo = Date.now();
+  window.__showToast && window.__showToast('No se pudo guardar todavía: lo reintento solo. No cierres esta pestaña.','err');
+}
+
+async function subeSeccion(key){
+  const json = localStorage.getItem(key);
+  if (json == null || ultimoSabido[key] === json) { window.__sinSubir.delete(key); return; }
+  const mioLigero = await aligera(json);
+  let ligero = mioLigero, junto = false, final = null;
+  for (let vuelta = 0; vuelta < 5; vuelta++) {
+    if (ultimoSabido[key] === ligero) { final = ligero; break; }
+    try {
+      const r = await call('plannerSet',{key, value:ligero, base: baseDe[key]||0});
+      tocadoPorMi[key] = r.ahora || Date.now();
+      baseDe[key] = r.ahora || 0;
+      ultimoSabido[key] = final = (typeof r.value === 'string' ? r.value : ligero);
+      break;
+    } catch (e) {
+      if (!e.conflicto) throw e;
+      /* Alguien guardó encima: se junta lo mío con lo suyo y se vuelve a guardar. */
+      const suyo = (e.datos && typeof e.datos.value === 'string') ? e.datos.value : null;
+      ligero = juntaTexto(ultimoSabido[key], ligero, suyo);
+      if (suyo != null) ultimoSabido[key] = suyo; else delete ultimoSabido[key];
+      baseDe[key] = (e.datos && e.datos.cuando) || 0;
+      junto = true;
+    }
+  }
+  if (final == null) throw new Error('No se pudo juntar con los cambios del equipo');
+  const ahoraLocal = localStorage.getItem(key);
+  if (ahoraLocal === json) {
+    if (final !== json) window.__rawSet(key, final);   // direcciones en vez de base64, y lo del equipo
+    window.__sinSubir.delete(key);
+    intentos[key] = 0;
+  } else if (junto && ahoraLocal != null) {
+    /* Se siguió escribiendo mientras se juntaba: lo nuevo también se junta con lo que quedó
+       guardado, para que lo del equipo no se vaya en la siguiente vuelta. */
+    const nuevo = await aligera(ahoraLocal);
+    if (localStorage.getItem(key) === ahoraLocal) window.__rawSet(key, juntaTexto(mioLigero, nuevo, final));
+  }
+  if (junto) {
+    setTimeout(()=>repintaSecciones([key]), 30);
+    window.__showToast && window.__showToast('Guardado junto con los cambios del equipo');
+  }
+  // Si mientras subía hubo otro cambio, la vuelta de pushKey lo sube.
+}
+
 async function pushKey(key,json){
-  if (ultimoSabido[key] === json) return;   // idéntico: no hay nada que guardar
   if (permiso !== 'editar') {
+    if (ultimoSabido[key] === json) { window.__sinSubir.delete(key); return; }
     /* Solo para ver: no se sube nada y la sección vuelve a como está guardada. */
+    window.__sinSubir.delete(key);
     if (typeof ultimoSabido[key] === 'string') window.__rawSet(key, ultimoSabido[key]); else window.__rawRemove(key);
     setTimeout(()=>repintaSecciones([key]), 30);
     if (Date.now() - avisoSoloVer > 4000) {
@@ -5838,16 +6013,39 @@ async function pushKey(key,json){
     }
     return;
   }
-  try{
-    const r = await call('plannerSet',{key,value:json});
-    tocadoPorMi[key] = r.ahora || Date.now();
-    ultimoSabido[key] = json;
-  }catch(e){
-    console.error('nube',key,e);
-    if (e.sinAcceso) return sinAccesoYa();
-    if (e.soloVer) { permiso = 'ver'; window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO||{}, 'ver'); }
-    window.__showToast&&window.__showToast('No se pudo guardar: '+e.message,'err');
-  }
+  /* Una sola subida por sección. Si llega otro cambio mientras sube, al terminar se sube
+     lo último que haya en la pestaña. */
+  if (enCurso[key]) { enCurso[key].otra = true; return enCurso[key].p; }
+  const tarea = { otra:false };
+  tarea.p = (async () => {
+    try {
+      let n = 0;
+      do { tarea.otra = false; await subeSeccion(key); n++; }
+      while (n < 4 && (tarea.otra || window.__sinSubir.has(key)));
+      clearTimeout(reintento[key]);
+      if (window.__sinSubir.has(key)) {
+        // Se siguió escribiendo mientras subía: una vuelta más en un momento.
+        reintento[key] = setTimeout(()=>pushKey(key, localStorage.getItem(key)), 1500);
+      } else if (avisoFallo && !window.__sinSubir.size) {
+        avisoFallo = 0; window.__showToast && window.__showToast('Listo: ya quedó guardado');
+      }
+    } catch (e) {
+      console.error('nube',key,e);
+      if (e.sinAcceso) return sinAccesoYa();
+      if (e.soloVer) { permiso = 'ver'; window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO||{}, 'ver'); return; }
+      if (e.viejo) { location.reload(); return; }
+      /* Se queda en la pestaña y se reintenta solo, cada vez con más calma. */
+      window.__sinSubir.add(key);
+      intentos[key] = (intentos[key]||0) + 1;
+      clearTimeout(reintento[key]);
+      reintento[key] = setTimeout(()=>pushKey(key, localStorage.getItem(key)), Math.min(60000, 3000*intentos[key]));
+      avisaFallo();
+    } finally {
+      delete enCurso[key];
+    }
+  })();
+  enCurso[key] = tarea;
+  return tarea.p;
 }
 
 function mostrarIntro(st){
@@ -5907,8 +6105,10 @@ function arrancaTiempoReal(yaConocido){
     /* Hay una versión nueva publicada: se guarda lo pendiente y se recarga, para que todos
        vean lo mismo. */
     if (info.herramienta && info.herramienta > VERSION_PLANNER) {
-      try { await window.__flushPending(); } catch (e) {}
-      location.reload(); return;
+      /* Solo si todo quedó guardado: recargar con algo sin subir sería perderlo. */
+      let listo = false;
+      try { listo = await window.__flushPending(); } catch (e) {}
+      if (listo) { location.reload(); return; }
     }
     /* Si el dueño cambió mi permiso (de editar a ver o al revés), se nota al momento. */
     if (PANEL_DE && info.permiso && info.permiso !== permiso) {
@@ -5919,24 +6119,32 @@ function arrancaTiempoReal(yaConocido){
       const t = (info.cuando||{})[k] || 0;
       if (!t) return false;
       if (t <= (ultimo[k]||0)) return false;
-      if (tocadoPorMi[k] && Math.abs(t - tocadoPorMi[k]) < 2500) { ultimo[k] = t; return false; }
+      // La versión que ya tengo (la traje o la guardé yo): nada que traer.
+      if (t === baseDe[k]) { ultimo[k] = t; return false; }
+      /* Con un cambio mío sin guardar no se pisa: se sube y se junta con lo del otro. */
+      if (window.__sinSubir.has(k)) { if (!enCurso[k]) pushKey(k, localStorage.getItem(k)); return false; }
       return true;
     });
-    if (!cambiadas.length) { Object.assign(ultimo, info.cuando||{}); return; }
+    if (!cambiadas.length) {
+      SYNC_KEYS.forEach(k => { if (!window.__sinSubir.has(k) && (info.cuando||{})[k]) ultimo[k] = Math.max(ultimo[k]||0, info.cuando[k]); });
+      return;
+    }
 
     let datos; try { datos = await call('plannerGet',{}); } catch { return; }
-    cambiadas.forEach(k => {
+    const traidas = cambiadas.filter(k => !window.__sinSubir.has(k) && !enCurso[k]);
+    traidas.forEach(k => {
       const v = (datos.values||{})[k];
-      if (typeof v === 'string') { window.__rawSet(k, v); ultimoSabido[k] = v; }
-      else window.__rawRemove(k);
+      if (typeof v === 'string') { window.__rawSet(k, v); ultimoSabido[k] = v; baseDe[k] = (datos.cuando||{})[k] || baseDe[k] || 0; }
+      else { window.__rawRemove(k); delete ultimoSabido[k]; baseDe[k] = 0; }
+      ultimo[k] = Math.max((info.cuando||{})[k] || 0, baseDe[k] || 0);
     });
-    Object.assign(ultimo, info.cuando||{});
-    const quien = (info.quien||{})[cambiadas[0]];
+    if (!traidas.length) return;
+    const quien = (info.quien||{})[traidas[0]];
     window.__showToast && window.__showToast(
       quien ? ('Actualizado por ' + String(quien).split('@')[0]) : 'Actualizado por el equipo'
     );
     // Se repinta con lo que acaba de llegar, sin recargar nada.
-    repintaSecciones(cambiadas);
+    repintaSecciones(traidas);
   }, 6000);
 }
 
@@ -5974,8 +6182,9 @@ async function boot(intento){
   /* Lo que está en la plataforma manda, también cuando está vacío. Antes, con
      el servidor vacío, se subía lo que trajera el navegador: ahora eso subiría la
      copia vieja del equipo al panel nuevo de otra persona. */
+  window.__limpiaCopiaVieja && window.__limpiaCopiaVieja();
   SYNC_KEYS.forEach(k=>{
-    if(typeof (pulled.values||{})[k]==='string'){ window.__rawSet(k,pulled.values[k]); ultimoSabido[k]=pulled.values[k]; }
+    if(typeof (pulled.values||{})[k]==='string'){ window.__rawSet(k,pulled.values[k]); ultimoSabido[k]=pulled.values[k]; baseDe[k]=(pulled.cuando||{})[k]||0; }
     else window.__rawRemove(k);
   });
   permiso = pulled.permiso || 'editar';

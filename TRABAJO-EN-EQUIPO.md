@@ -351,3 +351,24 @@ funcionaba y los cambios nunca se subían.
 - **«Mi perfil» ya no está en Tareas**: el perfil se edita en el panel del Club. `/perfil`
   redirige allá y la foto de arriba también. `profile-form.tsx` y `actions/profile.ts` quedan sin
   uso; no se borraron.
+
+## Tareas v1.5.5: el Planner guarda las imágenes aparte y ya no se pierde nada  ✅ hecho (11 nov 2026)
+
+César, lo que te pasó: tus portadas y el recurso de esa tarde **nunca llegaron a la base**. La
+sección de videos ya pesaba 4.2 MB porque cada portada iba dentro en base64, y Vercel no recibe
+más de 4.5 MB por petición: el guardado fallaba (413), la pestaña las seguía enseñando y al llegar
+la copia del servidor desaparecían. Por eso hay que volver a subirlas (lo que sí se guardó sigue ahí).
+Además, el panel de Diego ya no abría: el navegador topa en ~5 MB («exceeded the quota»).
+
+- **Cada imagen va en su fila** `PlannerDoc` con clave `img/<huella>` (sha256 del contenido) y la
+  sección solo lleva `/api/planner/img/<huella>` (ruta nueva, con sesión). Acción nueva
+  `plannerImg`. Lo que llegue con base64 dentro (una pestaña vieja) se saca en el servidor.
+  Las filas `img/` no se borran nunca. Sin cambios de esquema.
+- **Guardar sin pisar a nadie:** `plannerSet` lleva `base` (la hora de la copia que conoce la
+  pestaña). Si alguien guardó encima, responde 409 `conflicto` con lo de ahora y la herramienta
+  junta los dos cambios (por id en listas, casilla por casilla en textos) y vuelve a guardar.
+- **Lo que falla se reintenta solo** y nada lo pisa mientras tanto; la pestaña no se recarga por
+  versión nueva mientras haya algo sin guardar.
+- Las secciones viven en la memoria de la pestaña también en tu propio panel (ya no en
+  `localStorage`). `scripts/respaldar-db.mjs` ahora también respalda `plannerDoc`.
+
