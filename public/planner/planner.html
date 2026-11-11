@@ -28,7 +28,7 @@
   P.removeItem=function(k){ if(aislada(this,k)){ delete mem[k]; return; } return oR.call(this,k); };
 })();
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <link rel="stylesheet" href="lab.css">
 <style>
@@ -1145,6 +1145,72 @@ html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{d
   .ps-seg{width:100%;}
   .ps-seg button{flex:1;padding:9px 6px;font-size:13px;}
 }
+</style>
+<style id="pmClub">
+/* ══ LA CARA DEL CLUB (11 nov 2026) ══
+   Diego: «los colores del YT Planner no tienen nada que ver con la plataforma completa».
+   Valores de «ESTILO del Club (fuente única)» §5 y club-ui.css: el cielo azul con la trama,
+   tarjetas marino con cristal, títulos en Space Grotesk, el dorado de botón del Club y nada
+   de rojo de YouTube en el menú. Va al final: manda sobre la piel vieja que traía del Máster. */
+:root{--bg:#05091a;--bg2:#0b1428;--bg3:#0d1830;--bg4:#16264a;--border:rgba(120,150,200,.14);
+  --text:#fff;--muted:#a8b8d0;--accent:#c9a040;--ah:#9b7520;
+  --borde-luz:rgba(140,175,235,.22);--cristal:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  --oro-boton:linear-gradient(135deg,#FFE7A8,#FFD97D 38%,#C9A040 78%,#B98E2E);
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--titulos:'Space Grotesk','Inter',sans-serif;}
+html,html.embed{background:#05091a!important;}
+body,html.embed body{background:transparent!important;font-family:var(--font);}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:
+  radial-gradient(1000px 760px at 12% 0%,rgba(30,92,232,.26),rgba(30,92,232,.1) 46%,rgba(30,92,232,0) 78%),
+  radial-gradient(860px 680px at 92% 2%,rgba(201,160,64,.16),rgba(201,160,64,.06) 44%,rgba(201,160,64,0) 76%),
+  radial-gradient(1300px 900px at 50% 112%,rgba(36,104,255,.18),rgba(36,104,255,.07) 48%,rgba(36,104,255,0) 80%);}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);background-size:3px 3px;}
+::selection{background:rgba(201,160,64,.3);}
+/* menú lateral: cristal azul y lo activo en dorado (nada de rojo ni verde) */
+.sidebar{background:linear-gradient(180deg,rgba(13,24,48,.82),rgba(8,14,34,.88))!important;border-right:1px solid var(--borde-luz)!important;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
+.nav-btn{color:#a8b8d0;}
+.nav-btn:hover{background:rgba(255,255,255,.05)!important;color:#fff!important;}
+.nav-btn.active,.nav-btn.active[data-p]{background:rgba(201,160,64,.13)!important;color:#e8c060!important;box-shadow:inset 0 0 0 1px rgba(201,160,64,.32);}
+@media(max-width:840px){.sidebar{background:rgba(5,9,26,.94)!important;border-top:1px solid var(--borde-luz)!important;}}
+/* cabecera de cristal, título en Space Grotesk con el dorado del Club */
+.header{background:linear-gradient(180deg,rgba(7,12,30,.72),rgba(5,9,26,.38))!important;border-bottom:1px solid var(--borde-luz)!important;
+  backdrop-filter:blur(22px) saturate(1.25);-webkit-backdrop-filter:blur(22px) saturate(1.25);}
+.header-left h1{font-family:var(--titulos)!important;font-weight:700!important;letter-spacing:-.02em!important;
+  background:linear-gradient(180deg,#FFF3D4,#C9A040)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;}
+.header-left p{color:#a8b8d0!important;}
+/* botones: el dorado del Club con texto oscuro; los secundarios, de cristal */
+.btn-primary,.pmr-btn:not(.alt),.pa-volver,.pm-cal-today,.uz-yt button,#imgUrlBtn,#pmRefsBtn{background:var(--oro-boton)!important;color:#1a1200!important;font-weight:800!important;
+  box-shadow:0 8px 26px rgba(201,160,64,.32),0 0 0 1px rgba(255,255,255,.28) inset!important;border:none!important;}
+.btn-primary{border-radius:13px!important;}
+.btn-primary:hover,.pmr-btn:not(.alt):hover,.pa-volver:hover{filter:brightness(1.06);transform:translateY(-1px);}
+.btn-compartir,.pmr-btn.alt,.btn-ghost,.btn-secondary{background:var(--cristal)!important;color:#d6e0ee!important;border:1px solid var(--borde-luz)!important;box-shadow:none!important;}
+.btn-compartir{border-radius:13px!important;}
+.btn-compartir:hover,.pmr-btn.alt:hover{color:#fff!important;border-color:rgba(201,160,64,.55)!important;}
+.ps-seg button.on:not([data-v=""]){background:var(--oro-boton)!important;color:#1a1200!important;}
+/* tarjetas: marino con cristal, borde de luz; al pasar, el halo dorado del Club */
+.video-card,.pc-card{background:var(--cristal),#0b1428!important;border:1px solid var(--borde-luz)!important;border-radius:16px!important;box-shadow:0 10px 30px rgba(0,0,0,.4)!important;}
+.video-card:hover,.pc-card:not(.on):hover{border-color:rgba(201,160,64,.55)!important;transform:translateY(-3px);
+  box-shadow:0 22px 46px rgba(0,0,0,.6),0 0 34px -8px rgba(201,160,64,.4),0 0 0 1px rgba(255,217,125,.18) inset!important;}
+.pc-card.on{background:linear-gradient(135deg,rgba(201,160,64,.12),rgba(201,160,64,0) 55%),#0b1428!important;border-color:rgba(201,160,64,.55)!important;}
+.card-cover{background:#0d1830!important;}
+/* ventanas: el azul de ventana del Club, radio 22 */
+.modal,.rec-modal,.ps-card{background:linear-gradient(170deg,#0e1a33,#080f22)!important;border:1px solid var(--borde-luz)!important;border-radius:22px!important;box-shadow:0 30px 80px rgba(0,0,0,.6)!important;}
+.overlay,.pm-share{background:rgba(3,6,18,.72)!important;}
+.modal-head-title,#recTitle,.ps-t,.pmr-t,.pm-cal-title{font-family:var(--titulos)!important;letter-spacing:-.01em;}
+.modal input:focus,.modal textarea:focus,#pmrYt:focus{border-color:rgba(36,104,255,.6)!important;box-shadow:0 0 0 3px rgba(36,104,255,.16)!important;outline:none;}
+/* lienzos y agenda sobre el cielo, no sobre negro */
+#treeCanvas{background-color:transparent!important;}
+#labWrap{background:
+  radial-gradient(1000px 760px at 12% 0%,rgba(30,92,232,.26),rgba(30,92,232,.1) 46%,rgba(30,92,232,0) 78%),
+  radial-gradient(860px 680px at 92% 2%,rgba(201,160,64,.16),rgba(201,160,64,.06) 44%,rgba(201,160,64,0) 76%),
+  radial-gradient(1300px 900px at 50% 112%,rgba(36,104,255,.18),rgba(36,104,255,.07) 48%,rgba(36,104,255,0) 80%),
+  #05091a!important;}   /* el LAB tapa la cabecera: cielo del Club, pero opaco */
+.pm-cal-cell{background:rgba(11,20,40,.72)!important;border-color:var(--border)!important;}
+.pm-cal-cell:hover{border-color:rgba(201,160,64,.45)!important;}
+.pm-cal-side{background:var(--cristal),#0b1428!important;border-color:var(--borde-luz)!important;}
+#cloudToast{background:#0d1830!important;border-color:var(--borde-luz)!important;}
+.pm-ajeno{background:linear-gradient(90deg,rgba(201,160,64,.18),rgba(30,92,232,.08))!important;}
 </style>
 </head>
 <body>
