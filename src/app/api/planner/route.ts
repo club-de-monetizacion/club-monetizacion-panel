@@ -47,7 +47,13 @@ const DUENO_LEGADO = "diegocabrerarosas@gmail.com";
  * equipo) a un panel que no es. Por eso la herramienta nueva manda `v: 2` y a la
  * vieja se le pide recargar.
  */
-const VERSION_HERRAMIENTA = 2;
+const VERSION_HERRAMIENTA = 3;
+/**
+ * La versión de la herramienta que está publicada. Viaja en cada sondeo: si una pestaña
+ * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
+ * porque tenía abierta la de antes).
+ */
+const HERRAMIENTA_PUBLICADA = 3;
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
@@ -201,6 +207,7 @@ export async function POST(req: Request) {
     return respuesta({
       ok: true,
       permiso,
+      herramienta: HERRAMIENTA_PUBLICADA,
       cuando: Object.fromEntries(filas.map((f) => [claveDe(dueno, f.key), f.updatedAt.getTime()])),
       quien: Object.fromEntries(filas.map((f) => [claveDe(dueno, f.key), f.updatedBy])),
     });
@@ -294,7 +301,8 @@ export async function POST(req: Request) {
         const cuando = tocadas
           .filter((t) => suyas.has(t.key))
           .reduce((max, t) => Math.max(max, t.updatedAt.getTime()), 0);
-        return { email: m.dueno, name: p.name || "", image: fotoLigera(p.image), permiso: m.permiso, cuando };
+        /* El de Diego es el panel del equipo: a él se entra por defecto. */
+        return { email: m.dueno, name: p.name || "", image: fotoLigera(p.image), permiso: m.permiso, cuando, principal: m.dueno === DUENO_LEGADO };
       })
       .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, "es"));
     return respuesta({ ok: true, paneles });

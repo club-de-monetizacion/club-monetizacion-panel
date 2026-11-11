@@ -5787,12 +5787,14 @@ const statusEl = document.getElementById('loginStatus');
 function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusEl.className='login-status'+(err?' err':''); } }
 
 const PANEL_DE = window.__PANEL_DE || '';
+/* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
+const VERSION_PLANNER = 3;
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
     headers:{'content-type':'application/json'},
     credentials:'same-origin',
-    body:JSON.stringify(Object.assign({action, de:PANEL_DE, v:2},payload||{})),
+    body:JSON.stringify(Object.assign({action, de:PANEL_DE, v:VERSION_PLANNER},payload||{})),
   });
   const j=await r.json().catch(()=>({}));
   if(!r.ok||j.ok===false){
@@ -5899,7 +5901,13 @@ function arrancaTiempoReal(yaConocido){
 
   setInterval(async () => {
     if (document.hidden || hayAlgoAbierto()) return;
-    let info; try { info = await call('plannerCuando',{}); } catch (e) { if (e && e.sinAcceso) sinAccesoYa(); return; }
+    let info; try { info = await call('plannerCuando',{}); } catch (e) { if (e && e.sinAcceso) sinAccesoYa(); if (e && e.viejo) location.reload(); return; }
+    /* Hay una versión nueva publicada: se guarda lo pendiente y se recarga, para que todos
+       vean lo mismo. */
+    if (info.herramienta && info.herramienta > VERSION_PLANNER) {
+      try { await window.__flushPending(); } catch (e) {}
+      location.reload(); return;
+    }
     /* Si el dueño cambió mi permiso (de editar a ver o al revés), se nota al momento. */
     if (PANEL_DE && info.permiso && info.permiso !== permiso) {
       permiso = info.permiso;
@@ -5970,20 +5978,20 @@ async function boot(intento){
   });
   permiso = pulled.permiso || 'editar';
 
-  /* Tu panel sin un solo video y alguien te compartió el suyo: se abre el suyo
-     (Diego, 11 nov: César tiene que ver su Planner al entrar, sin buscarlo). Si
-     vienes de «Volver a mi panel» o «Mi panel» (?mio=1), te quedas en el tuyo. */
+  /* Al abrir el Planner, el resto del equipo entra al panel de Diego, que es el del equipo
+     (Diego, 11 nov: «la opción de YT me sale diferente a como le sale a César»). Así todos
+     ven lo mismo. Si no hay panel de Diego para ti y el tuyo está vacío, el compartido más
+     reciente. «Mi panel» (?mio=1) te deja en el tuyo. */
   if(!PANEL_DE && !/[?&]mio=1/.test(location.search)){
     let videos=0;
     try{ const o=JSON.parse((pulled.values||{}).content_os_v2||'{}')||{};
          Object.keys(o).forEach(p=>{ if(Array.isArray(o[p])) videos+=o[p].length; }); }catch(e){}
-    if(!videos){
-      try{
-        const r=await call('compartidosConmigo',{});
-        const p=(r.paneles||[]).slice().sort((a,b)=>(b.cuando||0)-(a.cuando||0))[0];
-        if(p){ location.replace(location.pathname+'?de='+encodeURIComponent(p.email)); return; }
-      }catch(e){}
-    }
+    try{
+      const r=await call('compartidosConmigo',{});
+      const ps=(r.paneles||[]).slice().sort((a,b)=>(b.cuando||0)-(a.cuando||0));
+      const p=ps.find(x=>x.principal) || (!videos && ps[0]);
+      if(p){ location.replace(location.pathname+'?de='+encodeURIComponent(p.email)); return; }
+    }catch(e){}
   }
   if(PANEL_DE){
     window.__DUENO = pulled.dueno || { email: PANEL_DE };
