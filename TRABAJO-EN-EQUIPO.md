@@ -314,3 +314,28 @@ cambio de identidad se ve sin tener que volver a entrar.
 ## Estilo
 
 Contestar **en español**. El código y los nombres de archivo se quedan como están.
+
+## YouTube Planner: cada administrador con su panel, y se comparte  ✅ hecho (10 nov 2026)
+
+Diego pidió poder elegir qué administradores ven su Planner. Antes había **una sola copia
+para todo el equipo**; ahora **cada quien tiene su panel**:
+
+- **Compartir** (arriba, junto a «+ Nuevo video»): una ventanita con los administradores de
+  la plataforma y, por persona, **No · Ver · Editar**. Se guarda al tocar.
+- **COMPARTIDOS** (barra lateral, debajo del LAB): los paneles que otros te abrieron. Al abrir
+  uno sale una franja «Estás en el panel de…» con «Volver a mi panel». Con **Ver** no se guarda
+  nada; con **Editar** se trabaja igual que antes, en tiempo real.
+- **La copia que era del equipo ahora es el panel de Diego**, sin mover un solo dato (son las
+  filas de siempre de `PlannerDoc`). César: hasta que Diego te marque, tu Planner sale vacío;
+  cuando te marque, lo encuentras en COMPARTIDOS.
+
+Sin cambios de esquema. Todo vive en `PlannerDoc` con claves nuevas:
+`panel/<correo>/<sección>` (el panel de cada quien, menos Diego) y `compartir/<correo>`
+(`{"<correo>":"ver"|"editar"}`). Quién puede qué lo decide `src/app/api/planner/route.ts`
+(acciones nuevas `compartirLeer`, `compartirGuardar`, `compartidosConmigo`; las de datos
+llevan `de` y piden `v:2`: una pestaña abierta de antes recibe 409 «recarga»).
+
+En `public/planner/planner.html`: el panel ajeno vive solo en la memoria de la pestaña (para
+que no se mezcle con el tuyo en el navegador), y el guardado se intercepta en
+`Storage.prototype` porque en **Safari** el truco de antes (`localStorage.setItem = …`) no
+funcionaba y los cambios nunca se subían.

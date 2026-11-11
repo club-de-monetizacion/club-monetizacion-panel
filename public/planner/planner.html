@@ -5,6 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>YouTube Planner — Club de Monetización</title>
 <link rel="icon" href="logo-club.png">
+<script>
+/* ══ DE QUIÉN ES EL PANEL QUE VES (10 nov 2026) ══
+   Cada administrador tiene su panel y puede compartirlo. «?de=<correo>» abre el
+   de otra persona. Sus datos viven SOLO en la memoria de esta pestaña: el
+   navegador guarda en un mismo cajón todo lo de esta página, y si el panel de
+   otra persona cayera ahí, otra pestaña con el tuyo lo leería y al guardar lo
+   subiría mezclado con lo tuyo. Va antes de cualquier otro script para que ni la
+   primera lectura toque tu cajón. Se intercepta en Storage.prototype porque
+   Safari no deja reemplazar localStorage.getItem directamente. */
+(function(){
+  var de='';
+  try{ de=(new URLSearchParams(location.search).get('de')||'').trim().toLowerCase(); }catch(e){}
+  window.__PANEL_DE=de;
+  if(!de) return;
+  document.documentElement.classList.add('panel-ajeno');
+  var AISLADAS=['content_os_v2','content_tree_v3','content_matrix_v1','yt_spy_v1','cover_os_v1','cov_resources_v1','thumb_bank_v1','planner_sitio_v1'];
+  var P=Storage.prototype, oG=P.getItem, oS=P.setItem, oR=P.removeItem, mem={};
+  var aislada=function(s,k){ return s===window.localStorage && AISLADAS.indexOf(String(k))>=0; };
+  P.getItem=function(k){ return aislada(this,k) ? (Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null) : oG.call(this,k); };
+  P.setItem=function(k,v){ if(aislada(this,k)){ mem[k]=String(v); return; } return oS.call(this,k,v); };
+  P.removeItem=function(k){ if(aislada(this,k)){ delete mem[k]; return; } return oR.call(this,k); };
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <link rel="stylesheet" href="lab.css">
@@ -1016,6 +1039,96 @@ opacity:0;transition:opacity .3s;z-index:1;}
   #wm{display:none;}
 }
 </style>
+<style id="pmCompartir">
+/* ══ Compartir mi panel · Compartidos (10 nov 2026) ══ */
+.nav-btn.active[data-p="comp"]{background:rgba(201,160,64,.12);color:var(--accent);}
+#compNavBtn{font-size:7.6px;letter-spacing:0;}   /* «COMPARTIDOS» no cabía en los 68 px de la barra */
+.btn-compartir{display:inline-flex;align-items:center;gap:7px;background:rgba(201,160,64,.1);color:#f3dfa6;
+  border:1px solid rgba(201,160,64,.45);font-weight:700;}
+.btn-compartir:hover{background:rgba(201,160,64,.2);color:#fff3d0;}
+.btn-compartir svg{width:15px;height:15px;flex-shrink:0;}
+html.panel-ajeno #labNavBtn, html.panel-ajeno #btnCompartir{display:none!important;}
+html.panel-ajeno.solo-ver .header .btn-primary, html.panel-ajeno.solo-ver .fab{display:none!important;}
+/* la franja que dice de quién es el panel que ves */
+.pm-ajeno{display:flex;align-items:center;gap:12px;padding:9px 22px;flex-shrink:0;
+  background:linear-gradient(90deg,rgba(201,160,64,.2),rgba(201,160,64,.06));border-bottom:1px solid rgba(201,160,64,.35);}
+.pm-ajeno[hidden]{display:none;}
+.pa-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.pa-txt b{font-size:13.5px;font-weight:700;color:#fff3d0;text-wrap:pretty;}
+.pa-txt i{font-style:normal;font-size:11.5px;color:#c9b88f;text-wrap:pretty;}
+.pa-volver{background:linear-gradient(135deg,#e7c874,#c9a040);color:#1a1204;border:none;border-radius:9px;
+  padding:8px 14px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.pa-volver:hover{filter:brightness(1.08);}
+/* fotos redondas: la franja, la lista de Compartir y las tarjetas */
+.pa-avi,.ps-avi,.pc-avi{flex-shrink:0;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(201,160,64,.16);border:1px solid rgba(201,160,64,.45);color:#f3dfa6;font-weight:800;}
+.pa-avi{width:30px;height:30px;font-size:13px;}
+.ps-avi{width:36px;height:36px;font-size:14px;}
+.pc-avi{width:46px;height:46px;font-size:18px;}
+.pa-avi img,.ps-avi img,.pc-avi img{width:100%;height:100%;object-fit:cover;display:block;}
+/* Compartidos */
+#pmCompPanel{display:none;flex-direction:column;gap:16px;padding:18px 22px 40px;overflow:auto;flex:1;}
+.pc-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.pc-card{display:flex;align-items:center;gap:13px;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:rgba(13,24,48,.72);border:1px solid var(--border);border-radius:14px;padding:14px 15px;transition:.15s;}
+.pc-card:hover{border-color:rgba(201,160,64,.6);transform:translateY(-2px);}
+.pc-card.on{border-color:rgba(201,160,64,.75);background:rgba(201,160,64,.1);cursor:default;transform:none;}
+.pc-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.pc-who b{font-size:14px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pc-who i{font-style:normal;font-size:11.5px;color:var(--muted);text-wrap:pretty;}
+.pc-ir{font-size:11.5px;font-weight:800;color:var(--accent);white-space:nowrap;}
+.pc-card.on .pc-ir{color:#f3dfa6;}
+.pc-sec{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin:12px 0 0;}
+.pc-vacio{font-size:13px;color:var(--muted);line-height:1.55;text-wrap:pretty;max-width:520px;
+  border:1px dashed rgba(201,160,64,.3);border-radius:14px;padding:16px 18px;}
+.pc-cargando{font-size:12.5px;color:var(--muted);padding:6px 0;}
+/* la ventanita de Compartir */
+.pm-share{position:fixed;inset:0;z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:rgba(2,5,14,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .18s;}
+.pm-share.open{opacity:1;pointer-events:auto;}
+.ps-card{width:100%;max-width:520px;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;
+  background:#0a1226;border:1px solid rgba(201,160,64,.35);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);
+  transform:translateY(10px) scale(.98);transition:transform .2s;}
+.pm-share.open .ps-card{transform:none;}
+.ps-head{display:flex;gap:14px;align-items:flex-start;padding:18px 20px 14px;border-bottom:1px solid var(--border);}
+.ps-t{font-size:18px;font-weight:800;color:#fff3d0;}
+.ps-s{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5;text-wrap:pretty;}
+.ps-s b{color:#f3dfa6;font-weight:700;}
+.ps-x{margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ps-x:hover{color:#fff;border-color:rgba(201,160,64,.5);}
+.ps-x svg{width:15px;height:15px;}
+.ps-list{overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:4px;}
+.ps-row{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;}
+.ps-row:hover{background:rgba(255,255,255,.03);}
+.ps-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.ps-who b{font-size:13.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ps-who i{font-style:normal;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ps-seg{display:flex;flex-shrink:0;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.ps-seg button{border:none;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;
+  padding:6px 11px;border-radius:7px;cursor:pointer;transition:.15s;}
+.ps-seg button:hover{color:#fff;}
+.ps-seg button.on{background:linear-gradient(135deg,#e7c874,#c9a040);color:#1a1204;}
+.ps-seg button.on[data-v=""]{background:rgba(255,255,255,.1);color:#fff;}
+.ps-foot{display:flex;align-items:center;gap:12px;padding:12px 20px 16px;border-top:1px solid var(--border);}
+.ps-foot span{flex:1;font-size:12px;color:var(--muted);text-wrap:pretty;}
+.ps-foot span.err{color:#ffb0b0;}
+@media(max-width:840px){
+  .pm-ajeno{padding:9px 14px;padding-top:calc(9px + env(safe-area-inset-top));gap:10px;}
+  .pa-txt b{font-size:12.5px;} .pa-txt i{font-size:11px;}
+  .pa-volver{padding:9px 11px;font-size:12px;}
+  #pmCompPanel{padding:14px 12px 90px;}
+  .pc-lista{grid-template-columns:1fr;}
+  .btn-compartir span{display:none;}
+  .btn-compartir{padding:11px 12px;}
+  .pm-share{padding:0;align-items:flex-end;}
+  .ps-card{max-width:100%;border-radius:18px 18px 0 0;max-height:90vh;}
+  .ps-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+  .ps-row{flex-wrap:wrap;gap:10px;}
+  .ps-seg{width:100%;}
+  .ps-seg button{flex:1;padding:9px 6px;font-size:13px;}
+}
+</style>
 </head>
 <body>
 
@@ -1045,6 +1158,23 @@ opacity:0;transition:opacity .3s;z-index:1;}
 
 <div id="cloudToast"></div>
 
+<!-- ═══ COMPARTIR MI PANEL ═══ -->
+<div id="pmShare" class="pm-share" onclick="if(event.target===this)pmCierraCompartir()">
+  <div class="ps-card" role="dialog" aria-modal="true" aria-labelledby="psT">
+    <div class="ps-head">
+      <div>
+        <div class="ps-t" id="psT">Compartir mi panel</div>
+        <div class="ps-s">Marca qué administradores pueden entrar a tu panel. Lo encuentran en <b>COMPARTIDOS</b>.<br><b>Ver</b>: lo abren sin cambiar nada. <b>Editar</b>: también pueden mover y escribir.</div>
+      </div>
+      <button class="ps-x" onclick="pmCierraCompartir()" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="ps-list" id="psList"></div>
+    <div class="ps-foot"><span id="psEstado"></span><button class="pmr-btn" onclick="pmCierraCompartir()">Listo</button></div>
+  </div>
+</div>
+
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar">
   <img class="sidebar-logo-img" src="logo-club.png" alt="Club de Monetización" title="Club de Monetización — YouTube Planner">
@@ -1071,6 +1201,10 @@ opacity:0;transition:opacity .3s;z-index:1;}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6.5L4.2 18A2 2 0 0 0 6 21h12a2 2 0 0 0 1.8-3L15 9.5V3"/><path d="M8 3h8M7.5 14h9"/></svg>
     LAB
   </button>
+  <button class="nav-btn" data-p="comp" id="compNavBtn" onclick="pmOpenComp(this)" title="Los paneles que otros administradores te compartieron">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    COMPARTIDOS
+  </button>
 
   <!-- Aquí abajo había otra foto de perfil con un «← Panel» y el número de
        versión. El Panel ya trae los suyos en la barra de arriba: era todo
@@ -1079,6 +1213,8 @@ opacity:0;transition:opacity .3s;z-index:1;}
 
 <!-- ═══ MAIN ═══ -->
 <main class="main">
+  <!-- De quién es el panel que ves: solo sale con el panel de otra persona -->
+  <div id="pmAjeno" class="pm-ajeno" hidden></div>
   <header class="header">
     <div class="header-left">
       <h1 id="platTitle">YouTube Planner</h1>
@@ -1089,6 +1225,10 @@ opacity:0;transition:opacity .3s;z-index:1;}
         <button class="view-btn active" onclick="setView('board',this)">Board</button>
         <button class="view-btn" onclick="setView('grid',this)">Grid</button>
       </div>
+      <button class="btn btn-compartir" id="btnCompartir" onclick="pmAbreCompartir()" title="Elige qué administradores pueden ver tu panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+        <span>Compartir</span>
+      </button>
       <button class="btn btn-primary" onclick="openModal()">+ Nuevo video</button>
     </div>
   </header>
@@ -1179,6 +1319,11 @@ opacity:0;transition:opacity .3s;z-index:1;}
       </div>
     </div>
     <div id="pmrBody"></div>
+  </div>
+
+  <!-- ═══ COMPARTIDOS: los paneles que otros administradores te abrieron ═══ -->
+  <div id="pmCompPanel">
+    <div id="pcBody"></div>
   </div>
   <!-- ═══ CALENDARIO (Máster) ═══ -->
   <div id="pmCalPanel">
@@ -4877,14 +5022,19 @@ const SYNC_KEYS=['content_os_v2','content_tree_v3','content_matrix_v1','yt_spy_v
 window.SYNC_KEYS=SYNC_KEYS;
 let __booted=false, __cloud=null;
 const __pushTimers={};
-const __origSet=localStorage.setItem.bind(localStorage);
-const __origRemove=localStorage.removeItem.bind(localStorage);
+/* Se intercepta en Storage.prototype y no con «localStorage.setItem=…»: Safari
+   no deja reemplazar el método así (guarda una entrada llamada «setItem») y en
+   Safari los cambios nunca se subían. Visto el 10 nov 2026. */
+const __P=Storage.prototype, __protoSet=__P.setItem, __protoRemove=__P.removeItem;
+const __origSet=(k,v)=>__protoSet.call(localStorage,k,v);
+const __origRemove=(k)=>__protoRemove.call(localStorage,k);
 window.__rawSet=(k,v)=>__origSet(k,v);
 window.__rawRemove=(k)=>__origRemove(k);
 const __pendingKeys=new Set();
 // Intercept writes to synced keys → push to cloud (debounced). Other keys behave normally.
-localStorage.setItem=function(k,v){
-  __origSet(k,v);
+__P.setItem=function(k,v){
+  __protoSet.call(this,k,v);
+  if(this!==window.localStorage) return;
   if(__cloud&&SYNC_KEYS.includes(k)){
     __pendingKeys.add(k);
     clearTimeout(__pushTimers[k]);
@@ -5383,20 +5533,162 @@ function pmToastRef(m){
 /* al cambiar de vista con cualquier botón del sidebar, el calendario se oculta */
 const __origSetActiveNav=setActiveNav;
 setActiveNav=function(sel){ __origSetActiveNav(sel); const cp=document.getElementById('pmCalPanel'); if(cp)cp.style.display='none';
-  const rp=document.getElementById('pmRefsPanel'); if(rp)rp.style.display='none'; };
+  const rp=document.getElementById('pmRefsPanel'); if(rp)rp.style.display='none';
+  const pc=document.getElementById('pmCompPanel'); if(pc)pc.style.display='none';
+  /* Lo que la vista anterior escondió o renombró vuelve a su sitio; la vista que
+     se abre lo cambia después si le toca (antes, al volver de Referencias, el
+     título seguía diciendo «Referencias» y «+ Nuevo video» no regresaba). */
+  const bp=document.querySelector('.btn.btn-primary'); if(bp)bp.style.display='';
+  try{ document.getElementById('platTitle').textContent=PLATS[plat].title;
+       document.getElementById('platSub').textContent=PLATS[plat].sub; }catch(e){} };
 /* al cerrar el modal (guardar/cancelar), si el calendario está abierto se refresca */
 const __origCloseModal=closeModal;
 closeModal=function(){ __origCloseModal(); const cp=document.getElementById('pmCalPanel'); if(cp&&cp.style.display==='flex')pmRenderCal(); };
 window.__bootApp=__bootApp;
+
+/* ══ COMPARTIR MI PANEL · COMPARTIDOS (10 nov 2026) ══
+   Cada administrador tiene su panel. Desde «Compartir» marca quién puede verlo o
+   editarlo; quien lo recibe lo encuentra en COMPARTIDOS. Abrir un panel es
+   recargar esta misma herramienta con «?de=<correo>»: así nada de un panel se
+   queda en la memoria del otro. Quién puede qué lo decide el servidor. */
+async function pmApi(action,payload){
+  const r=await fetch('/api/planner',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify(Object.assign({action},payload||{}))});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.ok===false) throw new Error((j&&j.error)||('HTTP '+r.status));
+  return j;
+}
+const pmEsc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pmNombre=p=>String((p&&p.name)||((p&&p.email)||'').split('@')[0]||'Alguien').trim();
+const pmPila=p=>pmNombre(p).split(/\s+/)[0];
+function pmAvi(p,cls){
+  const img=p&&(p.image||p.photo);
+  if(img && /^(https?:|data:image\/|\/)/i.test(img)) return '<span class="'+cls+'"><img src="'+pmEsc(img)+'" alt=""></span>';
+  return '<span class="'+cls+'">'+pmEsc(pmNombre(p).charAt(0).toUpperCase())+'</span>';
+}
+function pmHace(ms){
+  if(!ms) return 'sin cambios aún';
+  const m=Math.round((Date.now()-ms)/60000);
+  if(m<1) return 'cambió hace un momento';
+  if(m<60) return 'cambió hace '+m+'\u00a0min';
+  const h=Math.round(m/60); if(h<24) return 'cambió hace '+h+'\u00a0h';
+  const d=Math.round(h/24); return 'cambió hace '+d+(d===1?'\u00a0día':'\u00a0días');
+}
+async function pmIrAPanel(de){
+  try{ await window.__flushPending(); }catch(e){}
+  location.href=location.pathname+(de?('?de='+encodeURIComponent(de)):'');
+}
+function pmVuelveAMiPanel(){ pmIrAPanel(''); }
+
+/* La franja de arriba cuando el panel es de otra persona. */
+window.pmMuestraAjeno=function(d,permiso){
+  const b=document.getElementById('pmAjeno'); if(!b) return;
+  const edita=permiso==='editar';
+  document.documentElement.classList.toggle('solo-ver',!edita);
+  b.innerHTML=pmAvi(d||{},'pa-avi')
+    +'<div class="pa-txt"><b>Estás en el panel de '+pmEsc(pmNombre(d))+'</b>'
+    +'<i>'+(edita?'Puedes editarlo: lo que cambies lo ve también '+pmEsc(pmPila(d))+'.':'Solo para ver: lo que muevas aquí no se guarda.')+'</i></div>'
+    +'<button class="pa-volver" onclick="pmVuelveAMiPanel()">Volver a mi panel</button>';
+  b.hidden=false;
+};
+
+function pmOpenComp(btn){
+  if(typeof cerrarLab==='function') cerrarLab();
+  if(spyActive)closeYtSpy();
+  if(covActive)closeCoverAll();
+  setActiveNav(btn);
+  document.getElementById('boardWrap').style.display='none';
+  document.getElementById('treeCanvas').style.display='none';
+  document.getElementById('platTitle').textContent='Compartidos';
+  document.getElementById('platSub').textContent='Los paneles que otros administradores te compartieron';
+  document.querySelector('.btn.btn-primary').style.display='none';
+  document.getElementById('pmCompPanel').style.display='flex';
+  pmPintaCompartidos();
+}
+async function pmPintaCompartidos(){
+  const body=document.getElementById('pcBody'); if(!body) return;
+  body.innerHTML='<div class="pc-cargando">Buscando paneles…</div>';
+  let r;
+  try{ r=await pmApi('compartidosConmigo'); }
+  catch(e){ body.innerHTML='<div class="pc-vacio">No se pudo cargar la lista: '+pmEsc(e.message)+'</div>'; return; }
+  const de=window.__PANEL_DE||'', yo=window.__YO||{};
+  const tarjeta=(p,sub,on,ir)=>'<button type="button" class="pc-card'+(on?' on':'')+'" data-de="'+pmEsc(p.email===yo.email?'':p.email)+'"'
+      +(on?'':' onclick="pmIrAPanel(this.dataset.de)"')+'>'+pmAvi(p,'pc-avi')
+      +'<div class="pc-who"><b>'+pmEsc(p.titulo||pmNombre(p))+'</b><i>'+pmEsc(sub)+'</i></div>'
+      +'<span class="pc-ir">'+(on?'Estás aquí':ir)+'</span></button>';
+  const paneles=r.paneles||[];
+  let html='<div class="pc-lista">'+tarjeta(Object.assign({},yo,{titulo:'Mi panel'}),'Tú decides quién lo\u00a0ve',!de,'Abrir')+'</div>';
+  html+='<div class="pc-sec">Te compartieron</div>';
+  if(!paneles.length){
+    html+='<div class="pc-vacio">Todavía nadie te ha compartido su panel. Cuando un administrador te marque en «Compartir», su panel aparece aquí.</div>';
+  } else {
+    html+='<div class="pc-lista">'+paneles.map(p=>tarjeta(p,(p.permiso==='editar'?'Puedes editar':'Solo ver')+' · '+pmHace(p.cuando),de===p.email,'Abrir')).join('')+'</div>';
+  }
+  body.innerHTML=html;
+}
+
+let pmGente=[], pmCompartido={}, pmGuardando=Promise.resolve();
+async function pmAbreCompartir(){
+  const ov=document.getElementById('pmShare'), list=document.getElementById('psList');
+  ov.classList.add('open');
+  list.innerHTML='<div class="pc-cargando">Cargando administradores…</div>';
+  pmEstadoCompartir('');
+  try{
+    const r=await pmApi('compartirLeer');
+    pmGente=r.gente||[]; pmCompartido=r.compartido||{};
+    pmPintaGente();
+  }catch(e){ list.innerHTML='<div class="pc-vacio">No se pudo cargar la lista: '+pmEsc(e.message)+'</div>'; }
+}
+function pmCierraCompartir(){ document.getElementById('pmShare').classList.remove('open'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const ov=document.getElementById('pmShare'); if(ov&&ov.classList.contains('open')){ e.stopPropagation(); pmCierraCompartir(); } } },true);
+function pmEstadoCompartir(txt,err){
+  const s=document.getElementById('psEstado'); if(!s) return;
+  if(txt){ s.textContent=txt; s.className=err?'err':''; return; }
+  const n=Object.keys(pmCompartido).length;
+  s.className='';
+  s.textContent=n===1?'Lo puede abrir 1 persona además de\u00a0ti.':n?('Lo pueden abrir '+n+' personas además de\u00a0ti.'):'Ahora solo tú ves tu\u00a0panel.';
+}
+function pmPintaGente(){
+  const list=document.getElementById('psList');
+  if(!pmGente.length){ list.innerHTML='<div class="pc-vacio">Todavía no hay más administradores en la plataforma.</div>'; pmEstadoCompartir(); return; }
+  const OPC=[['','No'],['ver','Ver'],['editar','Editar']];
+  list.innerHTML=pmGente.map(g=>{
+    const v=pmCompartido[g.email]||'';
+    return '<div class="ps-row">'+pmAvi(g,'ps-avi')
+      +'<div class="ps-who"><b>'+pmEsc(pmNombre(g))+'</b><i>'+pmEsc(g.email)+'</i></div>'
+      +'<div class="ps-seg" role="radiogroup" aria-label="Acceso de '+pmEsc(pmNombre(g))+'" data-de="'+pmEsc(g.email)+'">'
+      +OPC.map(o=>'<button type="button" role="radio" aria-checked="'+(v===o[0])+'" data-v="'+o[0]+'" class="'+(v===o[0]?'on':'')+'" onclick="pmMarca(this)">'+o[1]+'</button>').join('')
+      +'</div></div>';
+  }).join('');
+  pmEstadoCompartir();
+}
+function pmMarca(b){
+  const seg=b.parentNode, de=seg.dataset.de, v=b.dataset.v;
+  if((pmCompartido[de]||'')===v) return;
+  if(v) pmCompartido[de]=v; else delete pmCompartido[de];
+  seg.querySelectorAll('button').forEach(x=>{ x.classList.toggle('on',x===b); x.setAttribute('aria-checked',String(x===b)); });
+  const quien=pmPila(pmGente.find(g=>g.email===de)||{email:de});
+  pmEstadoCompartir('Guardando…');
+  const pedido=Object.assign({},pmCompartido);
+  pmGuardando=pmGuardando.then(()=>pmApi('compartirGuardar',{compartido:pedido})).then(r=>{
+    pmCompartido=r.compartido||pedido;
+    pmEstadoCompartir();
+    window.__showToast&&window.__showToast(
+      v==='editar'?(quien+' ya puede ver y editar tu panel'):v==='ver'?(quien+' ya puede ver tu panel'):(quien+' ya no ve tu panel'),'ok');
+  }).catch(e=>{
+    pmEstadoCompartir('No se pudo guardar: '+e.message,true);
+    pmAbreCompartir();   // se vuelve a leer lo que de verdad quedó guardado
+  });
+}
 </script>
 
 <div id="wm">Club de Monetización</div>
 <!-- ════════════════════════════════════
      SINCRONIZACIÓN CON LA PLATAFORMA DEL CLUB
-     Traído del panel del Máster tal cual. Allá cada alumno guardaba lo suyo en
-     Vercel Blob; aquí hay UNA copia para todo el equipo, en /api/planner, y la
-     sesión es la de la plataforma (la cookie viaja sola).
-     De la herramienta no se cambió ni una línea: solo este bloque.
+     Traído del panel del Máster. Desde el 10 nov 2026 cada administrador tiene su
+     panel en /api/planner y puede compartirlo; «?de=<correo>» abre el de otra
+     persona. Cada llamada dice de qué panel habla (de) y que es la herramienta
+     nueva (v:2). La sesión es la de la plataforma (la cookie viaja sola).
 ════════════════════════════════════ -->
 <script type="module">
 if(window.self!==window.top)document.documentElement.classList.add('embed'); /* incrustado en la plataforma */
@@ -5405,16 +5697,30 @@ const statusEl = document.getElementById('loginStatus');
 
 function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusEl.className='login-status'+(err?' err':''); } }
 
+const PANEL_DE = window.__PANEL_DE || '';
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
     headers:{'content-type':'application/json'},
     credentials:'same-origin',
-    body:JSON.stringify(Object.assign({action},payload||{})),
+    body:JSON.stringify(Object.assign({action, de:PANEL_DE, v:2},payload||{})),
   });
   const j=await r.json().catch(()=>({}));
-  if(!r.ok||j.ok===false) throw new Error((j&&j.error)||('HTTP '+r.status));
+  if(!r.ok||j.ok===false){
+    const e=new Error((j&&j.error)||('HTTP '+r.status));
+    e.sinAcceso=!!j.sinAcceso; e.soloVer=!!j.soloVer; e.viejo=!!j.viejo;
+    throw e;
+  }
   return j;
+}
+
+/* Lo que puedo hacer con el panel que tengo delante: «editar» o «ver». */
+let permiso = 'editar';
+let avisoSoloVer = 0;
+/* Si me quitan el acceso mientras lo tengo abierto, de vuelta a mi panel. */
+function sinAccesoYa(){
+  window.__showToast && window.__showToast('Este panel ya no está compartido contigo','err');
+  setTimeout(()=>{ location.replace(location.pathname); }, 1800);
 }
 
 /* Lo que se guarda es de todo el equipo, así que se anota quién lo tocó y cuándo
@@ -5429,12 +5735,24 @@ const ultimoSabido = {};
 
 async function pushKey(key,json){
   if (ultimoSabido[key] === json) return;   // idéntico: no hay nada que guardar
+  if (permiso !== 'editar') {
+    /* Solo para ver: no se sube nada y la sección vuelve a como está guardada. */
+    if (typeof ultimoSabido[key] === 'string') window.__rawSet(key, ultimoSabido[key]); else window.__rawRemove(key);
+    setTimeout(()=>repintaSecciones([key]), 30);
+    if (Date.now() - avisoSoloVer > 4000) {
+      avisoSoloVer = Date.now();
+      window.__showToast && window.__showToast('Este panel es solo para ver: lo que cambies no se guarda','err');
+    }
+    return;
+  }
   try{
     const r = await call('plannerSet',{key,value:json});
     tocadoPorMi[key] = r.ahora || Date.now();
     ultimoSabido[key] = json;
   }catch(e){
     console.error('nube',key,e);
+    if (e.sinAcceso) return sinAccesoYa();
+    if (e.soloVer) { permiso = 'ver'; window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO||{}, 'ver'); }
     window.__showToast&&window.__showToast('No se pudo guardar: '+e.message,'err');
   }
 }
@@ -5448,7 +5766,7 @@ function mostrarIntro(st){
   nm.textContent=nombre?('Hola, '+nombre):'Hola';
   const sub=document.querySelector('.login-sub'); if(sub) sub.style.display='none';
   box.style.display='flex';
-  setStatus('Abriendo el planner del equipo…');
+  setStatus(PANEL_DE ? 'Abriendo el panel compartido…' : 'Abriendo tu panel…');
 }
 
 /* ── Tiempo real ──────────────────────────────────────────────────────────────
@@ -5492,7 +5810,12 @@ function arrancaTiempoReal(yaConocido){
 
   setInterval(async () => {
     if (document.hidden || hayAlgoAbierto()) return;
-    let info; try { info = await call('plannerCuando',{}); } catch { return; }
+    let info; try { info = await call('plannerCuando',{}); } catch (e) { if (e && e.sinAcceso) sinAccesoYa(); return; }
+    /* Si el dueño cambió mi permiso (de editar a ver o al revés), se nota al momento. */
+    if (PANEL_DE && info.permiso && info.permiso !== permiso) {
+      permiso = info.permiso;
+      window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO||{}, permiso);
+    }
     const cambiadas = SYNC_KEYS.filter(k => {
       const t = (info.cuando||{})[k] || 0;
       if (!t) return false;
@@ -5518,30 +5841,49 @@ function arrancaTiempoReal(yaConocido){
   }, 6000);
 }
 
-async function boot(){
-  setStatus('Cargando el planner del equipo…');
+async function boot(intento){
+  intento = intento || 0;
+  setStatus(PANEL_DE ? 'Cargando el panel compartido…' : 'Cargando tu panel…');
   let me=null;
   try{ me=await call('me',{}); }
   catch(e){ setStatus('Entra en la plataforma para usar el planner.',true); return; }
   const st=me.me||{};
+  window.__YO={ email:String(st.email||'').toLowerCase(), name:st.name||'', photo:st.photo||'' };
+  // ¿Me mandaron a mi propio panel por su correo? Es el mío: sin «?de=».
+  if(PANEL_DE && PANEL_DE===window.__YO.email){ location.replace(location.pathname); return; }
   mostrarIntro(st);
 
   const t0=Date.now();
-  let pulled=null;
-  try{ pulled=await call('plannerGet',{}); }catch(e){ console.error('nube',e); }
+  let pulled=null, fallo=null;
+  try{ pulled=await call('plannerGet',{}); }catch(e){ fallo=e; if(!e.sinAcceso) console.error('nube',e); }
 
-  if(pulled&&pulled.values&&Object.keys(pulled.values).length){
-    // Lo del equipo manda: es una sola copia compartida.
-    SYNC_KEYS.forEach(k=>{
-      if(typeof pulled.values[k]==='string'){ window.__rawSet(k,pulled.values[k]); ultimoSabido[k]=pulled.values[k]; }
-      else window.__rawRemove(k);
-    });
-  } else if(pulled){
-    // Primera vez: si este navegador traía algo, se sube como punto de partida.
-    SYNC_KEYS.forEach(k=>{
-      const v=localStorage.getItem(k);
-      if(v&&v.length>2&&v!=='{}'&&v!=='[]') pushKey(k,v);
-    });
+  /* Sin datos del servidor NO se arranca: con el panel de otra persona (o con el
+     tuyo recién estrenado) arrancar con lo que hubiera en este navegador y guardar
+     encima pisaría lo de verdad. Se reintenta solo. */
+  if(!pulled){
+    if(fallo && fallo.sinAcceso){
+      setStatus('Este panel ya no está compartido contigo. Te llevo al tuyo…',true);
+      setTimeout(()=>location.replace(location.pathname), 2200);
+    } else if(fallo && fallo.viejo){
+      setStatus('El Planner se actualizó: recarga la página.',true);
+    } else {
+      setStatus('No se pudo abrir el panel. Reintentando…',true);
+      setTimeout(()=>boot(intento+1), Math.min(15000, 2500*(intento+1)));
+    }
+    return;
+  }
+
+  /* Lo que está en la plataforma manda, también cuando está vacío. Antes, con
+     el servidor vacío, se subía lo que trajera el navegador: ahora eso subiría la
+     copia vieja del equipo al panel nuevo de otra persona. */
+  SYNC_KEYS.forEach(k=>{
+    if(typeof (pulled.values||{})[k]==='string'){ window.__rawSet(k,pulled.values[k]); ultimoSabido[k]=pulled.values[k]; }
+    else window.__rawRemove(k);
+  });
+  permiso = pulled.permiso || 'editar';
+  if(PANEL_DE){
+    window.__DUENO = pulled.dueno || { email: PANEL_DE };
+    window.pmMuestraAjeno && window.pmMuestraAjeno(window.__DUENO, permiso);
   }
 
   const falta=900-(Date.now()-t0); if(falta>0) await new Promise(r=>setTimeout(r,falta));

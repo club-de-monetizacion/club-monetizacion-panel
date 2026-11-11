@@ -3,18 +3,28 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
- * El almacén del YouTube Planner, compartido por todo el equipo.
+ * El almacén del YouTube Planner.
  *
- * La herramienta viene del Panel de Maestría, donde cada alumno guarda lo suyo. Aquí
- * hay **una sola copia**: lo que cambia cualquier administrador lo ven los demás.
- * Habla el mismo idioma que allá (`plannerGet` / `plannerSet`), así que la
- * herramienta no se tocó: solo apunta a esta dirección.
+ * La herramienta viene del Panel de Maestría y habla su idioma (`plannerGet` /
+ * `plannerSet`). Hasta el 10 nov 2026 aquí había UNA copia para todo el equipo.
+ * Desde entonces **cada administrador tiene su panel** y decide con quién lo
+ * comparte (Diego: «marcar a los administradores que pueden ver mi panel»).
+ *
+ * Cómo se guarda, sin cambiar el esquema (todo en `PlannerDoc`, una fila por
+ * sección):
+ * - El panel de Diego son las filas de siempre (`content_os_v2`, …): la copia que
+ *   era del equipo es la suya y no se movió ni un byte.
+ * - El de cualquier otra persona, `panel/<correo>/<sección>`.
+ * - Con quién comparte cada quien, `compartir/<correo>` → `{ "<correo>": "ver" | "editar" }`.
+ *
+ * Quién ve qué lo decide SIEMPRE el servidor: el panel de otra persona solo se lee
+ * si ella te lo compartió, y solo se escribe si te dejó editar.
  *
  * Entra quien tenga sesión en la plataforma, que son los administradores del Club.
  */
 
 /** Las secciones que guarda la herramienta. Nada fuera de esta lista se acepta. */
-const CLAVES = new Set([
+const CLAVES = [
   "content_os_v2",      // los videos y su estado
   "content_tree_v3",    // el árbol de contenido
   "content_matrix_v1",  // la matriz de contenido
@@ -22,83 +32,239 @@ const CLAVES = new Set([
   "cover_os_v1",        // los proyectos de portadas
   "cov_resources_v1",   // las fotos y recursos
   "thumb_bank_v1",      // el banco de miniaturas
-]);
+];
+const ES_CLAVE = new Set(CLAVES);
 
 /** Un JSON de sección puede ser grande (lleva imágenes en base64). */
 const MAX = 4_500_000;
 
+/** Dueño de la copia que antes era de todo el equipo: sus filas no llevan prefijo. */
+const DUENO_LEGADO = "diegocabrerarosas@gmail.com";
+
+/**
+ * Una pestaña abierta antes del cambio del 10 nov no sabe de paneles: pediría el
+ * suyo sin decir de quién y podría subir lo que tenía en memoria (la copia del
+ * equipo) a un panel que no es. Por eso la herramienta nueva manda `v: 2` y a la
+ * vieja se le pide recargar.
+ */
+const VERSION_HERRAMIENTA = 2;
+
+type Permiso = "ver" | "editar";
+
+const correo = (s: unknown) => String(s ?? "").trim().toLowerCase();
+const fila = (dueno: string, clave: string) =>
+  dueno === DUENO_LEGADO ? clave : `panel/${dueno}/${clave}`;
+const filaCompartir = (dueno: string) => `compartir/${dueno}`;
+const filasDe = (dueno: string) => CLAVES.map((c) => fila(dueno, c));
+/** De la fila guardada a la sección que conoce la herramienta. */
+const claveDe = (dueno: string, key: string) =>
+  dueno === DUENO_LEGADO ? key : key.slice(`panel/${dueno}/`.length);
+
+/** La foto solo si es razonable mandarla en una lista (algunas son base64 grandes). */
+const fotoLigera = (s: string | null | undefined) =>
+  s && s.length < 400_000 ? s : "";
+
+function leeMapa(texto: string | null | undefined): Record<string, Permiso> {
+  const limpio: Record<string, Permiso> = {};
+  try {
+    const m = JSON.parse(texto || "{}");
+    for (const [k, v] of Object.entries(m || {})) {
+      if (v === "ver" || v === "editar") limpio[correo(k)] = v;
+    }
+  } catch {
+    // Una fila ilegible cuenta como «no compartido con nadie».
+  }
+  return limpio;
+}
+
+async function compartidoPor(dueno: string) {
+  const f = await prisma.plannerDoc.findUnique({ where: { key: filaCompartir(dueno) } });
+  return leeMapa(f?.value);
+}
+
+/** Lo que puede hacer `yo` con el panel de `dueno`: editar, ver o nada. */
+async function permisoSobre(yo: string, dueno: string): Promise<Permiso | null> {
+  if (yo === dueno) return "editar";
+  return (await compartidoPor(dueno))[yo] ?? null;
+}
+
+const respuesta = (cuerpo: object, status = 200) => NextResponse.json(cuerpo, { status });
+
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ ok: false, error: "Sin sesión" }, { status: 401 });
+  const yo = correo(session?.user?.email);
+  if (!session?.user || !yo) {
+    return respuesta({ ok: false, error: "Sin sesión" }, 401);
   }
 
-  let cuerpo: { action?: string; key?: string; value?: string } = {};
+  let cuerpo: {
+    action?: string; key?: string; value?: string; de?: string; v?: number;
+    compartido?: Record<string, string>;
+  } = {};
   try {
     cuerpo = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "Cuerpo ilegible" }, { status: 400 });
+    return respuesta({ ok: false, error: "Cuerpo ilegible" }, 400);
   }
+  const accion = cuerpo.action;
 
-  if (cuerpo.action === "plannerGet") {
-    const filas = await prisma.plannerDoc.findMany();
-    const values: Record<string, string> = {};
-    /* Cuándo se tocó cada sección. Va junto con los datos a propósito: quien acaba
-       de traerlos ya sabe de qué momento son, y así no confunde lo que acaba de
-       leer con un cambio nuevo de otra persona. */
-    const cuando: Record<string, number> = {};
-    let masReciente = 0;
-    for (const f of filas) {
-      values[f.key] = f.value;
-      cuando[f.key] = f.updatedAt.getTime();
-      masReciente = Math.max(masReciente, f.updatedAt.getTime());
-    }
-    return NextResponse.json({ ok: true, values, cuando, desde: masReciente });
-  }
-
-  if (cuerpo.action === "plannerSet") {
-    const key = String(cuerpo.key || "");
-    const value = String(cuerpo.value ?? "");
-    if (!CLAVES.has(key)) {
-      return NextResponse.json({ ok: false, error: "Sección desconocida" }, { status: 400 });
-    }
-    if (value.length > MAX) {
-      return NextResponse.json(
-        { ok: false, error: "Esa sección pesa demasiado para guardarla" },
-        { status: 413 }
+  /* ── Las tres acciones de datos: piden la herramienta nueva y permiso ── */
+  if (accion === "plannerGet" || accion === "plannerSet" || accion === "plannerCuando") {
+    if (Number(cuerpo.v) < VERSION_HERRAMIENTA || !cuerpo.v) {
+      return respuesta(
+        { ok: false, viejo: true, error: "El Planner se actualizó: recarga la página." },
+        409
       );
     }
-    const quien = session.user.email || session.user.name || null;
-    const fila = await prisma.plannerDoc.upsert({
-      where: { key },
-      update: { value, updatedBy: quien },
-      create: { key, value, updatedBy: quien },
-    });
-    /* La hora que quedó guardada, no la de ahora mismo: es la que va a devolver el
-       sondeo, y así quien acaba de guardar reconoce su propio cambio sin margen. */
-    return NextResponse.json({ ok: true, ahora: fila.updatedAt.getTime() });
-  }
+    const dueno = correo(cuerpo.de) || yo;
+    const permiso = await permisoSobre(yo, dueno);
+    if (!permiso) {
+      return respuesta(
+        { ok: false, sinAcceso: true, error: "Este panel ya no está compartido contigo." },
+        403
+      );
+    }
 
-  /** Para el tiempo real: dice cuándo se tocó cada sección, sin traer el contenido. */
-  if (cuerpo.action === "plannerCuando") {
+    if (accion === "plannerGet") {
+      const filas = await prisma.plannerDoc.findMany({ where: { key: { in: filasDe(dueno) } } });
+      const values: Record<string, string> = {};
+      /* Cuándo se tocó cada sección. Va junto con los datos a propósito: quien acaba
+         de traerlos ya sabe de qué momento son, y así no confunde lo que acaba de
+         leer con un cambio nuevo de otra persona. */
+      const cuando: Record<string, number> = {};
+      let masReciente = 0;
+      for (const f of filas) {
+        const k = claveDe(dueno, f.key);
+        values[k] = f.value;
+        cuando[k] = f.updatedAt.getTime();
+        masReciente = Math.max(masReciente, f.updatedAt.getTime());
+      }
+      let duenoInfo = { email: dueno, name: "", image: "" };
+      if (dueno !== yo) {
+        const u = await prisma.user.findFirst({
+          where: { email: { equals: dueno, mode: "insensitive" } },
+          select: { name: true, image: true },
+        });
+        duenoInfo = { email: dueno, name: u?.name || "", image: fotoLigera(u?.image) };
+      }
+      return respuesta({ ok: true, values, cuando, desde: masReciente, permiso, dueno: duenoInfo });
+    }
+
+    if (accion === "plannerSet") {
+      if (permiso !== "editar") {
+        return respuesta({ ok: false, soloVer: true, error: "Este panel solo lo puedes ver." }, 403);
+      }
+      const key = String(cuerpo.key || "");
+      const value = String(cuerpo.value ?? "");
+      if (!ES_CLAVE.has(key)) {
+        return respuesta({ ok: false, error: "Sección desconocida" }, 400);
+      }
+      if (value.length > MAX) {
+        return respuesta({ ok: false, error: "Esa sección pesa demasiado para guardarla" }, 413);
+      }
+      const k = fila(dueno, key);
+      const guardada = await prisma.plannerDoc.upsert({
+        where: { key: k },
+        update: { value, updatedBy: yo },
+        create: { key: k, value, updatedBy: yo },
+      });
+      /* La hora que quedó guardada, no la de ahora mismo: es la que va a devolver el
+         sondeo, y así quien acaba de guardar reconoce su propio cambio sin margen. */
+      return respuesta({ ok: true, ahora: guardada.updatedAt.getTime() });
+    }
+
+    /* plannerCuando — para el tiempo real: cuándo se tocó cada sección, sin el contenido. */
     const filas = await prisma.plannerDoc.findMany({
+      where: { key: { in: filasDe(dueno) } },
       select: { key: true, updatedAt: true, updatedBy: true },
     });
-    return NextResponse.json({
+    return respuesta({
       ok: true,
-      cuando: Object.fromEntries(filas.map((f) => [f.key, f.updatedAt.getTime()])),
-      quien: Object.fromEntries(filas.map((f) => [f.key, f.updatedBy])),
+      permiso,
+      cuando: Object.fromEntries(filas.map((f) => [claveDe(dueno, f.key), f.updatedAt.getTime()])),
+      quien: Object.fromEntries(filas.map((f) => [claveDe(dueno, f.key), f.updatedBy])),
     });
+  }
+
+  /* ── Compartir mi panel: quién hay y con quién lo comparto ── */
+  if (accion === "compartirLeer") {
+    const gente = await prisma.user.findMany({
+      where: { NOT: { email: { equals: yo, mode: "insensitive" } } },
+      select: { email: true, name: true, image: true },
+      orderBy: { name: "asc" },
+    });
+    return respuesta({
+      ok: true,
+      gente: gente.map((g) => ({ email: correo(g.email), name: g.name || "", image: fotoLigera(g.image) })),
+      compartido: await compartidoPor(yo),
+    });
+  }
+
+  if (accion === "compartirGuardar") {
+    const pedido = leeMapa(JSON.stringify(cuerpo.compartido || {}));
+    delete pedido[yo];
+    /* Solo personas que existen en la plataforma (o sea, administradores). */
+    const existen = await prisma.user.findMany({
+      where: { email: { in: Object.keys(pedido), mode: "insensitive" } },
+      select: { email: true },
+    });
+    const validos = new Set(existen.map((e) => correo(e.email)));
+    const limpio: Record<string, Permiso> = {};
+    for (const [k, v] of Object.entries(pedido)) if (validos.has(k)) limpio[k] = v;
+    const k = filaCompartir(yo);
+    await prisma.plannerDoc.upsert({
+      where: { key: k },
+      update: { value: JSON.stringify(limpio), updatedBy: yo },
+      create: { key: k, value: JSON.stringify(limpio), updatedBy: yo },
+    });
+    return respuesta({ ok: true, compartido: limpio });
+  }
+
+  /* ── Compartidos conmigo: los paneles que otros me abrieron ── */
+  if (accion === "compartidosConmigo") {
+    const filas = await prisma.plannerDoc.findMany({
+      where: { key: { startsWith: "compartir/" } },
+      select: { key: true, value: true },
+    });
+    const mios: { dueno: string; permiso: Permiso }[] = [];
+    for (const f of filas) {
+      const dueno = f.key.slice("compartir/".length);
+      const p = leeMapa(f.value)[yo];
+      if (p && dueno !== yo) mios.push({ dueno, permiso: p });
+    }
+    if (!mios.length) return respuesta({ ok: true, paneles: [] });
+
+    const personas = await prisma.user.findMany({
+      where: { email: { in: mios.map((m) => m.dueno), mode: "insensitive" } },
+      select: { email: true, name: true, image: true },
+    });
+    const porCorreo = new Map(personas.map((p) => [correo(p.email), p]));
+    const tocadas = await prisma.plannerDoc.findMany({
+      where: { key: { in: mios.flatMap((m) => filasDe(m.dueno)) } },
+      select: { key: true, updatedAt: true },
+    });
+    const paneles = mios
+      .filter((m) => porCorreo.has(m.dueno))
+      .map((m) => {
+        const p = porCorreo.get(m.dueno)!;
+        const suyas = new Set(filasDe(m.dueno));
+        const cuando = tocadas
+          .filter((t) => suyas.has(t.key))
+          .reduce((max, t) => Math.max(max, t.updatedAt.getTime()), 0);
+        return { email: m.dueno, name: p.name || "", image: fotoLigera(p.image), permiso: m.permiso, cuando };
+      })
+      .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, "es"));
+    return respuesta({ ok: true, paneles });
   }
 
   // La herramienta pregunta quién es al arrancar.
-  if (cuerpo.action === "me") {
-    return NextResponse.json({
+  if (accion === "me") {
+    return respuesta({
       ok: true,
       role: session.user.role === "ADMIN" ? "admin" : "member",
       me: {
         name: session.user.name || "",
-        email: session.user.email || "",
+        email: yo,
         photo: session.user.image || "",
         unlocked: { f2: true },   // en el Club no hay fases que desbloquear
       },
@@ -109,15 +275,15 @@ export async function POST(req: Request) {
      desde el navegador porque i.ytimg.com no permite leer la imagen desde otra
      página (haría falta CORS), y la herramienta la necesita como datos para poder
      ponerla en el lienzo. Misma lógica que en el panel del Máster. */
-  if (cuerpo.action === "ytThumb") {
+  if (accion === "ytThumb") {
     const u = String((cuerpo as { url?: string }).url || "");
     const m = u.match(
       /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,20})/i
     );
     if (!m) {
-      return NextResponse.json(
+      return respuesta(
         { ok: false, error: "Pega un link de video de YouTube (youtube.com/watch?v=… o youtu.be/…)." },
-        { status: 400 }
+        400
       );
     }
     const id = m[1];
@@ -129,20 +295,17 @@ export async function POST(req: Request) {
         const buf = Buffer.from(await r.arrayBuffer());
         // YouTube devuelve una imagen gris de 1 KB cuando esa calidad no existe.
         if (buf.length > 5000) {
-          return NextResponse.json({
-            ok: true,
-            dataUrl: "data:image/jpeg;base64," + buf.toString("base64"),
-          });
+          return respuesta({ ok: true, dataUrl: "data:image/jpeg;base64," + buf.toString("base64") });
         }
       } catch {
         // Se prueba la calidad siguiente.
       }
     }
-    return NextResponse.json(
+    return respuesta(
       { ok: false, error: "No se pudo obtener la portada de ese video — revisa el link." },
-      { status: 404 }
+      404
     );
   }
 
-  return NextResponse.json({ ok: false, error: "Acción desconocida" }, { status: 400 });
+  return respuesta({ ok: false, error: "Acción desconocida" }, 400);
 }

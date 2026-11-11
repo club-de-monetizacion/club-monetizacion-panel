@@ -8,7 +8,8 @@ export const metadata = { title: "YouTube Planner" };
 /**
  * El YouTube Planner, dentro de la plataforma. Viene del panel del Máster tal cual
  * (`public/planner/planner.html`): lo único que cambió es a dónde guarda
- * (`/api/planner`, una copia para todo el equipo) y los colores.
+ * (`/api/planner`: desde el 10 nov 2026 cada administrador tiene su panel y lo puede
+ * compartir; `?de=<correo>` en el marco abre el de otra persona) y los colores.
  *
  * Va en un marco y no reescrito en React a propósito: son 5.300 líneas que llevan
  * tiempo funcionando. Ella misma se da cuenta de que está incrustada y se ajusta.
