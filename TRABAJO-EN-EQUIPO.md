@@ -390,3 +390,12 @@ De este lado, solo archivos nuevos y la barra lateral:
 - `src/lib/escritorio.ts` — la versión y las descargas, en un solo sitio.
 La app se reconoce porque su navegador lleva `TareasClubEscritorio/<versión>`.
 
+### v1.6.1 · la app entra con su propia pantalla (11 nov 2026, noche)
+Diego: «no quiero que se descargue la página web». La app ya no enseña la portada del Club: tiene
+su pantalla de entrada. Google NO deja iniciar sesión dentro de una app de escritorio (comprobado:
+«el navegador o la aplicación no son seguros»), así que «Entrar con Google» abre el navegador en
+`clubdemonetizacion.com/escritorio?codigo=…`, la persona confirma y la app recibe la sesión del Club
+(acciones nuevas `escritorioAprueba` / `escritorioCanjea` en `api/sesion.js` del Club). Con correo y
+contraseña entra directo. Dentro de la app solo va Tareas; lo demás del Club se abre en el navegador.
+App 1.0.1 en `tareas-escritorio.vercel.app/v1.0.1/`.
+

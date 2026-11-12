@@ -10,19 +10,19 @@
  * El código de la app vive en «/Volumes/DISCO 4T/Claude/Tareas Escritorio (Club)».
  */
 export const ESCRITORIO = {
-  version: "1.0.0",
+  version: "1.0.1",
   fecha: "11 nov 2026",
   descargas: {
     macArm: {
-      url: "https://tareas-escritorio.vercel.app/v1.0.0/Tareas-del-Club-mac-arm64.dmg",
+      url: "https://tareas-escritorio.vercel.app/v1.0.1/Tareas-del-Club-mac-arm64.dmg",
       peso: "119 MB",
     },
     macIntel: {
-      url: "https://tareas-escritorio.vercel.app/v1.0.0/Tareas-del-Club-mac-x64.dmg",
+      url: "https://tareas-escritorio.vercel.app/v1.0.1/Tareas-del-Club-mac-x64.dmg",
       peso: "125 MB",
     },
     windows: {
-      url: "https://tareas-escritorio.vercel.app/v1.0.0/Tareas-del-Club-windows.exe",
+      url: "https://tareas-escritorio.vercel.app/v1.0.1/Tareas-del-Club-windows.exe",
       peso: "112 MB",
     },
   },

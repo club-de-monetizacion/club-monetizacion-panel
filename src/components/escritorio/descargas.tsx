@@ -119,7 +119,10 @@ export function Descargas({ info }: { info: Info }) {
         <ul className="mt-5 space-y-3 border-t border-[var(--linea)] pt-4 text-sm text-[var(--ink-2)]">
           <li className="flex gap-3">
             <Laptop className="mt-0.5 h-4 w-4 shrink-0 text-[var(--oro)]" />
-            <span>Es la misma Tareas: entras con tu cuenta del Club (correo o Google) y ves lo mismo que aquí.</span>
+            <span>
+              Es la misma Tareas, con tu cuenta del Club. Para entrar con tu Gmail la app abre tu navegador un momento;
+              con correo y contraseña entras directo.
+            </span>
           </li>
           <li className="flex gap-3">
             <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-[var(--oro)]" />
