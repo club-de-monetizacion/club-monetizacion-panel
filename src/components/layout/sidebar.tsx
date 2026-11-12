@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   ChevronLeft,
+  MonitorDown,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,14 @@ export function Sidebar({
   role?: Role;
 }) {
   const pathname = usePathname();
+  /* Dentro de la app de escritorio (11 nov 2026) no hace falta «Descargar la app» ni
+     «Regresar» (llevaría al Club, fuera de Tareas). La app se anuncia en su navegador. */
+  const [enLaApp, setEnLaApp] = useState(false);
+  useEffect(() => {
+    // Solo el navegador sabe si está dentro de la app de escritorio.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnLaApp(navigator.userAgent.includes("TareasClubEscritorio/"));
+  }, []);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname?.startsWith(href);
@@ -123,8 +132,12 @@ export function Sidebar({
         {/* Regresar: a la ventana anterior, sea de Tareas o del Club (Diego, 11 nov
             2026: «necesito que regrese a una ventana anterior, no hasta el panel»). Vive
             aquí y no en la cabecera: allá quedaba encima de cada herramienta. */}
-        <Regresar />
-        <div className="mx-[13px] my-1.5 h-px bg-[var(--linea)]" />
+        {!enLaApp && (
+          <>
+            <Regresar />
+            <div className="mx-[13px] my-1.5 h-px bg-[var(--linea)]" />
+          </>
+        )}
 
         <NavLink href="/" icon={<Home className="h-4 w-4" />} active={isActive("/")}>
           Inicio
@@ -232,6 +245,18 @@ export function Sidebar({
             active={isActive("/tareas-diarias-soporte")}
           >
             Tareas diarias Soporte
+          </NavLink>
+        )}
+
+        {/* La app de escritorio: Diego, 11 nov 2026: «desde la barra lateral de Tareas, la
+            opción para descargar la versión de escritorio, instalarla y usarla en la Mac o PC». */}
+        {!enLaApp && (
+          <NavLink
+            href="/escritorio"
+            icon={<MonitorDown className="h-4 w-4" />}
+            active={isActive("/escritorio")}
+          >
+            App de escritorio
           </NavLink>
         )}
 

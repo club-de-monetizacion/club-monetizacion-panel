@@ -372,3 +372,21 @@ Además, el panel de Diego ya no abría: el navegador topa en ~5 MB («exceeded 
 - Las secciones viven en la memoria de la pestaña también en tu propio panel (ya no en
   `localStorage`). `scripts/respaldar-db.mjs` ahora también respalda `plannerDoc`.
 
+## Tareas v1.6: la app de escritorio «Tareas del Club» (Mac y Windows)  ✅ hecho (11 nov 2026)
+
+Diego: «hacer la app de Tareas del equipo para escritorio; se inicia sesión con el mismo usuario
+que en la web, no es una app diferente». La app (Electron) **carga esta web** con la sesión del
+Club y añade lo que tenía su app de Pendientes del Mac: botón flotante con el número de
+pendientes, captura rápida (⌘⇧Espacio / Ctrl+Shift+Espacio) y avisos a la 1 pm de los vencidos.
+Código de la app: `/Volumes/DISCO 4T/Claude/Tareas Escritorio (Club)` (su LEEME dice cómo construir).
+Instaladores: `tareas-escritorio.vercel.app/v1.0.0/` (proyecto Vercel `tareas-escritorio`).
+
+De este lado, solo archivos nuevos y la barra lateral:
+- `/escritorio` — la página de descarga (detecta Mac chip Apple / Intel / Windows) y «App de
+  escritorio» en la barra lateral. Dentro de la app no salen ni ese enlace ni «Regresar».
+- `/captura` — los mismos Pendientes sin menú, para la ventanita de la captura rápida.
+- `GET /api/pendientes/resumen` (con la sesión) — cuántos pendientes y cuáles vencieron.
+- `GET /api/escritorio` (público) — la versión publicada; la app pregunta si hay una nueva.
+- `src/lib/escritorio.ts` — la versión y las descargas, en un solo sitio.
+La app se reconoce porque su navegador lleva `TareasClubEscritorio/<versión>`.
+
