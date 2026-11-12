@@ -96,7 +96,7 @@ const VERSION_HERRAMIENTA = 3;
  * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
  * porque tenía abierta la de antes).
  */
-const HERRAMIENTA_PUBLICADA = 5; // 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
+const HERRAMIENTA_PUBLICADA = 6; // 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
@@ -205,9 +205,30 @@ export async function POST(req: Request) {
       let masReciente = 0;
       for (const f of filas) {
         const k = claveDe(dueno, f.key);
-        values[k] = f.value;
-        cuando[k] = f.updatedAt.getTime();
-        masReciente = Math.max(masReciente, f.updatedAt.getTime());
+        let valor = f.value, hora = f.updatedAt;
+        /* ⚡ Una sección que aún trae imágenes dentro (guardada antes de que fueran aparte)
+           se aligera la primera vez que alguien la abre: las imágenes pasan a su fila y la
+           sección queda en direcciones. Solo si nadie la tocó mientras tanto (si no, se
+           responde aligerada igual y la guarda quien la cambió). Nada se pierde: es la
+           misma imagen, en su sitio. */
+        if (valor.length > 20_000 && valor.includes("data:image/")) {
+          try {
+            const ligero = await sacaImagenes(valor, f.updatedBy || yo);
+            if (ligero !== valor) {
+              try {
+                const g = await prisma.plannerDoc.update({
+                  where: { key: f.key, updatedAt: f.updatedAt },
+                  data: { value: ligero, updatedBy: f.updatedBy },
+                });
+                hora = g.updatedAt;
+              } catch { /* alguien guardó encima: lo suyo manda */ }
+              valor = ligero;
+            }
+          } catch (e) { console.error("[planner] no se pudo aligerar", f.key, e); }
+        }
+        values[k] = valor;
+        cuando[k] = hora.getTime();
+        masReciente = Math.max(masReciente, hora.getTime());
       }
       let duenoInfo = { email: dueno, name: "", image: "" };
       if (dueno !== yo) {

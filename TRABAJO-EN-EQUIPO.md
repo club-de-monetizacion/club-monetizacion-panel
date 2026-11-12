@@ -399,3 +399,12 @@ su pantalla de entrada. Google NO deja iniciar sesión dentro de una app de escr
 contraseña entra directo. Dentro de la app solo va Tareas; lo demás del Club se abre en el navegador.
 App 1.0.1 en `tareas-escritorio.vercel.app/v1.0.1/`.
 
+### v1.6.2 · imágenes del Planner rápidas (11 nov 2026, noche)
+Diego: «las imágenes están cargando muy lento, en la web y en la app; si alguien sube algo se tarda».
+Las portadas eran PNG de 2–3 MB enseñadas a 300 px. Ahora `GET /api/planner/img/<id>?w=<ancho>` da una
+copia en WebP (sharp, anchos 160–1600) de 30–50 KB y se guarda en la red de Vercel (`s-maxage`,
+inmutable: la dirección es la huella del contenido). El Planner pide `?w=` en tarjetas, calendario,
+miniaturas y referencias (`pmMini()`); el editor de portadas sigue con la original. Las 7 portadas:
+de 7 MB a 280 KB. Y `plannerGet` aligera solo la sección que aún traiga imágenes dentro (pasan a su
+fila; condicional sobre `updatedAt`, no pisa a nadie). `HERRAMIENTA_PUBLICADA`/`VERSION_PLANNER` = 6.
+

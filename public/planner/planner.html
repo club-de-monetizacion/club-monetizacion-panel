@@ -18,6 +18,9 @@
   var de='';
   try{ de=(new URLSearchParams(location.search).get('de')||'').trim().toLowerCase(); }catch(e){}
   window.__PANEL_DE=de;
+  /* ⚡ 11 nov 2026: una imagen del Planner en el tamaño en que se ve (WebP ligero; la
+     original, de 2–3 MB, solo para el editor de portadas). */
+  window.pmMini=function(src,w){ return (typeof src==='string' && /^\/api\/planner\/img\/[a-f0-9]{40}$/.test(src)) ? src+'?w='+(w||640) : src; };
   if(de) document.documentElement.classList.add('panel-ajeno');
   /* 11 nov 2026: también tu propio panel vive solo en la memoria de la pestaña. Lo que
      manda es la plataforma (se trae entera al abrir), y el navegador no guarda más de
@@ -2063,7 +2066,7 @@ function coverInner(c){
   }
   if(c.type==='color')    return `<div style="width:100%;height:100%;background:${c.value}"></div>`;
   if(c.type==='gradient') return `<div style="width:100%;height:100%;background:${c.value}"></div>`;
-  if(c.type==='image')    return `<img src="${c.value}" alt="" loading="lazy">`;
+  if(c.type==='image')    return `<img src="${pmMini(c.value,640)}" alt="" loading="lazy" decoding="async">`;
   return '';
 }
 
@@ -3826,7 +3829,7 @@ function renderCovProjects(){
   d.projects.forEach(proj=>{
     const c=document.createElement('div'); c.className='cov-proj-card';
     const firstImg=proj.elements?.find(e=>e.type==='image');
-    const prev=firstImg?`<img src="${firstImg.src}">`:'🎨';
+    const prev=firstImg?`<img src="${pmMini(firstImg.src,480)}" loading="lazy" decoding="async">`:'🎨';
     const dt=new Date(proj.createdAt||Date.now()).toLocaleDateString('es-MX',{month:'short',day:'numeric',year:'numeric'});
     c.innerHTML=`
       <div class="cov-proj-preview">${prev}</div>
@@ -4516,7 +4519,7 @@ function renderCovRes(){
   }
   grid.innerHTML=resources.map(r=>`
     <div class="cov-res-item" title="${r.name}">
-      <img class="cov-res-thumb" src="${r.src}" draggable="false" data-res-id="${r.id}">
+      <img class="cov-res-thumb" src="${pmMini(r.src,320)}" loading="lazy" decoding="async" draggable="false" data-res-id="${r.id}">
       <button class="cov-res-del" onclick="event.stopPropagation();covResDelete('${r.id}')">✕</button>
     </div>
   `).join('');
@@ -4535,7 +4538,7 @@ function covResThumbMousedown(e){
   if(!res)return;
   // Create ghost image that follows cursor
   const ghost=document.createElement('img');
-  ghost.src=res.src;
+  ghost.src=pmMini(res.src,320);
   ghost.style.cssText='position:fixed;width:120px;height:80px;object-fit:cover;border-radius:6px;opacity:.82;pointer-events:none;z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,.5);border:2px solid var(--accent);';
   ghost._hw=60; ghost._hh=40;
   ghost.style.left=(e.clientX-60)+'px';
@@ -4919,7 +4922,7 @@ function renderCovRes(){
     if(!refs.length){grid.innerHTML='<p style="color:var(--muted);font-size:11px;text-align:center;padding:18px 8px;line-height:1.6">Aquí aparecen las <b>portadas de referencia</b> que cargaste en tu investigación (Fase 1) y la portada de tu video (Fase 2).<br><br>Cárgalas en tus formularios del panel y recarga el planner.</p>';return;}
     grid.innerHTML=refs.map((src,i)=>`
       <div class="cov-res-item" title="Clic: colocar en el lienzo abierto">
-        <img class="cov-res-thumb" src="${src}" draggable="false" onclick="pmPlaceRef(${i})">
+        <img class="cov-res-thumb" src="${pmMini(src,320)}" loading="lazy" decoding="async" draggable="false" onclick="pmPlaceRef(${i})">
         <button class="cov-ref-add" title="Guardar en Mis fotos" onclick="event.stopPropagation();pmRefToRes(${i})">＋</button>
       </div>
     `).join('');
@@ -4933,7 +4936,7 @@ function renderCovRes(){
   }
   grid.innerHTML=resources.map(r=>`
     <div class="cov-res-item" title="${r.name}">
-      <img class="cov-res-thumb" src="${r.src}" draggable="false" data-res-id="${r.id}">
+      <img class="cov-res-thumb" src="${pmMini(r.src,320)}" loading="lazy" decoding="async" draggable="false" data-res-id="${r.id}">
       <button class="cov-res-del" onclick="event.stopPropagation();covResDelete('${r.id}')">✕</button>
     </div>
   `).join('');
@@ -5347,7 +5350,7 @@ function pmToggleRefPop(force){
   const bank=loadThumbBank(); const refs=window.__pmRefs||[];
   let h='';
   if(bank.length) h+='<div class="pmrp-sec">💾 Guardadas del SPY</div><div class="pmrp-grid">'+bank.map((t2,i)=>`<img src="${esc(t2.thumb)}" title="${esc(t2.title)}" loading="lazy" onclick="pmPickRefBank(${i})">`).join('')+'</div>';
-  if(refs.length) h+='<div class="pmrp-sec">📋 De mi panel (F1/F2)</div><div class="pmrp-grid">'+refs.map((s,i)=>`<img src="${s}" onclick="pmPickRefIdx(${i})">`).join('')+'</div>';
+  if(refs.length) h+='<div class="pmrp-sec">📋 De mi panel (F1/F2)</div><div class="pmrp-grid">'+refs.map((s,i)=>`<img src="${pmMini(s,320)}" loading="lazy" decoding="async" onclick="pmPickRefIdx(${i})">`).join('')+'</div>';
   if(!h) h='<div class="pmrp-empty">Aún no tienes referencias guardadas.<br><br>Ve a <b>SPY</b>, explora un nicho y guarda portadas con 💾 — o carga tus portadas de referencia en tu formulario de Fase 1.</div>';
   document.getElementById('pmRefPopBody').innerHTML=h;
 }
@@ -5376,7 +5379,7 @@ function pmRenderCovRefsHome(){
   }
   if(refs.length){
     h+='<div class="pm-refs-hd">📋 Referencias de mi panel (F1/F2)</div><div class="pm-refs-grid">'+
-      refs.map((s,i)=>`<div class="pm-ref-card"><img src="${s}" onclick="pmCovRefView('panel',${i})"><button class="cov-ref-add" title="Copiar a Mis fotos" onclick="event.stopPropagation();pmRefToRes(${i})">＋</button></div>`).join('')+'</div>';
+      refs.map((s,i)=>`<div class="pm-ref-card"><img src="${pmMini(s,480)}" loading="lazy" decoding="async" onclick="pmCovRefView('panel',${i})"><button class="cov-ref-add" title="Copiar a Mis fotos" onclick="event.stopPropagation();pmRefToRes(${i})">＋</button></div>`).join('')+'</div>';
   }
   if(!h) h='<div class="pm-refs-hd">💾 Tus referencias</div><div class="pm-refs-empty">Aún no tienes portadas de referencia. Ve a <b>SPY</b>, explora un nicho y guarda portadas con 💾 — o carga tus referencias en tu formulario de Fase 1. Aquí las verás todas juntas.</div>';
   box.innerHTML=h;
@@ -5406,7 +5409,7 @@ function pmPaintUploadZone(){
   const c=(typeof curCover==='object'&&curCover)?curCover:{type:'none'};
   const con=c.type==='image'||c.type==='gradient'||c.type==='color'||c.type==='tmpl';
   uz.classList.toggle('has-img',con);
-  uz.style.backgroundImage=c.type==='image'?`url("${c.value}")`:(c.type==='gradient'?c.value:'');
+  uz.style.backgroundImage=c.type==='image'?`url("${pmMini(c.value,960)}")`:(c.type==='gradient'?c.value:'');
   uz.style.backgroundColor=c.type==='color'?c.value:'';
   let ov=uz.querySelector('.uz-tmpl');
   const tmpl=c.type==='tmpl'?COV_TEMPLATES.find(t2=>t2.id===c.value):null;
@@ -5804,7 +5807,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 5;
+const VERSION_PLANNER = 6;
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
