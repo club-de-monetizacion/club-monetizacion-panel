@@ -1249,6 +1249,16 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 #pmCalPanel.arrastrando.con-fecha .pm-cal-zona{box-shadow:0 0 0 1px rgba(201,160,64,.32);}
 #pmCalPanel .pm-cal-zona.dragover{background:rgba(201,160,64,.1);box-shadow:0 0 0 2px var(--accent)!important;}
 .pm-cal-hint{text-wrap:pretty;}
+/* HOY se distingue de un vistazo (23 nov 2026, Diego: «todo el calendario se ve igual»):
+   número en círculo dorado, etiqueta «HOY», la celda con brillo dorado y su día de la semana marcado. */
+#pmCalPanel .pm-cal-cell.today{background:linear-gradient(180deg,rgba(201,160,64,.2),rgba(201,160,64,.05) 70%)!important;
+  border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent),0 0 22px rgba(201,160,64,.22)!important;}
+.pm-cal-cell.today .pm-cal-d{display:flex;align-items:center;gap:6px;}
+.pm-cal-cell.today .pm-cal-d b{display:inline-grid;place-items:center;min-width:21px;height:21px;padding:0 5px;border-radius:999px;
+  background:var(--oro-boton);color:#1a1200;font-size:10.5px;font-weight:800;box-shadow:0 2px 8px rgba(201,160,64,.35);}
+.pm-cal-hoy{font-size:8.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#FFE7A8;}
+@media(max-width:700px){.pm-cal-cell.today .pm-cal-d{flex-direction:column;align-items:flex-start;gap:3px;}.pm-cal-hoy{font-size:7.5px;letter-spacing:.3px;}}
+.pm-cal-names>div.hoy{color:#1a1200!important;background:var(--oro-boton);border-radius:6px;}
 /* «REFERENCIAS» no cabía en la app de escritorio: se cortaba por la izquierda */
 #refsNavBtn{font-size:7.6px;letter-spacing:0;}
 </style>
@@ -5494,7 +5504,7 @@ const pmCalAbierto=()=>{ const cp=document.getElementById('pmCalPanel'); return 
 function pmCalFecha(f,largo){
   try{ const p=f.split('-').map(Number);
     return new Date(p[0],p[1]-1,p[2]).toLocaleDateString('es-MX',largo?{weekday:'long',day:'numeric',month:'long'}:{weekday:'short',day:'numeric',month:'short'})
-      .replace(/\./g,'').replace(',',''); }
+      .replace(/\./g,'').replace(',','').replace(largo?/^$/:/ de /g,' '); }
   catch(e){ return fmtDate(f); }
 }
 function pmOpenCal(btn){
@@ -5600,9 +5610,11 @@ function pmRenderCal(){
       if(hayCov)return `<div class="pm-cal-pill-cov" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${coverInner(v.cover)}</div>`;
       return `<div class="pm-cal-pill badge b-${v.status}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${esc(v.title||'Sin título')}</div>`;
     }).join('');
-    cells+=`<div class="pm-cal-cell ${f===hoy?'today':''}" onclick="pmCalNew('${f}')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="pmCalDrop(event,'${f}')"><div class="pm-cal-d">${d}</div>${pills}</div>`;
+    cells+=`<div class="pm-cal-cell ${f===hoy?'today':''}" onclick="pmCalNew('${f}')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="pmCalDrop(event,'${f}')"><div class="pm-cal-d">${f===hoy?'<b>'+d+'</b><span class="pm-cal-hoy">Hoy</span>':d}</div>${pills}</div>`;
   }
   document.getElementById('pmCalGrid').innerHTML=cells;
+  { const hd=new Date(), esMes=hd.getFullYear()===y&&hd.getMonth()===m, col=(hd.getDay()+6)%7;
+    document.querySelectorAll('.pm-cal-names>div').forEach((x,i)=>x.classList.toggle('hoy',esMes&&i===col)); }
   /* lado derecho: próximos (asc), luego fechas pasadas, y al final los sin fecha */
   const conFecha=vids.filter(v=>v.date);
   const prox=conFecha.filter(v=>v.date>=hoy).sort((a,b)=>a.date<b.date?-1:1);
@@ -5890,7 +5902,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 7;   // 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 8;   // 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
