@@ -96,7 +96,7 @@ const VERSION_HERRAMIENTA = 3;
  * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
  * porque tenía abierta la de antes).
  */
-const HERRAMIENTA_PUBLICADA = 10; // 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
+const HERRAMIENTA_PUBLICADA = 11; // 11 = el Árbol solo quita del Árbol + Ctrl+Z/Ctrl+Y (23 nov 2026) · 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */

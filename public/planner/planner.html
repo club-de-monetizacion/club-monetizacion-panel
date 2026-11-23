@@ -2208,7 +2208,9 @@ function renderTree(){
   const pt=getPTree(plat);
 
   // Auto-position new videos at current viewport center
-  const newVids=videos.filter(v=>!pt.nodes[v.id]);
+  /* lo quitado del Árbol (pt.fuera) no vuelve a ponerse solo */
+  const fuera=new Set(pt.fuera||[]);
+  const newVids=videos.filter(v=>!pt.nodes[v.id]&&!fuera.has(v.id));
   if(newVids.length){
     const canvasEl=document.getElementById('treeCanvas');
     const cw=canvasEl?.clientWidth||900, ch=canvasEl?.clientHeight||600;
@@ -2226,12 +2228,13 @@ function renderTree(){
   const ids=new Set(videos.map(v=>v.id));
   Object.keys(pt.nodes).forEach(id=>{if(!ids.has(id))delete pt.nodes[id];});
   pt.edges=(pt.edges||[]).filter(e=>ids.has(e.fromId)&&ids.has(e.toId));
+  if(pt.fuera)pt.fuera=pt.fuera.filter(id=>ids.has(id));
   setPTree(plat,pt);
 
   // Clear old cards
   document.querySelectorAll('#treeWorld .tree-card').forEach(el=>el.remove());
 
-  videos.forEach(v=>document.getElementById('treeWorld').appendChild(makeTreeCard(v,pt.nodes[v.id])));
+  videos.filter(v=>pt.nodes[v.id]).forEach(v=>document.getElementById('treeWorld').appendChild(makeTreeCard(v,pt.nodes[v.id])));
 
   liveNodes={...pt.nodes};
   drawEdges();
@@ -2489,11 +2492,15 @@ function updateNodeSelectionUI(){
 function deleteSelectedNodes(){
   if(!selNodes.size) return;
   const n=selNodes.size;
+  /* 23 nov 2026, Diego (borró sus portadas por accidente desde aquí): «eliminando en el árbol
+     no quiero que se borren de otros lugares; solo del árbol». Quitar del Árbol NO borra el
+     video: sigue en el tablero y en el calendario. Para volver a ponerlo: clic derecho en su
+     portada › «Volver al Árbol». Ctrl+Z también lo deshace. */
   showConfirm(
-    `¿Eliminar <b>${n}</b> elemento${n>1?'s':''} seleccionado${n>1?'s':''}?<br><span style="font-size:12px;color:var(--muted)">También se eliminan sus flechas conectadas.</span>`,
+    `¿Quitar <b>${n}</b> del Árbol?<br><span style="font-size:12px;color:var(--muted)">Solo se quita${n>1?'n':''} de aquí, con sus flechas: sigue${n>1?'n':''} en el tablero y en el calendario.</span>`,
     ()=>{
-      setPVids(plat, getPVids(plat).filter(v=>!selNodes.has(v.id)));
       const pt=getPTree(plat);
+      pt.fuera=Array.from(new Set((pt.fuera||[]).concat(Array.from(selNodes))));
       selNodes.forEach(id=>delete pt.nodes[id]);
       pt.edges=(pt.edges||[]).filter(e=>!selNodes.has(e.fromId)&&!selNodes.has(e.toId));
       setPTree(plat,pt);
@@ -2502,7 +2509,8 @@ function deleteSelectedNodes(){
       document.getElementById('delEdgeBtn').style.display='none';
       document.getElementById('delSelBtn').style.display='none';
       render();
-    }
+      if(window.__showToast)window.__showToast('Quitado del Árbol: sigue en el tablero. Ctrl+Z lo regresa','ok');
+    },'Quitar del Árbol'
   );
 }
 
@@ -5246,8 +5254,58 @@ const __pendingKeys=new Set();
 /* Secciones con un cambio que la plataforma todavía no confirmó (por subir, subiéndose o
    que falló). Mientras una esté aquí, nada de fuera la pisa y la pestaña no se recarga. */
 window.__sinSubir=new Set();
+/* ══ DESHACER / REHACER (23 nov 2026) ══
+   Diego: «haz que funcione el Ctrl+Z para recuperar o el Ctrl+Y para rehacer». Cada cambio
+   tuyo a los videos, al Árbol o a la matriz queda apuntado (lo que llega del equipo, no: entra
+   por __rawSet). Los cambios seguidos en menos de 0,8 s cuentan como uno (mover una tarjeta).
+   Al deshacer solo se revierte lo tuyo: si alguien cambió otra cosa mientras, se respeta. */
+const PM_HIST_KEYS=['content_os_v2','content_tree_v3','content_matrix_v1'];
+const pmHist={atras:[],adelante:[],grupo:null,aplicando:false};
+function pmHistApunta(k,antes,despues){
+  if(pmHist.aplicando||!pmHist.listo||antes===despues)return;
+  const ahora=Date.now(), g=pmHist.grupo;
+  if(g&&ahora-g.t<800){ if(!(k in g.antes))g.antes[k]=antes; g.despues[k]=despues; g.t=ahora; return; }
+  pmHist.grupo={t:ahora,antes:{[k]:antes},despues:{[k]:despues}};
+  pmHist.atras.push(pmHist.grupo); if(pmHist.atras.length>80)pmHist.atras.shift();
+  pmHist.adelante=[];
+}
+function pmHistMueve(de,a,quiero,tenia,msg){
+  pmHist.grupo=null;
+  const g=de.pop();
+  if(!g){ window.__showToast&&window.__showToast(quiero==='antes'?'No hay nada que deshacer':'No hay nada que rehacer'); return; }
+  pmHist.aplicando=true;
+  const tocadas=[];
+  try{
+    Object.keys(g[quiero]).forEach(k=>{
+      const objetivo=g[quiero][k], desde=g[tenia][k], actual=localStorage.getItem(k);
+      let nuevo=objetivo;
+      if(actual!==desde&&objetivo!=null&&desde!=null&&actual!=null&&window.__juntaTexto) nuevo=window.__juntaTexto(desde,objetivo,actual);
+      if(nuevo==null){ if(actual===desde)localStorage.removeItem(k); }
+      else if(nuevo!==actual) localStorage.setItem(k,nuevo);
+      tocadas.push(k);
+    });
+  } finally { pmHist.aplicando=false; }
+  a.push(g);
+  try{ window.__repintarTodo ? window.__repintarTodo(tocadas) : render(); }catch(e){ try{render();}catch(_){} }
+  try{ if(window.pmCalRepinta)window.pmCalRepinta(); }catch(e){}
+  window.__showToast&&window.__showToast(msg,'ok');
+}
+function pmDeshacer(){ pmHistMueve(pmHist.atras,pmHist.adelante,'antes','despues','Deshecho · Ctrl+Y para rehacer'); }
+function pmRehacer(){ pmHistMueve(pmHist.adelante,pmHist.atras,'despues','antes','Rehecho'); }
+document.addEventListener('keydown',e=>{
+  if(!(e.metaKey||e.ctrlKey)||e.altKey)return;
+  const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y')return;
+  const a=document.activeElement;
+  if(a&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable))return;   // en un texto: el del navegador
+  if(covProjId)return;                                                               // el editor de portadas tiene el suyo
+  const lab=document.getElementById('labWrap'); if(lab&&lab.classList.contains('on'))return;   // y el LAB también
+  if(document.getElementById('overlay').classList.contains('open'))return;         // con la ventana del video abierta, nada
+  e.preventDefault();
+  if(k==='y'||e.shiftKey)pmRehacer(); else pmDeshacer();
+});
 // Intercept writes to synced keys → push to cloud (debounced). Other keys behave normally.
 __P.setItem=function(k,v){
+  if(this===window.localStorage&&PM_HIST_KEYS.includes(k)&&!pmHist.aplicando&&__booted){ try{ pmHistApunta(k,localStorage.getItem(k),String(v)); }catch(e){} }
   __protoSet.call(this,k,v);
   if(this!==window.localStorage) return;
   if(__cloud&&SYNC_KEYS.includes(k)){
@@ -5293,7 +5351,9 @@ function __bootApp(user){
   document.documentElement.classList.add('pm-listo');
   /* La foto del sidebar se fue con el bloque repetido: la que vale es la de
      la barra de arriba del Panel. */
-  if(!__booted){buildPalette();__booted=true;}
+  if(!__booted){buildPalette();__booted=true;
+    /* lo que se acomoda solo al abrir no cuenta para Ctrl+Z */
+    setTimeout(()=>{ pmHist.atras=[]; pmHist.adelante=[]; pmHist.grupo=null; pmHist.listo=true; },1500); }
 
   /* Se vuelve a donde estabas: misma herramienta, misma plataforma y el
      lienzo en el mismo sitio. Si no hay nada guardado, al tablero de siempre. */
@@ -5821,6 +5881,7 @@ const PMM_IC=(()=>{ const s=d=>'<svg viewBox="0 0 24 24" fill="none" stroke="cur
     copiar:s('<path d="M4 7V5h16v2M9 20h6M12 5v15"/>'),
     ocultar:s('<path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.6 6.6A17.3 17.3 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),
     mostrar:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+    arbol:s('<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z" fill="currentColor" stroke="none"/>'),
     borrar:s('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/>'),
   }; })();
 function pmMenuCierra(){ const m=document.getElementById('pmMenu'); if(m&&m.classList.contains('on')){ m.classList.remove('on'); m.innerHTML=''; } }
@@ -5843,6 +5904,7 @@ function pmMenuAbre(id,x,y){
     +'<div class="pmm-sep"></div>'
     +it('dup','Duplicar')+it('copiar','Copiar el título')
     +(v.oculto?it('mostrar','Volver a mostrar'):it('ocultar','Ocultar del tablero'))
+    +(((getPTree(plat).fuera)||[]).includes(id)?it('arbol','Volver al Árbol'):'')
     +'<div class="pmm-sep"></div>'+it('borrar','Eliminar','',true);
   /* donde está el cursor, sin salirse de la pantalla */
   m.style.left='0px'; m.style.top='0px'; m.classList.add('on');
@@ -5880,6 +5942,8 @@ function pmMenuHaz(a,id,val){
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok,aMano); else aMano();
     return;
   }
+  if(a==='arbol'){ const pt=getPTree(plat); pt.fuera=(pt.fuera||[]).filter(x=>x!==id); setPTree(plat,pt); pmTrasCambio();
+    if(window.__showToast)window.__showToast('De vuelta en el Árbol','ok'); return; }
   if(a==='ocultar'){ v.oculto=true; return guarda('Oculto. Lo ves con «Ver ocultos», al final del tablero'); }
   if(a==='mostrar'){ v.oculto=false; return guarda('Otra vez a la vista'); }
   if(a==='borrar'){
@@ -6076,7 +6140,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 10;   // 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 11;   // 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -6216,6 +6280,7 @@ function junta(base,mio,suyo){
   }
   return mio;
 }
+window.__juntaTexto=(b,m,s)=>juntaTexto(b,m,s);
 function juntaTexto(baseTxt,mioTxt,suyoTxt){
   if(suyoTxt==null) return mioTxt;
   let base, mio, suyo;
