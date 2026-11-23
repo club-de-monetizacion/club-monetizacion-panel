@@ -1259,6 +1259,32 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .pm-cal-hoy{font-size:8.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#FFE7A8;}
 @media(max-width:700px){.pm-cal-cell.today .pm-cal-d{flex-direction:column;align-items:flex-start;gap:3px;}.pm-cal-hoy{font-size:7.5px;letter-spacing:.3px;}}
 .pm-cal-names>div.hoy{color:#1a1200!important;background:var(--oro-boton);border-radius:6px;}
+/* ── CLIC DERECHO EN LAS PORTADAS (23 nov 2026): menú propio con los colores del Club ── */
+#pmMenu{position:fixed;z-index:99990;width:264px;padding:6px;border-radius:14px;color:#fff;font-family:inherit;
+  background:linear-gradient(180deg,rgba(20,30,58,.98),rgba(9,15,32,.98));border:1px solid rgba(201,160,64,.3);
+  box-shadow:0 18px 50px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.05);
+  opacity:0;transform:scale(.97);transition:opacity .12s,transform .12s;pointer-events:none;visibility:hidden;}
+#pmMenu.on{opacity:1;transform:none;pointer-events:auto;visibility:visible;}
+.pmm-t{font-size:11px;font-weight:700;color:var(--muted);padding:6px 10px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pmm-i{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:none;background:none;color:#e8edf7;
+  font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.2;border-radius:9px;cursor:pointer;text-align:left;}
+.pmm-i svg{width:15px;height:15px;flex-shrink:0;color:#c9a040;}
+.pmm-i span{flex:1;min-width:0;}
+.pmm-i i{font-style:normal;font-size:10.5px;color:var(--muted);font-weight:500;white-space:nowrap;}
+.pmm-i:hover,.pmm-i:focus-visible{background:rgba(201,160,64,.13);outline:none;}
+.pmm-i.rojo{color:#ff9a9a;}.pmm-i.rojo svg{color:#ff6b6b;}.pmm-i.rojo:hover,.pmm-i.rojo:focus-visible{background:rgba(255,80,80,.13);}
+.pmm-sep{height:1px;background:rgba(120,150,200,.14);margin:5px 6px;}
+.pmm-h{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);padding:5px 10px 5px;}
+.pmm-st{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:0 6px 4px;}
+.pmm-st button{border:1px solid transparent;cursor:pointer;font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.1px;
+  text-transform:uppercase;padding:7px 2px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pmm-st button.on{border-color:currentColor;}
+.pmm-st button:hover,.pmm-st button:focus-visible{filter:brightness(1.3);outline:none;border-color:currentColor;}
+.video-card.oculta{opacity:.45;}
+.pm-ocultos{margin:16px 0 4px;padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:rgba(11,20,40,.7);
+  color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
+.pm-ocultos:hover{color:#fff;border-color:rgba(201,160,64,.5);}
+.pm-cal-foco{outline:2px solid #FFE7A8;outline-offset:2px;}
 /* «REFERENCIAS» no cabía en la app de escritorio: se cortaba por la izquierda */
 #refsNavBtn{font-size:7.6px;letter-spacing:0;}
 </style>
@@ -2075,13 +2101,21 @@ function buildKanban(wrap,videos){
 function buildGrid(wrap,videos){
   if(!videos.length){wrap.innerHTML=`<div class="empty-state"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8z" fill="currentColor"/></svg></div><h3>Sin videos todavía</h3></div>`;return;}
   const grid=document.createElement('div');grid.className='grid';grid.id='gridEl';
-  videos.forEach(v=>grid.appendChild(makeCard(v)));
+  /* Los ocultos (clic derecho › Ocultar) no salen, salvo con «Ver ocultos» */
+  const ocultos=videos.filter(v=>v.oculto).length;
+  videos.filter(v=>window.pmVerOcultos||!v.oculto).forEach(v=>grid.appendChild(makeCard(v)));
   wrap.appendChild(grid);
+  if(ocultos){
+    const b=document.createElement('button');b.className='pm-ocultos';
+    b.textContent=window.pmVerOcultos?'Esconder los ocultos':('Ver '+ocultos+(ocultos===1?' video oculto':' videos ocultos'));
+    b.onclick=()=>{window.pmVerOcultos=!window.pmVerOcultos;render();};
+    wrap.appendChild(b);
+  }
   sortables.push(Sortable.create(grid,{animation:150,ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',draggable:'.video-card',onEnd:onGridDragEnd}));
 }
 
 function makeCard(video){
-  const card=document.createElement('div');card.className='video-card';card.dataset.id=video.id;
+  const card=document.createElement('div');card.className='video-card'+(video.oculto?' oculta':'');card.dataset.id=video.id;
   const st=STATUSES.find(s=>s.k===video.status)||STATUSES[0];
   card.innerHTML=`
     <div class="card-cover">${coverInner(video.cover)}</div>
@@ -2127,7 +2161,11 @@ function onKanbanDragEnd(evt){
 function onGridDragEnd(){
   const grid=document.getElementById('gridEl');if(!grid)return;
   const videos=getPVids(plat);
-  setPVids(plat,Array.from(grid.querySelectorAll('.video-card')).map(c=>c.dataset.id).map(id=>videos.find(v=>v.id===id)).filter(Boolean));
+  /* Solo se reordena lo que está a la vista; lo que no (los ocultos) se conserva al final.
+     Antes se guardaba solo lo del tablero y un video oculto se habría perdido al mover otro. */
+  const ids=Array.from(grid.querySelectorAll('.video-card')).map(c=>c.dataset.id);
+  const vistos=ids.map(id=>videos.find(v=>v.id===id)).filter(Boolean);
+  setPVids(plat,vistos.concat(videos.filter(v=>!ids.includes(v.id))));
 }
 
 /* ════════════════════════════════════
@@ -5527,7 +5565,7 @@ function pmCalHoy(){ pmCalMes=pmCalMesActual(); pmRenderCal(); }
 const pmDLocal=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function pmCalItem(v){
   const st=STATUSES.find(s=>s.k===v.status)||STATUSES[0];
-  return `<div class="pm-cal-item" draggable="true" title="${esc(v.title||'Sin título')}" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" onclick="openModal('${v.id}')">
+  return `<div class="pm-cal-item" data-id="${v.id}" draggable="true" title="${esc(v.title||'Sin título')}" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" onclick="openModal('${v.id}')">
     <div class="pm-cal-item-cov">${coverInner(v.cover)}</div>
     <div class="pm-cal-item-t">${esc(v.title||'Sin título')}</div>
     <div class="pm-cal-item-d"><span class="badge b-${v.status}">${st.label}</span>${v.date?' · '+pmCalFecha(v.date):''}</div>
@@ -5607,8 +5645,8 @@ function pmRenderCal(){
     const pills=(porDia[f]||[]).map(v=>{
       const st=STATUSES.find(s=>s.k===v.status)||STATUSES[0];
       const hayCov=v.cover&&v.cover.type&&v.cover.type!=='none';
-      if(hayCov)return `<div class="pm-cal-pill-cov" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${coverInner(v.cover)}</div>`;
-      return `<div class="pm-cal-pill badge b-${v.status}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${esc(v.title||'Sin título')}</div>`;
+      if(hayCov)return `<div class="pm-cal-pill-cov" data-id="${v.id}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${coverInner(v.cover)}</div>`;
+      return `<div class="pm-cal-pill badge b-${v.status}" data-id="${v.id}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${esc(v.title||'Sin título')}</div>`;
     }).join('');
     cells+=`<div class="pm-cal-cell ${f===hoy?'today':''}" onclick="pmCalNew('${f}')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="pmCalDrop(event,'${f}')"><div class="pm-cal-d">${f===hoy?'<b>'+d+'</b><span class="pm-cal-hoy">Hoy</span>':d}</div>${pills}</div>`;
   }
@@ -5619,7 +5657,7 @@ function pmRenderCal(){
   const conFecha=vids.filter(v=>v.date);
   const prox=conFecha.filter(v=>v.date>=hoy).sort((a,b)=>a.date<b.date?-1:1);
   const pasados=conFecha.filter(v=>v.date<hoy).sort((a,b)=>a.date>b.date?-1:1);
-  const sinFecha=vids.filter(v=>!v.date&&v.status!=='published');
+  const sinFecha=vids.filter(v=>!v.date&&v.status!=='published'&&!v.oculto);
   document.getElementById('pmCalUpcoming').innerHTML=
     '<div class="pm-cal-lista">'+(prox.map(pmCalItem).join('')||'<div class="pm-cal-empty">Nada programado todavía: arrastra una portada a un día.</div>')+'</div>'
     +(pasados.length?'<div class="pm-cal-side-sub">Fechas pasadas</div><div class="pm-cal-lista">'+pasados.map(pmCalItem).join('')+'</div>':'');
@@ -5732,6 +5770,106 @@ function pmToastRef(m){
   t.textContent=m; t.style.display='block'; t.style.opacity='1';
   clearTimeout(window.__pmrT); window.__pmrT=setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){t.style.display='none';},300); },2200);
 }
+/* ══ CLIC DERECHO EN LAS PORTADAS (23 nov 2026) ══
+   Diego: «si le doy clic derecho, déjame ver opciones como ocultar, eliminar, cambiar el
+   estado… con funciones que ya están dentro de la herramienta». Menú propio, con los colores
+   del Club (nada del sistema). Vale en el tablero y en el calendario. El Árbol no: ahí el clic
+   derecho arrastra la hoja. */
+window.pmVerOcultos=false;   /* en window: el tablero se pinta desde otro bloque */
+const PMM_IC=(()=>{ const s=d=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+  return {
+    abrir:s('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+    cal:s('<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>'),
+    quitar:s('<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18M9.5 13.5l5 5M14.5 13.5l-5 5"/>'),
+    dup:s('<rect x="8" y="8" width="13" height="13" rx="2.5"/><path d="M16 8V5.5A2.5 2.5 0 0 0 13.5 3h-8A2.5 2.5 0 0 0 3 5.5v8A2.5 2.5 0 0 0 5.5 16H8"/>'),
+    copiar:s('<path d="M4 7V5h16v2M9 20h6M12 5v15"/>'),
+    ocultar:s('<path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.6 6.6A17.3 17.3 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),
+    mostrar:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+    borrar:s('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/>'),
+  }; })();
+function pmMenuCierra(){ const m=document.getElementById('pmMenu'); if(m&&m.classList.contains('on')){ m.classList.remove('on'); m.innerHTML=''; } }
+function pmMenuAbre(id,x,y){
+  const v=getPVids(plat).find(z=>z.id===id); if(!v)return;
+  let m=document.getElementById('pmMenu');
+  if(!m){
+    m=document.createElement('div'); m.id='pmMenu'; m.setAttribute('role','menu'); document.body.appendChild(m);
+    m.addEventListener('click',e=>{ const b=e.target.closest('[data-a]'); if(!b)return; e.stopPropagation(); pmMenuHaz(b.dataset.a,m.dataset.id,b.dataset.v); });
+    m.addEventListener('contextmenu',e=>e.preventDefault());
+  }
+  const it=(a,txt,pista,rojo)=>`<button class="pmm-i${rojo?' rojo':''}" role="menuitem" data-a="${a}">${PMM_IC[a]}<span>${txt}</span>${pista?'<i>'+pista+'</i>':''}</button>`;
+  m.dataset.id=id;
+  m.innerHTML=`<div class="pmm-t">${esc(v.title||'Sin título')}</div>`
+    +it('abrir','Abrir y editar')
+    +'<div class="pmm-sep"></div><div class="pmm-h">Estado</div><div class="pmm-st">'
+    +STATUSES.map(s=>`<button class="badge b-${s.k}${s.k===v.status?' on':''}" role="menuitemradio" aria-checked="${s.k===v.status}" data-a="estado" data-v="${s.k}">${s.label}</button>`).join('')
+    +'</div><div class="pmm-sep"></div>'
+    +(v.date?it('cal','Ver en el calendario',pmCalFecha(v.date))+it('quitar','Quitar la fecha'):it('cal','Programar en el calendario'))
+    +'<div class="pmm-sep"></div>'
+    +it('dup','Duplicar')+it('copiar','Copiar el título')
+    +(v.oculto?it('mostrar','Volver a mostrar'):it('ocultar','Ocultar del tablero'))
+    +'<div class="pmm-sep"></div>'+it('borrar','Eliminar','',true);
+  /* donde está el cursor, sin salirse de la pantalla */
+  m.style.left='0px'; m.style.top='0px'; m.classList.add('on');
+  const w=m.offsetWidth, h=m.offsetHeight, W=innerWidth, H=innerHeight;
+  const izq=x+w>W-8, arr=y+h>H-8;
+  m.style.left=Math.max(8,izq?x-w:x)+'px';
+  m.style.top=Math.max(8,arr?Math.min(y-h,H-h-8):y)+'px';
+  m.style.transformOrigin=(izq?'right':'left')+' '+(arr?'bottom':'top');
+  const b=m.querySelector('.pmm-i'); if(b)b.focus({preventScroll:true});
+}
+function pmTrasCambio(){ try{ render(); }catch(e){} if(window.pmCalRepinta)window.pmCalRepinta(); }
+function pmMenuHaz(a,id,val){
+  pmMenuCierra();
+  const vids=getPVids(plat), v=vids.find(z=>z.id===id); if(!v)return;
+  const guarda=msg=>{ setPVids(plat,vids); pmTrasCambio(); if(msg&&window.__showToast)window.__showToast(msg,'ok'); };
+  if(a==='abrir')return openModal(id);
+  if(a==='estado'){ if(v.status===val)return; v.status=val; return guarda('Ahora está en «'+((STATUSES.find(s=>s.k===val)||{}).label||val)+'»'); }
+  if(a==='cal'){
+    pmOpenCal(document.getElementById('calNavBtn'));
+    if(v.date){ const p=v.date.split('-').map(Number); pmCalMes=new Date(p[0],p[1]-1,1); pmRenderCal();
+      const e=document.querySelector('#pmCalGrid [data-id="'+id+'"]');
+      if(e){ e.classList.add('pm-cal-foco'); e.scrollIntoView({block:'nearest'}); setTimeout(()=>e.classList.remove('pm-cal-foco'),2200); } }
+    else if(window.__showToast) window.__showToast('Arrastra su portada a un día','ok');
+    return;
+  }
+  if(a==='quitar'){ v.date=''; return guarda('Listo: ya no tiene fecha'); }
+  if(a==='dup'){
+    const c=JSON.parse(JSON.stringify(v)); c.id=uid(); c.title=(v.title||'Sin título')+' (copia)'; c.date=''; c.oculto=false;
+    vids.splice(vids.indexOf(v)+1,0,c); return guarda('Duplicado: la copia está junto al original');
+  }
+  if(a==='copiar'){
+    const txt=v.title||'';
+    const ok=()=>window.__showToast&&window.__showToast('Título copiado','ok');
+    const aMano=()=>{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); ok(); }catch(e){} ta.remove(); };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok,aMano); else aMano();
+    return;
+  }
+  if(a==='ocultar'){ v.oculto=true; return guarda('Oculto. Lo ves con «Ver ocultos», al final del tablero'); }
+  if(a==='mostrar'){ v.oculto=false; return guarda('Otra vez a la vista'); }
+  if(a==='borrar'){
+    showConfirm('¿Eliminar «'+esc(v.title||'Sin título')+'»?<br><span style="font-size:12px;color:var(--muted)">Esta acción no se puede deshacer.</span>',()=>{
+      setPVids(plat,getPVids(plat).filter(z=>z.id!==id)); pmTrasCambio();
+      if(window.__showToast)window.__showToast('Video eliminado','ok');
+    });
+  }
+}
+document.addEventListener('contextmenu',e=>{
+  const c=e.target.closest&&e.target.closest('#boardWrap .video-card[data-id],#pmCalPanel [data-id]');
+  if(!c||e.target.closest('input,textarea,[contenteditable="true"]'))return;
+  e.preventDefault();
+  pmMenuAbre(c.dataset.id,e.clientX,e.clientY);
+});
+document.addEventListener('pointerdown',e=>{ if(!(e.target.closest&&e.target.closest('#pmMenu')))pmMenuCierra(); },true);
+document.addEventListener('keydown',e=>{
+  const m=document.getElementById('pmMenu'); if(!m||!m.classList.contains('on'))return;
+  if(e.key==='Escape'){ e.preventDefault(); pmMenuCierra(); return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault(); const l=[...m.querySelectorAll('button')], i=l.indexOf(document.activeElement);
+    l[(i+(e.key==='ArrowDown'?1:-1)+l.length)%l.length].focus();
+  }
+});
+addEventListener('blur',pmMenuCierra); addEventListener('resize',pmMenuCierra);
+document.addEventListener('scroll',pmMenuCierra,true);
 /* al cambiar de vista con cualquier botón del sidebar, el calendario se oculta */
 const __origSetActiveNav=setActiveNav;
 setActiveNav=function(sel){ __origSetActiveNav(sel); const cp=document.getElementById('pmCalPanel'); if(cp)cp.style.display='none';
@@ -5902,7 +6040,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 8;   // 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 9;   // 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
