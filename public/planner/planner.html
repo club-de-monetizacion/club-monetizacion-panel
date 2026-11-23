@@ -1285,6 +1285,15 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
   color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
 .pm-ocultos:hover{color:#fff;border-color:rgba(201,160,64,.5);}
 .pm-cal-foco{outline:2px solid #FFE7A8;outline-offset:2px;}
+/* ── PUBLICADOS separados por una línea (23 nov 2026) ── */
+.pm-sep-pub{display:flex;align-items:center;gap:12px;margin:26px 0 14px;}
+.pm-sep-pub i{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,160,64,.55),rgba(201,160,64,.08));}
+.pm-sep-pub-t{display:inline-flex;align-items:center;gap:7px;font-family:var(--titulos,inherit);font-size:11px;font-weight:800;
+  letter-spacing:.9px;text-transform:uppercase;color:#e8c060;white-space:nowrap;}
+.pm-sep-pub-t b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;
+  background:rgba(201,160,64,.16);border:1px solid rgba(201,160,64,.35);font-size:10.5px;color:#FFE7A8;letter-spacing:0;}
+.pm-sep-pub-s{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+@media(max-width:560px){.pm-sep-pub-s{display:none;}}
 /* «REFERENCIAS» no cabía en la app de escritorio: se cortaba por la izquierda */
 #refsNavBtn{font-size:7.6px;letter-spacing:0;}
 </style>
@@ -2098,13 +2107,36 @@ function buildKanban(wrap,videos){
   wrap.appendChild(board);
 }
 
+/* Fecha de publicación para ordenar: la que tiene el video; si no tiene, el día en que se
+   marcó como publicado (publicadoEn). Lo que no tiene ninguna va al final. */
+function pmClavePub(v){ if(v.date)return v.date; if(!v.publicadoEn)return ''; const d=new Date(v.publicadoEn);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function pmOrdenPublicados(a,b){
+  const ka=pmClavePub(a), kb=pmClavePub(b);
+  if(ka!==kb){ if(!ka)return 1; if(!kb)return -1; return ka<kb?1:-1; }
+  return (b.publicadoEn||0)-(a.publicadoEn||0);
+}
 function buildGrid(wrap,videos){
   if(!videos.length){wrap.innerHTML=`<div class="empty-state"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8z" fill="currentColor"/></svg></div><h3>Sin videos todavía</h3></div>`;return;}
   const grid=document.createElement('div');grid.className='grid';grid.id='gridEl';
   /* Los ocultos (clic derecho › Ocultar) no salen, salvo con «Ver ocultos» */
   const ocultos=videos.filter(v=>v.oculto).length;
-  videos.filter(v=>window.pmVerOcultos||!v.oculto).forEach(v=>grid.appendChild(makeCard(v)));
+  const aLaVista=videos.filter(v=>window.pmVerOcultos||!v.oculto);
+  /* 23 nov 2026, Diego: «los que ya estén publicados, una línea de separación y en el orden en
+     el que están publicados». Arriba lo que está en proceso, en el orden que tú le das; abajo,
+     tras la línea, lo publicado por su fecha de publicación (el más reciente primero; sin
+     fecha, por cuándo se marcó como publicado, y al final). */
+  aLaVista.filter(v=>v.status!=='published').forEach(v=>grid.appendChild(makeCard(v)));
   wrap.appendChild(grid);
+  const publicados=aLaVista.filter(v=>v.status==='published').sort(pmOrdenPublicados);
+  if(publicados.length){
+    const sep=document.createElement('div');sep.className='pm-sep-pub';
+    sep.innerHTML='<span class="pm-sep-pub-t">Publicados<b>'+publicados.length+'</b></span><i></i><span class="pm-sep-pub-s">del más reciente al más antiguo</span>';
+    wrap.appendChild(sep);
+    const gp=document.createElement('div');gp.className='grid pm-grid-pub';gp.id='gridPub';
+    publicados.forEach(v=>gp.appendChild(makeCard(v)));
+    wrap.appendChild(gp);
+  }
   if(ocultos){
     const b=document.createElement('button');b.className='pm-ocultos';
     b.textContent=window.pmVerOcultos?'Esconder los ocultos':('Ver '+ocultos+(ocultos===1?' video oculto':' videos ocultos'));
@@ -2829,6 +2861,10 @@ function saveVideo(){
     ],
   };
   const videos=getPVids(plat);
+  /* Lo que esta ventana no edita (oculto, cuándo se publicó…) se conserva: antes se perdía al guardar. */
+  const antes=editId?videos.find(v=>v.id===editId):null;
+  if(antes){ Object.keys(antes).forEach(k=>{ if(!(k in video))video[k]=antes[k]; }); }
+  if(video.status==='published'&&(!antes||antes.status!=='published'))video.publicadoEn=Date.now();
   if(editId){const idx=videos.findIndex(v=>v.id===editId);if(idx!==-1)videos[idx]=video;else videos.push(video);}
   else videos.push(video);
   setPVids(plat,videos);
@@ -5823,7 +5859,7 @@ function pmMenuHaz(a,id,val){
   const vids=getPVids(plat), v=vids.find(z=>z.id===id); if(!v)return;
   const guarda=msg=>{ setPVids(plat,vids); pmTrasCambio(); if(msg&&window.__showToast)window.__showToast(msg,'ok'); };
   if(a==='abrir')return openModal(id);
-  if(a==='estado'){ if(v.status===val)return; v.status=val; return guarda('Ahora está en «'+((STATUSES.find(s=>s.k===val)||{}).label||val)+'»'); }
+  if(a==='estado'){ if(v.status===val)return; v.status=val; if(val==='published')v.publicadoEn=Date.now(); return guarda('Ahora está en «'+((STATUSES.find(s=>s.k===val)||{}).label||val)+'»'); }
   if(a==='cal'){
     pmOpenCal(document.getElementById('calNavBtn'));
     if(v.date){ const p=v.date.split('-').map(Number); pmCalMes=new Date(p[0],p[1]-1,1); pmRenderCal();
@@ -6040,7 +6076,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 9;   // 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 10;   // 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
