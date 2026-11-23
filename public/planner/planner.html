@@ -1224,6 +1224,33 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .pm-cal-side{background:var(--cristal),#0b1428!important;border-color:var(--borde-luz)!important;}
 #cloudToast{background:#0d1830!important;border-color:var(--borde-luz)!important;}
 .pm-ajeno{background:linear-gradient(90deg,rgba(201,160,64,.18),rgba(30,92,232,.08))!important;}
+/* ── CALENDARIO CON PORTADAS (23 nov 2026) ──
+   Diego: «en el calendario necesito que salgan las portadas de los videos para
+   arrastrarlos al calendario; solo arrastrar y ya quedan en esa fecha». La lista de
+   la derecha deja de ser texto: cada video es su portada, y se arrastra a un día.
+   Soltarla en «Sin fecha todavía» le quita el día. */
+.pm-cal-side{width:300px;}
+.pm-cal-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px;margin-bottom:4px;}
+.pm-cal-lista .pm-cal-empty{grid-column:1/-1;}
+.pm-cal-item{padding:0!important;margin:0!important;overflow:hidden;border-radius:10px!important;min-width:0;background:rgba(11,20,40,.85)!important;
+  -webkit-user-select:none;user-select:none;}
+.pm-cal-item-cov{position:relative;aspect-ratio:16/9;background:var(--bg2);overflow:hidden;}
+.pm-cal-item-cov img,.pm-cal-item-cov>div,.pm-cal-pill-cov img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;pointer-events:none;}
+.pm-cal-item-cov .card-cover-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--muted);}
+.pm-cal-item-cov .card-cover-icon svg{width:22px;height:22px;}
+.pm-cal-item-d .badge{background:none!important;padding:0;font-size:8.5px;letter-spacing:.3px;}
+.pm-cal-item-t{white-space:normal!important;text-overflow:clip!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:10.5px!important;line-height:1.3;padding:6px 8px 0;text-wrap:pretty;}
+.pm-cal-item-d{font-size:9.5px!important;padding:2px 8px 7px;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm-cal-item.levantado,.pm-cal-pill-cov.levantado,.pm-cal-pill.levantado{opacity:.35;}
+#pmCalPanel.arrastrando .pm-cal-cell:not(.off){border-style:dashed!important;border-color:rgba(201,160,64,.32)!important;}
+#pmCalPanel .pm-cal-cell.dragover{border-style:solid!important;border-color:var(--accent)!important;background:rgba(201,160,64,.12)!important;}
+.pm-cal-zona{border-radius:10px;transition:background .15s,box-shadow .15s;}
+#pmCalPanel.arrastrando.con-fecha .pm-cal-zona{box-shadow:0 0 0 1px rgba(201,160,64,.32);}
+#pmCalPanel .pm-cal-zona.dragover{background:rgba(201,160,64,.1);box-shadow:0 0 0 2px var(--accent)!important;}
+.pm-cal-hint{text-wrap:pretty;}
+/* «REFERENCIAS» no cabía en la app de escritorio: se cortaba por la izquierda */
+#refsNavBtn{font-size:7.6px;letter-spacing:0;}
 </style>
 </head>
 <body>
@@ -1432,13 +1459,15 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
       </div>
       <div class="pm-cal-names"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
       <div class="pm-cal-grid" id="pmCalGrid"></div>
-      <div class="pm-cal-hint">Toca un día vacío para planear un video con esa fecha · toca un video para abrirlo.</div>
+      <div class="pm-cal-hint">Arrastra una portada a un día y queda programada para esa fecha. Para quitarle el día, regrésala a «Sin fecha todavía». Toca un día vacío para crear un video con esa fecha.</div>
     </div>
     <div class="pm-cal-side">
       <div class="pm-cal-side-hd">Próximos programados</div>
       <div id="pmCalUpcoming"></div>
-      <div class="pm-cal-side-hd">Sin fecha todavía</div>
-      <div id="pmCalNoDate"></div>
+      <div class="pm-cal-zona" id="pmCalSinZona" ondragover="pmCalSobreZona(event)" ondragleave="pmCalSaleZona(event)" ondrop="pmCalDrop(event,'')">
+        <div class="pm-cal-side-hd">Sin fecha todavía</div>
+        <div id="pmCalNoDate" class="pm-cal-lista"></div>
+      </div>
     </div>
   </div>
 
@@ -5458,7 +5487,16 @@ selectModalCoverTemplate=function(id){
   document.querySelectorAll('.modal-tmpl-item').forEach(x=>x.classList.toggle('sel',x.dataset.tmpl===id));
 };
 /* ── CALENDARIO: los videos del tablero por fecha de publicación ── */
-let pmCalMes=null;
+let pmCalMes=null, pmCalHoyVisto='', pmCalArrastra=null, pmCalPendiente=false;
+const pmCalMesActual=()=>{ const h=new Date(); return new Date(h.getFullYear(),h.getMonth(),1); };
+const pmCalAbierto=()=>{ const cp=document.getElementById('pmCalPanel'); return !!cp&&cp.style.display==='flex'; };
+/* «jue 26 nov» en la tarjeta; «jueves 26 de noviembre» en el aviso */
+function pmCalFecha(f,largo){
+  try{ const p=f.split('-').map(Number);
+    return new Date(p[0],p[1]-1,p[2]).toLocaleDateString('es-MX',largo?{weekday:'long',day:'numeric',month:'long'}:{weekday:'short',day:'numeric',month:'short'})
+      .replace(/\./g,'').replace(',',''); }
+  catch(e){ return fmtDate(f); }
+}
 function pmOpenCal(btn){
   if(spyActive)closeYtSpy();
   if(covActive)closeCoverAll();
@@ -5470,36 +5508,81 @@ function pmOpenCal(btn){
   document.querySelector('.view-toggle').style.display='none';
   document.querySelector('.btn.btn-primary').style.display='';
   document.getElementById('pmCalPanel').style.display='flex';
+  /* Siempre abre en el mes en curso (23 nov 2026: «el calendario debe estar en tiempo real») */
+  pmCalMes=pmCalMesActual();
   pmRenderCal();
 }
 function pmCalNav(d){ pmCalMes=new Date(pmCalMes.getFullYear(),pmCalMes.getMonth()+d,1); pmRenderCal(); }
-function pmCalHoy(){ const h=new Date(); pmCalMes=new Date(h.getFullYear(),h.getMonth(),1); pmRenderCal(); }
+function pmCalHoy(){ pmCalMes=pmCalMesActual(); pmRenderCal(); }
 const pmDLocal=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function pmCalItem(v){
   const st=STATUSES.find(s=>s.k===v.status)||STATUSES[0];
-  return `<div class="pm-cal-item" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" onclick="openModal('${v.id}')">
+  return `<div class="pm-cal-item" draggable="true" title="${esc(v.title||'Sin título')}" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" onclick="openModal('${v.id}')">
+    <div class="pm-cal-item-cov">${coverInner(v.cover)}</div>
     <div class="pm-cal-item-t">${esc(v.title||'Sin título')}</div>
-    <div class="pm-cal-item-d">${v.date?('📅 '+fmtDate(v.date)):'Aún sin fecha · arrástralo a un día'} · ${st.label}</div>
+    <div class="pm-cal-item-d"><span class="badge b-${v.status}">${st.label}</span>${v.date?' · '+pmCalFecha(v.date):''}</div>
   </div>`;
 }
-/* Arrastrar un video (de la barra lateral o de otro día) y soltarlo en un día */
+/* Arrastrar un video (de la barra lateral o de otro día) y soltarlo en un día.
+   Lo que se lleva el cursor es la portada; mientras tanto los días se marcan. */
 function pmCalDragStart(e,id){
   e.dataTransfer.setData('text/plain',id);
   e.dataTransfer.effectAllowed='move';
+  pmCalArrastra=id;
+  const el=e.currentTarget, cov=el&&el.querySelector&&el.querySelector('.pm-cal-item-cov');
+  try{ if(cov&&e.dataTransfer.setDragImage)e.dataTransfer.setDragImage(cov,Math.round(cov.offsetWidth/2),Math.round(cov.offsetHeight/2)); }catch(_){}
+  const v=getPVids(plat).find(x=>x.id===id);
+  setTimeout(()=>{
+    if(el&&el.classList)el.classList.add('levantado');
+    const cp=document.getElementById('pmCalPanel');
+    if(cp){ cp.classList.add('arrastrando'); cp.classList.toggle('con-fecha',!!(v&&v.date)); }
+  },0);
 }
+function pmCalDragEnd(){
+  pmCalArrastra=null;
+  const cp=document.getElementById('pmCalPanel'); if(cp)cp.classList.remove('arrastrando','con-fecha');
+  document.querySelectorAll('#pmCalPanel .levantado,#pmCalPanel .dragover').forEach(x=>x.classList.remove('levantado','dragover'));
+  if(pmCalPendiente){ pmCalPendiente=false; pmRenderCal(); }
+}
+/* «Sin fecha todavía» también recibe: soltar ahí le quita el día al video */
+function pmCalSobreZona(e){ e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+function pmCalSaleZona(e){ const z=e.currentTarget; if(!z.contains(e.relatedTarget))z.classList.remove('dragover'); }
 function pmCalDrop(e,f){
   e.preventDefault();e.stopPropagation();
   const cel=e.currentTarget; if(cel)cel.classList.remove('dragover');
-  const id=e.dataTransfer.getData('text/plain'); if(!id)return;
+  const id=e.dataTransfer.getData('text/plain')||pmCalArrastra;
+  pmCalArrastra=null; pmCalPendiente=false;
+  const cp=document.getElementById('pmCalPanel'); if(cp)cp.classList.remove('arrastrando','con-fecha');
+  if(!id)return;
   const vids=getPVids(plat);
-  const v=vids.find(x=>x.id===id); if(!v)return;
-  v.date=f;
+  const v=vids.find(x=>x.id===id); if(!v)return pmRenderCal();
+  if((v.date||'')===(f||''))return pmRenderCal();
+  v.date=f||'';
   setPVids(plat,vids);
   pmRenderCal();
-  if(window.__showToast)window.__showToast('📅 Programado para el '+fmtDate(f),'ok');
+  if(window.__showToast)window.__showToast(f?('Programado para el '+pmCalFecha(f,true)):'Listo: ya no tiene fecha','ok');
 }
+/* Repintar sin romper un arrastre a medias: si llega un cambio del equipo mientras
+   arrastras, se pinta al soltar. */
+window.pmCalRepinta=function(){
+  if(!pmCalAbierto())return;
+  if(pmCalArrastra){ pmCalPendiente=true; return; }
+  pmRenderCal();
+};
+/* El calendario sigue al reloj: a medianoche el «hoy» se mueve y, si estabas en el
+   mes que se acaba, pasa solo al nuevo. Solo mira la hora de la compu (no pregunta a la base). */
+function pmCalReloj(){
+  if(!pmCalAbierto())return;
+  const h=new Date(), hoy=pmDLocal(h);
+  if(hoy===pmCalHoyVisto)return;
+  if(pmCalHoyVisto&&pmCalMes&&pmCalHoyVisto.slice(0,7)===pmDLocal(pmCalMes).slice(0,7)) pmCalMes=pmCalMesActual();
+  window.pmCalRepinta();
+}
+setInterval(pmCalReloj,20000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden)pmCalReloj(); });
 function pmRenderCal(){
-  if(!pmCalMes){ const h=new Date(); pmCalMes=new Date(h.getFullYear(),h.getMonth(),1); }
+  if(!pmCalMes)pmCalMes=pmCalMesActual();
+  pmCalHoyVisto=pmDLocal(new Date());
   const vids=getPVids(plat);
   const y=pmCalMes.getFullYear(), m=pmCalMes.getMonth();
   (function(){ const s=pmCalMes.toLocaleDateString('es-MX',{month:'long',year:'numeric'}); document.getElementById('pmCalTitle').textContent=s.charAt(0).toUpperCase()+s.slice(1); })();
@@ -5514,8 +5597,8 @@ function pmRenderCal(){
     const pills=(porDia[f]||[]).map(v=>{
       const st=STATUSES.find(s=>s.k===v.status)||STATUSES[0];
       const hayCov=v.cover&&v.cover.type&&v.cover.type!=='none';
-      if(hayCov)return `<div class="pm-cal-pill-cov" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" title="${esc(v.title||'')}" onclick="event.stopPropagation();openModal('${v.id}')">${coverInner(v.cover)}<span class="pm-cal-pcov-st badge b-${v.status}">${st.emoji}</span></div>`;
-      return `<div class="pm-cal-pill badge b-${v.status}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" title="${esc(v.title||'')}" onclick="event.stopPropagation();openModal('${v.id}')">${st.emoji} ${esc(v.title||'Sin título')}</div>`;
+      if(hayCov)return `<div class="pm-cal-pill-cov" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${coverInner(v.cover)}</div>`;
+      return `<div class="pm-cal-pill badge b-${v.status}" draggable="true" ondragstart="pmCalDragStart(event,'${v.id}')" ondragend="pmCalDragEnd()" title="${esc((v.title||'')+' · '+st.label)}" onclick="event.stopPropagation();openModal('${v.id}')">${esc(v.title||'Sin título')}</div>`;
     }).join('');
     cells+=`<div class="pm-cal-cell ${f===hoy?'today':''}" onclick="pmCalNew('${f}')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="pmCalDrop(event,'${f}')"><div class="pm-cal-d">${d}</div>${pills}</div>`;
   }
@@ -5526,10 +5609,10 @@ function pmRenderCal(){
   const pasados=conFecha.filter(v=>v.date<hoy).sort((a,b)=>a.date>b.date?-1:1);
   const sinFecha=vids.filter(v=>!v.date&&v.status!=='published');
   document.getElementById('pmCalUpcoming').innerHTML=
-    (prox.map(pmCalItem).join('')||'<div class="pm-cal-empty">Nada programado aún — toca un día del calendario para planear tu próximo video.</div>')
-    +(pasados.length?'<div class="pm-cal-side-sub">Fechas pasadas</div>'+pasados.map(pmCalItem).join(''):'');
+    '<div class="pm-cal-lista">'+(prox.map(pmCalItem).join('')||'<div class="pm-cal-empty">Nada programado todavía: arrastra una portada a un día.</div>')+'</div>'
+    +(pasados.length?'<div class="pm-cal-side-sub">Fechas pasadas</div><div class="pm-cal-lista">'+pasados.map(pmCalItem).join('')+'</div>':'');
   document.getElementById('pmCalNoDate').innerHTML=
-    sinFecha.map(pmCalItem).join('')||'<div class="pm-cal-empty">Todos tus videos tienen fecha. 💪</div>';
+    sinFecha.map(pmCalItem).join('')||'<div class="pm-cal-empty">Todos tus videos ya tienen fecha.</div>';
 }
 function pmCalNew(f){
   openModal(null,'scheduled');
@@ -5807,7 +5890,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 6;
+const VERSION_PLANNER = 7;   // 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -6078,6 +6161,8 @@ function repintaSecciones(cambiadas){
   const prueba = (que, fn) => { try { fn(); } catch (e) { console.warn('[planner] no se pudo repintar', que, e); } };
 
   if (toca('content_os_v2') || toca('content_tree_v3')) prueba('contenido', () => window.render && window.render());
+  /* Si alguien del equipo programa un video, el calendario abierto lo enseña solo */
+  if (toca('content_os_v2')) prueba('calendario', () => window.pmCalRepinta && window.pmCalRepinta());
   if (toca('content_matrix_v1')) prueba('matriz', () => window.initMatrix && window.initMatrix());
   if (toca('yt_spy_v1')) prueba('espía', () => window.renderSpySaved && window.renderSpySaved());
   if (toca('cover_os_v1')) prueba('portadas', () => window.renderCovProjects && window.renderCovProjects());
