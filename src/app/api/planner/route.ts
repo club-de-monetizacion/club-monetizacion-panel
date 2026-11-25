@@ -96,7 +96,7 @@ const VERSION_HERRAMIENTA = 3;
  * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
  * porque tenía abierta la de antes).
  */
-const HERRAMIENTA_PUBLICADA = 11; // 11 = el Árbol solo quita del Árbol + Ctrl+Z/Ctrl+Y (23 nov 2026) · 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
+const HERRAMIENTA_PUBLICADA = 12; // 12 = portadas en prueba A/B (24 nov 2026) · 11 = el Árbol solo quita del Árbol + Ctrl+Z/Ctrl+Y (23 nov 2026) · 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
@@ -158,6 +158,310 @@ async function permisoSobre(yo: string, dueno: string): Promise<Permiso | null> 
 }
 
 const respuesta = (cuerpo: object, status = 200) => NextResponse.json(cuerpo, { status });
+
+/* Una revisión A/B hace ~12 búsquedas en YouTube y baja las portadas: hasta 60 s. */
+export const maxDuration = 60;
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PRUEBAS A/B DE PORTADAS (24 nov 2026)
+
+   Diego: «hay canales que tienen portadas con prueba A/B y no aparecen; si un video
+   tiene, que al darle clic me enseñe las demás, y que se guarden por si el creador
+   las borra».
+
+   Cómo lo hace YouTube (comprobado ese día): cada visitante ve UNA variante. La
+   principal vive en /vi/<id>/maxresdefault.jpg (pública); las de la prueba son
+   /vi/<id>/hq720_custom_N.jpg y solo se abren con la firma (`sqp` + `rs`) que
+   YouTube pone en sus resultados, y esa firma CADUCA en minutos (sin firma, 404).
+   Por eso: se pide la búsqueda varias veces como visitante nuevo (sin cookies; a
+   cada uno le toca su variante), se apuntan las portadas y títulos distintos, y
+   cada portada se BAJA EN ESE MOMENTO y se guarda como cualquier imagen del Planner
+   (`img/<huella>`, filas que no se borran nunca). Con 14 búsquedas salieron las 3
+   variantes de un video de prueba.
+
+   Filas nuevas (no cambian el esquema; mismas `PlannerDoc`):
+   - `ytab/<videoId>` → el registro del video: portadas y títulos vistos, con cuándo
+     se vieron por primera y última vez. Solo se AÑADE: lo que el creador quite sigue.
+   - `ytde/<huellaImagen>` → videoId: de qué video salió una portada. Lo apunta
+     ytThumb («Obtener portada» con un link) y la revisión A/B; así una tarjeta sabe
+     de qué video es su portada sin guardar nada más en la tarjeta.
+   ══════════════════════════════════════════════════════════════════════════════ */
+const YT_ID = /^[\w-]{11}$/;
+const filaAB = (id: string) => `ytab/${id}`;
+const filaDe = (img: string) => `ytde/${img}`;
+const NAVEGADOR =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+/** Cuántas veces se pregunta por revisión, y de cuántas en cuántas a la vez. */
+const MUESTRAS = 12, A_LA_VEZ = 6;
+/** Una revisión reciente se reutiliza (sin «forzar»); con «forzar», no antes de 2 min. */
+const FRESCA = 6 * 3600e3, MIN_FORZAR = 2 * 60e3;
+
+type PortadaAB = {
+  img: string; clave: string; primera: number; ultima: number; veces: number; ancho?: number;
+  /** Las claves de YouTube que resultaron ser ESTA imagen (la principal suele ser también custom_1). */
+  claves?: string[];
+  /** Huella visual (dHash 16×16): la misma portada en otro tamaño cuenta como una sola. */
+  vis?: string;
+};
+type TituloAB = { t: string; primera: number; ultima: number; veces: number };
+type RegistroAB = { id: string; portadas: PortadaAB[]; titulos: TituloAB[]; revisado: number; muestras: number };
+
+function leeAB(texto: string | null | undefined): RegistroAB | null {
+  try {
+    const o = JSON.parse(texto || "null");
+    if (!o || !YT_ID.test(o.id)) return null;
+    return {
+      id: o.id,
+      portadas: Array.isArray(o.portadas) ? o.portadas : [],
+      titulos: Array.isArray(o.titulos) ? o.titulos : [],
+      revisado: Number(o.revisado) || 0,
+      muestras: Number(o.muestras) || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Lo que ve la herramienta: la principal primero, luego las variantes. */
+function vistaAB(reg: RegistroAB) {
+  const orden = (k: string) => (k === "default" ? 0 : Number(k.replace(/\D/g, "")) || 9);
+  const portadas = [...reg.portadas]
+    .sort((a, b) => orden(a.clave) - orden(b.clave) || b.ultima - a.ultima)
+    .map((p) => ({
+      url: urlImg(p.img), img: p.img, clave: p.clave, claves: p.claves || [p.clave], ancho: p.ancho || 0,
+      primera: p.primera, ultima: p.ultima, veces: p.veces,
+      enPrueba: !!reg.revisado && p.ultima === reg.revisado,
+    }));
+  const titulos = [...reg.titulos]
+    .sort((a, b) => b.veces - a.veces)
+    .map((t) => ({ t: t.t, primera: t.primera, ultima: t.ultima, veces: t.veces, enPrueba: !!reg.revisado && t.ultima === reg.revisado }));
+  return { id: reg.id, ab: portadas.length > 1 || titulos.length > 1, revisado: reg.revisado, muestras: reg.muestras, portadas, titulos };
+}
+
+/** Huella visual: 256 bits de «más claro que el de al lado» en una miniatura gris de 17×16. */
+async function huellaVisual(data: string): Promise<string> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const buf = Buffer.from(data.slice(data.indexOf(",") + 1), "base64");
+    const px = await sharp(buf).toColourspace("b-w").resize(17, 16, { fit: "fill" }).raw().toBuffer();
+    let bits = "";
+    for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) bits += px[r * 17 + c] > px[r * 17 + c + 1] ? "1" : "0";
+    return BigInt("0b" + bits).toString(16).padStart(64, "0");
+  } catch {
+    return "";
+  }
+}
+/** Cuántos de los 256 bits cambian. La misma portada en otro tamaño da 0–10; otra portada, 100+. */
+function distancia(a?: string, b?: string) {
+  if (!a || !b || a.length !== b.length) return 999;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) { let x = parseInt(a[i], 16) ^ parseInt(b[i], 16); while (x) { d += x & 1; x >>= 1; } }
+  return d;
+}
+const MISMA_PORTADA = 24;
+
+/** La portada principal (pública), de la mejor calidad a la peor: no todos tienen maxres. */
+async function portadaYT(id: string): Promise<string | null> {
+  for (const q of ["maxresdefault", "sddefault", "hqdefault"]) {
+    try {
+      const r = await fetch(`https://i.ytimg.com/vi/${id}/${q}.jpg`, { cache: "no-store" });
+      if (!r.ok) continue;
+      const buf = Buffer.from(await r.arrayBuffer());
+      // YouTube devuelve una imagen gris de 1 KB cuando esa calidad no existe.
+      if (buf.length > 5000) return "data:image/jpeg;base64," + buf.toString("base64");
+    } catch {
+      // Se prueba la calidad siguiente.
+    }
+  }
+  return null;
+}
+
+/** Apunta de qué video salió una portada (si ya estaba, no escribe). */
+async function apuntaDe(img: string, id: string, yo: string) {
+  try {
+    const k = filaDe(img);
+    const ya = await prisma.plannerDoc.findUnique({ where: { key: k }, select: { value: true } });
+    if (!ya) await prisma.plannerDoc.create({ data: { key: k, value: id, updatedBy: yo } });
+  } catch {
+    // Dos a la vez: ya quedó apuntada.
+  }
+}
+
+/** Una búsqueda como visitante nuevo (sin cookies): YouTube le asigna su variante. */
+async function buscaComoVisitante(q: string): Promise<unknown> {
+  try {
+    const r = await fetch("https://www.youtube.com/youtubei/v1/search?prettyPrint=false", {
+      method: "POST",
+      headers: { "content-type": "application/json", "user-agent": NAVEGADOR, "accept-language": "es-MX,es;q=0.9" },
+      body: JSON.stringify({ context: { client: { clientName: "WEB", clientVersion: "2.20251120.01.00", hl: "es", gl: "MX" } }, query: q }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(9000),
+    });
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+const textoDe = (t: unknown): string => {
+  const o = t as { simpleText?: string; runs?: { text?: string }[]; content?: string } | null;
+  if (!o) return "";
+  return String(o.simpleText ?? o.content ?? (o.runs || []).map((r) => r.text || "").join("")).trim();
+};
+
+/** De una respuesta de búsqueda: las portadas (la más grande de cada una) y el título de ESE video. */
+function recogeDe(nodo: unknown, id: string, portadas: Map<string, { url: string; ancho: number }>, titulos: Set<string>) {
+  const re = new RegExp(`/vi/${id}/(?:hq720|hqdefault|sddefault|maxresdefault|mqdefault)(_custom_\\d+)?\\.(?:jpg|webp)`);
+  const pila: unknown[] = [nodo];
+  let pasos = 0;
+  while (pila.length && pasos++ < 400_000) {
+    const o = pila.pop();
+    if (!o || typeof o !== "object") continue;
+    if (Array.isArray(o)) { for (const x of o) pila.push(x); continue; }
+    const r = o as Record<string, unknown>;
+    if (typeof r.url === "string" && r.url.includes(`/vi/${id}/`)) {
+      const m = re.exec(r.url);
+      if (m) {
+        const clave = m[1] ? m[1].slice(1) : "default";
+        const ancho = Number(r.width) || 0;
+        const ya = portadas.get(clave);
+        if (!ya || ancho > ya.ancho) portadas.set(clave, { url: r.url, ancho });
+      }
+    }
+    // videoRenderer (title.runs) y lockupViewModel (metadata…title.content)
+    if (r.videoId === id && r.title) { const t = textoDe(r.title); if (t) titulos.add(t); }
+    if (r.contentId === id) {
+      const md = (r.metadata as { lockupMetadataViewModel?: { title?: unknown } } | undefined)?.lockupMetadataViewModel;
+      const t = textoDe(md?.title);
+      if (t) titulos.add(t);
+    }
+    for (const v of Object.values(r)) if (v && typeof v === "object") pila.push(v);
+  }
+}
+
+/** Baja una portada firmada en el momento (la firma caduca) y la deja como imagen del Planner. */
+async function bajaPortada(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url, {
+      headers: { "user-agent": NAVEGADOR, accept: "image/jpeg,image/webp;q=0.9,image/*;q=0.8", referer: "https://www.youtube.com/" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(9000),
+    });
+    if (!r.ok) return null;
+    const tipo = (r.headers.get("content-type") || "image/jpeg").split(";")[0].trim();
+    if (!/^image\/(jpeg|webp|png|avif)$/.test(tipo)) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length < 3000 || buf.length > 3_000_000) return null;
+    return `data:${tipo};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Revisa un video y junta lo visto con lo que ya estaba. Nada se quita nunca.
+ * `agrega`: una portada que alguien vio y ya no sale (p. ej. rescatada del caché),
+ * para que quede guardada con las demás.
+ */
+async function revisaAB(
+  id: string, yo: string,
+  o: { forzar?: boolean; agrega?: { data?: string; clave?: string; titulo?: string; visto?: number } }
+): Promise<RegistroAB> {
+  const k = filaAB(id);
+  const antes = await prisma.plannerDoc.findUnique({ where: { key: k } });
+  const viejo = leeAB(antes?.value);
+  const ahora = Date.now();
+  const extra = o.agrega && /^data:image\/(?:png|jpeg|jpg|webp|avif);base64,[A-Za-z0-9+/=]+$/.test(String(o.agrega.data || ""))
+    && String(o.agrega.data).length < MAX_IMG ? o.agrega : null;
+  /* Reciente y sin forzar: se devuelve lo guardado y no se le pregunta a YouTube. */
+  if (viejo && !extra && ahora - viejo.revisado < (o.forzar ? MIN_FORZAR : FRESCA)) return viejo;
+
+  const vistas = new Map<string, { img: string; ancho: number; vis: string }>();
+  const titulos = new Set<string>();
+  let muestras = 0;
+  if (!extra || o.forzar || !viejo) {
+    /* La principal, pública (la misma imagen que da «Obtener portada»: misma huella). */
+    const principal = await portadaYT(id);
+    if (principal) {
+      const img = await guardaImagen(principal, yo);
+      vistas.set("default", { img, ancho: 1280, vis: await huellaVisual(principal) });
+      await apuntaDe(img, id, yo);
+    }
+    /* Las variantes: búsquedas como visitantes nuevos; con el título, además del id. */
+    const encontradas = new Map<string, { url: string; ancho: number }>();
+    for (let i = 0; i < MUESTRAS; i += A_LA_VEZ) {
+      const unTitulo = [...titulos][0];
+      const qs = Array.from({ length: Math.min(A_LA_VEZ, MUESTRAS - i) }, (_, j) => (unTitulo && (i + j) % 2 ? unTitulo : id));
+      const res = await Promise.all(qs.map(buscaComoVisitante));
+      for (const r of res) if (r) { muestras++; recogeDe(r, id, encontradas, titulos); }
+    }
+    for (const [clave, { url, ancho }] of encontradas) {
+      if (clave === "default") continue;   // la principal ya se bajó en grande
+      const d = await bajaPortada(url);
+      if (!d) continue;
+      const img = await guardaImagen(d, yo);
+      vistas.set(clave, { img, ancho, vis: await huellaVisual(d) });
+      await apuntaDe(img, id, yo);
+    }
+  }
+
+  /* YouTube no contestó nada: se queda lo que había (y si no había nada, se avisa). */
+  if (!vistas.size && !titulos.size && !extra) {
+    if (viejo) return viejo;
+    throw new Error("YouTube no respondió");
+  }
+
+  /* Juntar con lo que ya estaba, sin pisar a otra revisión que haya guardado a la vez. */
+  for (let intento = 0; intento < 3; intento++) {
+    const fila = intento === 0 ? antes : await prisma.plannerDoc.findUnique({ where: { key: k } });
+    const base = leeAB(fila?.value) || { id, portadas: [], titulos: [], revisado: 0, muestras: 0 };
+    const reg: RegistroAB = {
+      ...base,
+      portadas: base.portadas.map((p) => ({ ...p })),
+      titulos: base.titulos.map((t) => ({ ...t })),
+    };
+    for (const [clave, v] of vistas) {
+      /* La misma imagen, o la misma portada en otro tamaño: una sola, con la copia más grande. */
+      const ya = reg.portadas.find((p) => p.img === v.img) || reg.portadas.find((p) => distancia(p.vis, v.vis) <= MISMA_PORTADA);
+      if (ya) {
+        if (ya.ultima !== ahora) ya.veces += 1;
+        ya.ultima = ahora;
+        ya.claves = [...new Set([...(ya.claves || [ya.clave]), clave])];
+        if ((v.ancho || 0) > (ya.ancho || 0)) { ya.img = v.img; ya.ancho = v.ancho; ya.vis = v.vis || ya.vis; }
+        ya.clave = ya.claves.includes("default") ? "default" : [...ya.claves].sort()[0];
+      } else {
+        reg.portadas.push({ img: v.img, clave, claves: [clave], primera: ahora, ultima: ahora, veces: 1, ancho: v.ancho, vis: v.vis });
+      }
+    }
+    for (const t of titulos) {
+      const ya = reg.titulos.find((x) => x.t === t);
+      if (ya) { ya.ultima = ahora; ya.veces += 1; }
+      else reg.titulos.push({ t, primera: ahora, ultima: ahora, veces: 1 });
+    }
+    if (extra) {
+      const img = await guardaImagen(String(extra.data), yo);
+      await apuntaDe(img, id, yo);
+      const visto = Number(extra.visto) || ahora;
+      const clave = /^custom_\d+$/.test(String(extra.clave)) ? String(extra.clave) : "rescatada";
+      const vis = await huellaVisual(String(extra.data));
+      if (!reg.portadas.some((p) => p.img === img || distancia(p.vis, vis) <= MISMA_PORTADA)) {
+        reg.portadas.push({ img, clave, claves: [clave], primera: visto, ultima: visto, veces: 1, vis });
+      }
+      const t = String(extra.titulo || "").trim().slice(0, 200);
+      if (t && !reg.titulos.some((x) => x.t === t)) reg.titulos.push({ t, primera: visto, ultima: visto, veces: 1 });
+    }
+    if (vistas.size || titulos.size) { reg.revisado = ahora; reg.muestras += muestras; }
+    const value = JSON.stringify(reg);
+    try {
+      if (fila) await prisma.plannerDoc.update({ where: { key: k, updatedAt: fila.updatedAt }, data: { value, updatedBy: yo } });
+      else await prisma.plannerDoc.create({ data: { key: k, value, updatedBy: yo } });
+      return reg;
+    } catch {
+      // Otra revisión guardó en medio: se vuelve a leer y se junta otra vez.
+    }
+  }
+  throw new Error("no se pudo guardar la revisión");
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -449,24 +753,52 @@ export async function POST(req: Request) {
       );
     }
     const id = m[1];
-    // De la mejor calidad a la peor: no todos los videos tienen maxres.
-    for (const q of ["maxresdefault", "sddefault", "hqdefault"]) {
-      try {
-        const r = await fetch(`https://i.ytimg.com/vi/${id}/${q}.jpg`, { cache: "no-store" });
-        if (!r.ok) continue;
-        const buf = Buffer.from(await r.arrayBuffer());
-        // YouTube devuelve una imagen gris de 1 KB cuando esa calidad no existe.
-        if (buf.length > 5000) {
-          return respuesta({ ok: true, dataUrl: "data:image/jpeg;base64," + buf.toString("base64") });
-        }
-      } catch {
-        // Se prueba la calidad siguiente.
-      }
+    const dataUrl = await portadaYT(id);
+    if (dataUrl) {
+      /* La portada queda ligada a su video (ver PRUEBAS A/B): así la tarjeta que la use
+         sabe de qué video de YouTube salió, sin guardar nada más en la tarjeta. */
+      if (YT_ID.test(id)) await apuntaDe(huella(dataUrl), id, yo);
+      return respuesta({ ok: true, dataUrl, yt: YT_ID.test(id) ? id : "" });
     }
     return respuesta(
       { ok: false, error: "No se pudo obtener la portada de ese video — revisa el link." },
       404
     );
+  }
+
+  /* ── PRUEBAS A/B DE PORTADAS (24 nov 2026) ──
+     ytAB: revisa un video y guarda TODAS las portadas (y títulos) que YouTube está
+     probando con él. ytABVer: lo ya guardado de varios videos, sin preguntarle a YouTube. */
+  if (accion === "ytAB") {
+    const c = cuerpo as { id?: string; forzar?: boolean; agrega?: { data?: string; clave?: string; titulo?: string; visto?: number } };
+    const id = String(c.id || "");
+    if (!YT_ID.test(id)) return respuesta({ ok: false, error: "Ese no es un video de YouTube." }, 400);
+    try {
+      const reg = await revisaAB(id, yo, { forzar: !!c.forzar, agrega: c.agrega });
+      return respuesta({ ok: true, ...vistaAB(reg) });
+    } catch (e) {
+      console.error("[planner ytAB]", id, e instanceof Error ? e.message : e);
+      return respuesta({ ok: false, error: "No se pudo revisar ese video ahora. Inténtalo en un momento." }, 502);
+    }
+  }
+  if (accion === "ytABVer") {
+    const c = cuerpo as { ids?: unknown; imgs?: unknown };
+    const imgs = [...new Set((Array.isArray(c.imgs) ? c.imgs : []).map(String).filter((s) => /^[a-f0-9]{40}$/.test(s)))].slice(0, 400);
+    const deImg: Record<string, string> = {};
+    if (imgs.length) {
+      const filas = await prisma.plannerDoc.findMany({ where: { key: { in: imgs.map(filaDe) } }, select: { key: true, value: true } });
+      for (const f of filas) if (YT_ID.test(f.value)) deImg[f.key.slice(5)] = f.value;
+    }
+    const ids = [...new Set([...(Array.isArray(c.ids) ? c.ids : []).map(String), ...Object.values(deImg)].filter((s) => YT_ID.test(s)))].slice(0, 400);
+    const videos: Record<string, ReturnType<typeof vistaAB>> = {};
+    if (ids.length) {
+      const filas = await prisma.plannerDoc.findMany({ where: { key: { in: ids.map(filaAB) } }, select: { key: true, value: true } });
+      for (const f of filas) {
+        const reg = leeAB(f.value);
+        if (reg) videos[reg.id] = vistaAB(reg);
+      }
+    }
+    return respuesta({ ok: true, deImg, videos });
   }
 
   return respuesta({ ok: false, error: "Acción desconocida" }, 400);

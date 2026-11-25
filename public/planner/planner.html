@@ -6140,7 +6140,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 11;   // 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 12;   // 12 = portadas en prueba A/B (24 nov 2026) · 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -6574,6 +6574,247 @@ window.__signOut=async()=>{
   window.close();
   setTimeout(()=>{ location.href='/'; },250);
 };
+</script>
+
+<!-- ══ PRUEBAS A/B DE PORTADAS (24 nov 2026) ══
+     Diego: «hay canales que tienen portadas con prueba A/B y no aparecen; si un video tiene,
+     que al darle clic me enseñe las demás y que se guarden por si el creador las borra; que
+     funcione solo, con cualquier video».
+     · La tarjeta sabe de qué video de YouTube es su portada por la huella de la imagen: el
+       servidor apunta `ytde/<huella>` cuando «Obtener portada» la baja de un link.
+     · Al pegar un link se revisa sola (ytAB) y lo encontrado queda guardado para siempre.
+     · Si tiene prueba, la tarjeta lleva «A/B»; al tocarla, la galería con todas las portadas
+       y los títulos que está probando. Cada día se vuelve a revisar sola (máx. 3 por carga),
+       sin nada que pregunte a intervalos. -->
+<style>
+.pm-ab-chip{position:absolute;left:8px;bottom:8px;z-index:3;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;
+  border-radius:999px;border:1px solid rgba(255,217,125,.55);cursor:pointer;font-family:inherit;font-weight:800;font-size:11px;line-height:1;letter-spacing:.02em;color:#1a1200;
+  background:var(--oro-boton,linear-gradient(135deg,#FFE7A8,#FFD97D 38%,#C9A040 78%,#B98E2E));box-shadow:0 6px 16px rgba(0,0,0,.45);
+  transition:transform .15s,box-shadow .15s;}
+.pm-ab-chip:hover,.pm-ab-chip:focus-visible{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.55);outline:none;}
+.pm-ab-chip svg{width:14px;height:14px;flex:none}
+.pm-ab-chip.solo-t{background:rgba(9,15,32,.86);color:#FFD97D;border-color:rgba(201,160,64,.55);}
+#pmAbModal{margin:-4px 0 16px;}
+#pmAbModal:empty{display:none;}
+.pab-franja{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(201,160,64,.3);
+  background:linear-gradient(180deg,rgba(201,160,64,.08),rgba(201,160,64,.03));}
+.pab-franja .pab-tx{flex:1;min-width:0;font-size:12.5px;line-height:1.4;color:var(--muted);text-wrap:pretty;}
+.pab-franja .pab-tx b{display:block;color:#fff;font-size:13px;}
+.pab-minis{display:flex;gap:6px;flex:none;}
+.pab-minis img{width:64px;height:36px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12);}
+.pab-franja button{flex:none;height:32px;padding:0 14px;border-radius:999px;border:0;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px;color:#1a1200;background:var(--oro-boton);}
+.pab-franja.cargando .pab-tx b::after{content:'';display:inline-block;width:10px;height:10px;margin-left:8px;border-radius:50%;
+  border:2px solid rgba(255,217,125,.35);border-top-color:#FFD97D;animation:pabGira .8s linear infinite;vertical-align:-1px;}
+@keyframes pabGira{to{transform:rotate(360deg)}}
+@media(max-width:560px){.pab-minis{display:none}}
+#pmAbGal{position:fixed;inset:0;z-index:99980;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(2,5,15,.72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+#pmAbGal.on{display:flex;}
+.pab-caja{position:relative;width:min(1040px,100%);max-height:calc(100vh - 48px);overflow:auto;border-radius:18px;padding:22px 22px 18px;color:#fff;
+  background:linear-gradient(180deg,rgba(20,30,58,.99),rgba(9,15,32,.99));border:1px solid rgba(201,160,64,.3);box-shadow:0 30px 80px rgba(0,0,0,.65);}
+.pab-cab{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;}
+.pab-cab>div{flex:1;min-width:0;}
+.pab-k{font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#C9A040;margin-bottom:5px;}
+.pab-cab h3{margin:0;font-size:20px;line-height:1.25;text-wrap:balance;}
+.pab-cab p{margin:5px 0 0;font-size:12.8px;line-height:1.5;color:var(--muted);text-wrap:pretty;}
+.pab-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid rgba(140,175,235,.25);background:none;color:var(--muted);cursor:pointer;font-size:15px;}
+.pab-x:hover{color:#fff;background:rgba(255,255,255,.06);}
+.pab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.pab-it{margin:0;border-radius:14px;overflow:hidden;border:1px solid rgba(140,175,235,.18);background:#0a1122;}
+.pab-it.principal{border-color:rgba(201,160,64,.55);}
+.pab-it .pab-img{display:block;width:100%;aspect-ratio:16/9;padding:0;border:0;cursor:zoom-in;background:#05091a;}
+.pab-it .pab-img img{display:block;width:100%;height:100%;object-fit:cover;}
+.pab-it figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:10px 12px 12px;font-size:12px;color:var(--muted);}
+.pab-it figcaption b{color:#fff;font-size:13px;margin-right:auto;}
+.pab-est{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.04em;}
+.pab-est.on{color:#b7f5c8;background:rgba(52,199,89,.12);border:1px solid rgba(52,199,89,.35);}
+.pab-est.off{color:#ffd9a0;background:rgba(255,170,60,.1);border:1px solid rgba(255,170,60,.32);}
+.pab-it figcaption small{flex-basis:100%;font-size:11px;color:#6b7c99;}
+.pab-acc{display:flex;gap:6px;flex-basis:100%;margin-top:4px;}
+.pab-acc button{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(201,160,64,.35);background:none;color:#FFD97D;cursor:pointer;font-family:inherit;font-weight:700;font-size:11.5px;}
+.pab-acc button:hover{background:rgba(201,160,64,.12);}
+.pab-tits{margin-top:18px;padding-top:14px;border-top:1px solid rgba(120,150,200,.14);}
+.pab-tits h4{margin:0 0 10px;font-size:13px;color:#fff;}
+.pab-tits li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);font-size:13px;line-height:1.4;text-wrap:pretty;}
+.pab-tits li+li{margin-top:6px;}
+.pab-tits li>span:first-child{flex:1;min-width:0;}
+.pab-est{flex:none;white-space:nowrap;}
+.pab-tits ul{margin:0;padding:0;list-style:none;}
+.pab-pie{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px;font-size:12px;color:#6b7c99;}
+.pab-pie span{flex:1;min-width:200px;text-wrap:pretty;}
+.pab-pie button,.pab-pie a{height:32px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;font-family:inherit;font-weight:800;font-size:12px;cursor:pointer;text-decoration:none;}
+.pab-pie .pab-rev{border:0;color:#1a1200;background:var(--oro-boton);}
+.pab-pie .pab-rev:disabled{opacity:.6;cursor:default;}
+.pab-pie a{border:1px solid rgba(140,175,235,.28);color:#dce6f7;}
+.pab-grande{position:fixed;inset:0;z-index:99985;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,5,15,.9);cursor:zoom-out;}
+.pab-grande img{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.7);}
+@media(max-width:600px){#pmAbGal{padding:10px}.pab-caja{padding:16px 14px 14px;max-height:calc(100vh - 20px)}.pab-grid{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+  const AB={videos:{},deImg:{},pedidas:new Set(),revisados:new Set(),cola:[],trabajando:false,autoHechas:0};
+  window.pmAB=AB;
+  const DIA=864e5, HORA=36e5;
+  const IC_AB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="8" height="14" rx="2"/><rect x="13.5" y="5" width="8" height="14" rx="2"/></svg>';
+  const post=(action,extra)=>fetch('/api/planner',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify(Object.assign({action},extra||{}))}).then(r=>r.json().catch(()=>({ok:false}))).catch(()=>({ok:false}));
+  const imgDe=c=>{ const m=c&&c.type==='image'&&/\/api\/planner\/img\/([a-f0-9]{40})/.exec(c.value||''); return m?m[1]:''; };
+  const ytDe=v=>v?(v.yt||AB.deImg[imgDe(v.cover)]||''):'';
+  const toast=(m,t)=>{ if(window.__showToast)window.__showToast(m,t); };
+  const fecha=t=>{ try{ return new Date(t).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ''; } };
+  const hace=t=>{ const m=Math.round((Date.now()-t)/6e4); if(m<1)return 'hace un momento'; if(m<60)return 'hace '+m+' min';
+    const h=Math.round(m/60); if(h<24)return 'hace '+h+' h'; const d=Math.round(h/24); return 'hace '+d+(d===1?' día':' días'); };
+  const nombre=p=>{ const cs=p.claves||[p.clave]; if(cs.includes('default'))return 'Principal';
+    if(cs.includes('rescatada'))return 'Rescatada'; const n=cs.map(c=>+String(c).replace(/\D/g,'')).filter(Boolean).sort()[0]; return n?'Variante '+n:'Variante'; };
+  const todos=()=>{ try{ return Object.keys(PLATS).flatMap(k=>getPVids(k)||[]); }catch(e){ try{ return getPVids(plat)||[]; }catch(er){ return []; } } };
+
+  /* ── lo guardado: una sola pregunta por imagen nueva (nada a intervalos) ── */
+  async function sincroniza(){
+    const imgs=[...new Set(todos().map(v=>imgDe(v.cover)).filter(i=>i&&!AB.pedidas.has(i)))];
+    if(!imgs.length) return;
+    imgs.forEach(i=>AB.pedidas.add(i));
+    const r=await post('ytABVer',{imgs});
+    if(!r||!r.ok){ imgs.forEach(i=>AB.pedidas.delete(i)); return; }
+    Object.assign(AB.deImg,r.deImg||{}); Object.assign(AB.videos,r.videos||{});
+    decora(); pintaModal();
+    /* Cada día se revisa sola: lo nuevo que salga en la prueba se guarda también */
+    const ligados=[...new Set(Object.values(r.deImg||{}))];
+    ligados.forEach(y=>{ const i=AB.videos[y]; if(!i||Date.now()-(i.revisado||0)>DIA) pide(y,false,true); });
+  }
+  /* ── revisar un video (en fila, de uno en uno) ── */
+  function pide(yt,forzar,auto){
+    if(!/^[\w-]{11}$/.test(yt)) return Promise.resolve(null);
+    if(auto){ if(AB.revisados.has(yt)||AB.autoHechas>=3) return Promise.resolve(null); AB.autoHechas++; }
+    AB.revisados.add(yt);
+    return new Promise(res=>{ AB.cola.push({yt,forzar,res}); sigue(); });
+  }
+  async function sigue(){
+    if(AB.trabajando) return; const t=AB.cola.shift(); if(!t) return;
+    AB.trabajando=true; AB.ahora=t.yt; pintaModal(); pintaGaleria();
+    const r=await post('ytAB',{id:t.yt,forzar:!!t.forzar});
+    AB.trabajando=false; AB.ahora='';
+    if(r&&r.ok){ AB.videos[t.yt]=r; } 
+    decora(); pintaModal(); pintaGaleria();
+    t.res(r&&r.ok?r:null); sigue();
+  }
+
+  /* ── la tarjeta: «A/B» sobre la portada ── */
+  function decora(){
+    const vids=todos();
+    document.querySelectorAll('#boardWrap .video-card[data-id]').forEach(card=>{
+      const v=vids.find(z=>z.id===card.dataset.id), yt=ytDe(v), info=yt&&AB.videos[yt];
+      const cov=card.querySelector('.card-cover'); if(!cov) return;
+      let ch=cov.querySelector('.pm-ab-chip');
+      if(!info||!info.ab){ if(ch)ch.remove(); return; }
+      const n=info.portadas.length, soloT=n<2;
+      const txt=soloT?'A/B · títulos':'A/B · '+n+' portadas';
+      if(!ch){ ch=document.createElement('button'); ch.type='button'; ch.className='pm-ab-chip';
+        ch.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); abre(ch.dataset.yt,ch.dataset.vid); });
+        ch.addEventListener('pointerdown',e=>e.stopPropagation());
+        cov.appendChild(ch); }
+      ch.dataset.yt=yt; ch.dataset.vid=v.id; ch.classList.toggle('solo-t',soloT);
+      ch.setAttribute('aria-label','Ver la prueba A/B de este video: '+(soloT?info.titulos.length+' títulos':n+' portadas'));
+      ch.innerHTML=IC_AB+'<span>'+txt+'</span>';
+    });
+  }
+
+  /* ── el modal del video: franja con sus portadas A/B ── */
+  let modalYt='';
+  function pintaModal(){
+    const caja=document.getElementById('pmAbModal'); if(!caja) return;
+    const abierto=document.querySelector('.modal.open,.modal-overlay.open,#modal.open');
+    let yt=modalYt;
+    if(!yt){ const c=(typeof curCover==='object'&&curCover)?curCover:null; yt=AB.deImg[imgDe(c)]||''; }
+    if(!yt){ caja.innerHTML=''; return; }
+    const info=AB.videos[yt];
+    if(AB.ahora===yt&&(!info||!info.ab)){
+      caja.innerHTML='<div class="pab-franja cargando"><div class="pab-tx"><b>Buscando si tiene prueba A/B</b>Se revisa como si fueran varias personas viendo YouTube.</div></div>'; return; }
+    if(!info||!info.ab){ caja.innerHTML=''; return; }
+    const n=info.portadas.length;
+    caja.innerHTML='<div class="pab-franja"><div class="pab-minis">'+info.portadas.slice(0,3).map(p=>'<img src="'+p.url+'?w=160" alt="">').join('')+'</div>'
+      +'<div class="pab-tx"><b>Tiene prueba A/B</b>'+(n>1?n+' portadas':'')+(n>1&&info.titulos.length>1?' y ':'')+(info.titulos.length>1?info.titulos.length+' títulos':'')+(info.titulos.length>1?' guardados':' guardadas')+' aquí.</div>'
+      +'<button type="button">Ver todas</button></div>';
+    caja.querySelector('button').onclick=e=>{ e.preventDefault(); abre(yt,(typeof editId!=='undefined'&&editId)||''); };
+  }
+  function montaModal(){
+    if(document.getElementById('pmAbModal')) return;
+    const yt=document.querySelector('#tab-info .uz-yt'); if(!yt) return;
+    const d=document.createElement('div'); d.id='pmAbModal'; yt.parentNode.insertBefore(d,yt.nextSibling);
+    const pop=document.getElementById('pmRefPop'); if(pop&&pop.previousElementSibling===yt) yt.parentNode.insertBefore(d,pop.nextSibling);
+  }
+
+  /* ── la galería ── */
+  let gal=null, galYt='';
+  function abre(yt,vid){
+    galYt=yt;
+    if(!gal){
+      gal=document.createElement('div'); gal.id='pmAbGal'; gal.setAttribute('role','dialog'); gal.setAttribute('aria-modal','true'); gal.setAttribute('aria-label','Prueba A/B de portadas');
+      gal.addEventListener('click',e=>{
+        if(e.target===gal||e.target.closest('.pab-x')){ cierra(); return; }
+        const g=e.target.closest('.pab-img'); if(g){ grande(g.dataset.src); return; }
+        const b=e.target.closest('[data-pab]'); if(!b) return;
+        if(b.dataset.pab==='rev'){ b.disabled=true; pide(galYt,true).then(r=>{ if(r)toast(r.ab?'Revisado: '+r.portadas.length+' portadas guardadas':'Revisado: ahora no está probando portadas','ok'); else toast('YouTube no respondió. Inténtalo en un momento.','err'); }); }
+        if(b.dataset.pab==='fotos') guardaEnFotos(b.dataset.src,b.dataset.nom);
+      });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&gal&&gal.classList.contains('on')){ const gr=document.querySelector('.pab-grande'); if(gr)gr.remove(); else cierra(); } });
+      document.body.appendChild(gal);
+    }
+    gal.classList.add('on'); pintaGaleria();
+    const i=AB.videos[yt];
+    if(!i||Date.now()-(i.revisado||0)>HORA) pide(yt,false);   // al abrir, si hace rato: se revisa sola
+  }
+  function cierra(){ if(gal)gal.classList.remove('on'); galYt=''; }
+  function grande(src){ const d=document.createElement('div'); d.className='pab-grande'; d.innerHTML='<img src="'+src+'" alt="">'; d.onclick=()=>d.remove(); document.body.appendChild(d); }
+  function guardaEnFotos(src,nom){
+    try{ const rs=getCovResources(); if(rs.some(r=>r.src===src)){ toast('Esa portada ya está en Mis fotos','ok'); return; }
+      rs.push({id:uid(),name:nom||'Portada A/B',src}); saveCovResources(rs); toast('Guardada en Mis fotos','ok'); }catch(e){ toast('No se pudo guardar en Mis fotos','err'); }
+  }
+  function pintaGaleria(){
+    if(!gal||!gal.classList.contains('on')||!galYt) return;
+    const i=AB.videos[galYt], cargando=AB.ahora===galYt;
+    if(!i){ gal.innerHTML='<div class="pab-caja"><div class="pab-cab"><div><div class="pab-k">Prueba A/B</div><h3>Revisando este video…</h3><p>Se pregunta a YouTube como si fueran varias personas distintas: a cada una le toca una portada.</p></div><button class="pab-x" aria-label="Cerrar">✕</button></div></div>'; return; }
+    const n=i.portadas.length, activos=i.portadas.filter(p=>p.enPrueba).length;
+    const principal=(i.titulos[0]||{}).t||'';
+    const cab=n>1?(n+' portadas que ha usado en su prueba'):(i.titulos.length>1?'Está probando '+i.titulos.length+' títulos':'Sin prueba A/B por ahora');
+    gal.innerHTML='<div class="pab-caja"><div class="pab-cab"><div><div class="pab-k">Prueba A/B · YouTube</div><h3>'+esc(cab)+'</h3>'
+      +'<p>'+(n>1?'Cada persona ve solo una. Quedan guardadas aquí aunque el creador las borre'+(activos<n?' (las marcadas «Ya no sale» las quitó o terminó la prueba).':'.'):'Si el creador empieza a probar portadas, aparecerán aquí solas.')+'</p></div>'
+      +'<button class="pab-x" aria-label="Cerrar">✕</button></div>'
+      +'<div class="pab-grid">'+i.portadas.map(p=>{ const nom=nombre(p);
+        return '<figure class="pab-it'+(nom==='Principal'?' principal':'')+'"><button type="button" class="pab-img" data-src="'+p.url+'" aria-label="Ver en grande: '+esc(nom)+'"><img src="'+p.url+'?w=640" alt="" loading="lazy"></button>'
+          +'<figcaption><b>'+esc(nom)+'</b><span class="pab-est '+(p.enPrueba?'on">Se ve ahora':'off">Ya no sale · guardada')+'</span>'
+          +'<small>Vista por primera vez el '+esc(fecha(p.primera))+(p.enPrueba?'':' · la última, el '+esc(fecha(p.ultima)))+(p.ancho&&p.ancho<640?' · copia chica':'')+'</small>'
+          +'<span class="pab-acc"><button type="button" data-pab="fotos" data-src="'+p.url+'" data-nom="'+esc(nom+' · '+(principal||galYt))+'">Guardar en Mis fotos</button></span></figcaption></figure>'; }).join('')+'</div>'
+      +(i.titulos.length>1?'<div class="pab-tits"><h4>Títulos que está probando</h4><ul>'+i.titulos.map(t=>'<li><span>'+esc(t.t)+'</span><span class="pab-est '+(t.enPrueba?'on">Se ve ahora':'off">Ya no sale')+'</span></li>').join('')+'</ul></div>':'')
+      +'<div class="pab-pie"><span>'+(cargando?'Revisando ahora…':'Revisado '+esc(hace(i.revisado||Date.now()))+' · se vuelve a revisar solo cada día.')+'</span>'
+      +'<a href="https://www.youtube.com/watch?v='+galYt+'" target="_blank" rel="noopener">Abrir en YouTube</a>'
+      +'<button type="button" class="pab-rev" data-pab="rev"'+(cargando?' disabled':'')+'>'+(cargando?'Revisando…':'Revisar ahora')+'</button></div></div>';
+  }
+
+  /* ── enganches con la herramienta ── */
+  const rb=renderBoard;
+  renderBoard=function(){ rb.apply(this,arguments); try{ decora(); sincroniza(); }catch(e){} };
+  const om=openModal;
+  openModal=function(){ modalYt=''; om.apply(this,arguments); try{ montaModal(); pintaModal();
+    const c=(typeof curCover==='object'&&curCover)?curCover:null, yt=AB.deImg[imgDe(c)];
+    if(yt&&!AB.videos[yt]) pide(yt,false,true); }catch(e){} };
+  /* «Obtener portada» con un link: además de la portada, se revisa su prueba A/B */
+  pmYtThumb=async function(url){
+    const r=await fetch('/api/planner',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'ytThumb',url:url})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||j.ok===false) throw new Error(j.error||'No se pudo obtener la portada.');
+    AB.ultimo=j.yt||''; return j.dataUrl;
+  };
+  const mf=pmModalYtFetch;
+  pmModalYtFetch=async function(){
+    AB.ultimo=''; await mf.apply(this,arguments);
+    const yt=AB.ultimo; if(!yt) return;
+    modalYt=yt; montaModal(); pintaModal();
+    const r=await pide(yt,false);
+    if(r&&r.ab) toast(r.portadas.length>1?'Este video tiene prueba A/B: '+r.portadas.length+' portadas guardadas':'Este video está probando '+r.titulos.length+' títulos','ok');
+  };
+  window.pmAbAbre=abre;
+  try{ if(document.querySelector('#boardWrap .video-card')){ decora(); sincroniza(); } }catch(e){}
+})();
 </script>
 
 <div id="spyThumbOverlay" onclick="if(event.target===this)spyCloseThumb()">
