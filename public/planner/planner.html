@@ -6140,7 +6140,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 13;   // 13 = «Principal anterior» en las pruebas A/B · 12 = portadas en prueba A/B (24 nov 2026) · 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 14;   // 14 = tus portadas A/B + todas del mismo tamaño · 13 = «Principal anterior» en las pruebas A/B · 12 = portadas en prueba A/B (24 nov 2026) · 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -6622,8 +6622,10 @@ window.__signOut=async()=>{
 .pab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 .pab-it{margin:0;border-radius:14px;overflow:hidden;border:1px solid rgba(140,175,235,.18);background:#0a1122;}
 .pab-it.principal{border-color:rgba(201,160,64,.55);}
-.pab-it .pab-img{display:block;width:100%;aspect-ratio:16/9;padding:0;border:0;cursor:zoom-in;background:#05091a;}
-.pab-it .pab-img img{display:block;width:100%;height:100%;object-fit:cover;}
+.pab-it .pab-img{position:relative;display:block;width:100%;aspect-ratio:16/9;padding:0;border:0;cursor:zoom-in;background:#05091a;overflow:hidden;}
+/* ⚠️ Mismo tamaño SIEMPRE (24 nov 2026, Diego: «unas se ven más pequeñas que otras»): la imagen
+   llena su caja 16:9 aunque YouTube solo dé una copia chica (la rescatada mide 336×188). */
+.pab-it .pab-img img,.pab-it .pab-img .pm-tmpl-cover,.pab-it .pab-img>div{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;}
 .pab-it figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:10px 12px 12px;font-size:12px;color:var(--muted);}
 .pab-it figcaption b{color:#fff;font-size:13px;margin-right:auto;}
 .pab-est{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.04em;}
@@ -6647,7 +6649,38 @@ window.__signOut=async()=>{
 .pab-pie .pab-rev:disabled{opacity:.6;cursor:default;}
 .pab-pie a{border:1px solid rgba(140,175,235,.28);color:#dce6f7;}
 .pab-grande{position:fixed;inset:0;z-index:99985;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,5,15,.9);cursor:zoom-out;}
-.pab-grande img{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.7);}
+.pab-grande img{width:min(1280px,calc(100vw - 48px),calc((100vh - 48px) * 16 / 9));height:auto;aspect-ratio:16/9;object-fit:cover;
+  border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.7);}
+/* ── TUS PORTADAS A/B (en el modal del video) ── */
+#pmAbPropias{margin:0 0 16px;}
+.pap-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+.pap-cab b{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#C9A040;white-space:nowrap;}
+.pap-cab span{font-size:12px;color:var(--muted);text-wrap:pretty;}
+.pap-fila{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.pap-it{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0a1122;border:1px solid rgba(140,175,235,.18);}
+.pap-it.a{border-color:rgba(201,160,64,.55);}
+.pap-it>img,.pap-it>.pap-cov,.pap-it>.pap-cov>*{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.pap-letra{position:absolute;left:6px;top:6px;z-index:2;min-width:22px;height:22px;padding:0 7px;display:grid;place-items:center;border-radius:999px;
+  font-size:11px;font-weight:800;color:#1a1200;background:var(--oro-boton);box-shadow:0 3px 10px rgba(0,0,0,.45);}
+.pap-it:not(.a) .pap-letra{color:#FFD97D;background:rgba(9,15,32,.88);border:1px solid rgba(201,160,64,.5);}
+.pap-acc{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;gap:4px;justify-content:flex-end;padding:6px;
+  background:linear-gradient(0deg,rgba(2,5,15,.85),rgba(2,5,15,0));opacity:0;transition:opacity .15s;}
+.pap-it:hover .pap-acc,.pap-it:focus-within .pap-acc{opacity:1;}
+@media(hover:none){.pap-acc{opacity:1;}}
+.pap-acc button{height:24px;padding:0 9px;border-radius:999px;border:1px solid rgba(201,160,64,.45);background:rgba(9,15,32,.9);color:#FFD97D;
+  cursor:pointer;font-family:inherit;font-weight:700;font-size:10.5px;white-space:nowrap;}
+.pap-acc button.q{color:#ffb4b4;border-color:rgba(255,120,120,.4);}
+.pap-acc button svg{display:none;}
+/* en el celular la casilla es chica: solo iconos (con su nombre para lectores de pantalla) */
+@media(max-width:600px){.pap-acc{gap:4px;padding:4px;justify-content:center;}
+  .pap-acc button{width:28px;height:28px;padding:0;display:grid;place-items:center;}
+  .pap-acc button span{display:none;}.pap-acc button svg{display:block;width:14px;height:14px;}}
+.pap-mas{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;border:1px dashed rgba(201,160,64,.45);
+  border-radius:10px;background:rgba(201,160,64,.04);color:#FFD97D;cursor:pointer;font-family:inherit;font-weight:700;font-size:11.5px;}
+.pap-mas:hover{background:rgba(201,160,64,.1);}
+.pap-mas svg{width:18px;height:18px;}
+.pap-mas small{font-weight:500;font-size:10.5px;color:var(--muted);}
+.pap-vacio{position:absolute;inset:0;display:grid;place-items:center;padding:8px;text-align:center;font-size:11px;color:var(--muted);}
 @media(max-width:600px){#pmAbGal{padding:10px}.pab-caja{padding:16px 14px 14px;max-height:calc(100vh - 20px)}.pab-grid{grid-template-columns:1fr}}
 </style>
 <script>
@@ -6706,14 +6739,16 @@ window.__signOut=async()=>{
       const v=vids.find(z=>z.id===card.dataset.id), yt=ytDe(v), info=yt&&AB.videos[yt];
       const cov=card.querySelector('.card-cover'); if(!cov) return;
       let ch=cov.querySelector('.pm-ab-chip');
-      if(!info||!info.ab){ if(ch)ch.remove(); return; }
-      const n=info.portadas.length, soloT=n<2;
+      const propias=(v&&v.abPropias||[]).length;
+      if(!propias&&(!info||!info.ab)){ if(ch)ch.remove(); return; }
+      const n=propias?propias+1:info.portadas.length, soloT=!propias&&n<2;
       const txt=soloT?'A/B · títulos':'A/B · '+n+' portadas';
       if(!ch){ ch=document.createElement('button'); ch.type='button'; ch.className='pm-ab-chip';
-        ch.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); abre(ch.dataset.yt,ch.dataset.vid); });
+        ch.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault();
+          if(ch.dataset.propias==='1') abrePropias(ch.dataset.vid); else abre(ch.dataset.yt,ch.dataset.vid); });
         ch.addEventListener('pointerdown',e=>e.stopPropagation());
         cov.appendChild(ch); }
-      ch.dataset.yt=yt; ch.dataset.vid=v.id; ch.classList.toggle('solo-t',soloT);
+      ch.dataset.yt=yt||''; ch.dataset.vid=v.id; ch.dataset.propias=propias?'1':'0'; ch.classList.toggle('solo-t',soloT);
       ch.setAttribute('aria-label','Ver la prueba A/B de este video: '+(soloT?info.titulos.length+' títulos':n+' portadas'));
       ch.innerHTML=IC_AB+'<span>'+txt+'</span>';
     });
@@ -6752,19 +6787,25 @@ window.__signOut=async()=>{
       gal=document.createElement('div'); gal.id='pmAbGal'; gal.setAttribute('role','dialog'); gal.setAttribute('aria-modal','true'); gal.setAttribute('aria-label','Prueba A/B de portadas');
       gal.addEventListener('click',e=>{
         if(e.target===gal||e.target.closest('.pab-x')){ cierra(); return; }
-        const g=e.target.closest('.pab-img'); if(g){ grande(g.dataset.src); return; }
+        const g=e.target.closest('.pab-img'); if(g){ if(g.dataset.src)grande(g.dataset.src); return; }
         const b=e.target.closest('[data-pab]'); if(!b) return;
         if(b.dataset.pab==='rev'){ b.disabled=true; pide(galYt,true).then(r=>{ if(r)toast(r.ab?'Revisado: '+r.portadas.length+' portadas guardadas':'Revisado: ahora no está probando portadas','ok'); else toast('YouTube no respondió. Inténtalo en un momento.','err'); }); }
         if(b.dataset.pab==='fotos') guardaEnFotos(b.dataset.src,b.dataset.nom);
+        if(b.dataset.pab==='editar'){ const id=galVid; cierra(); openModal(id); }
+        if(b.dataset.pab==='hazA'){ const vids=getPVids(plat), v=vids.find(x=>x.id===galVid), i=+b.dataset.i, it=v&&(v.abPropias||[])[i]; if(!it)return;
+          if(v.cover&&v.cover.type==='image'){ const viejo=v.cover.value; v.cover={type:'image',value:it.src}; v.abPropias[i]={id:it.id,src:viejo}; }
+          else { v.cover={type:'image',value:it.src}; v.abPropias.splice(i,1); if(!v.abPropias.length)delete v.abPropias; }
+          setPVids(plat,vids); try{ render(); }catch(er){} pintaPropiasGal(); toast('Ahora es la portada principal','ok'); }
       });
       document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&gal&&gal.classList.contains('on')){ const gr=document.querySelector('.pab-grande'); if(gr)gr.remove(); else cierra(); } });
       document.body.appendChild(gal);
     }
+    galVid=vid||''; if(!yt) return;
     gal.classList.add('on'); pintaGaleria();
     const i=AB.videos[yt];
     if(!i||Date.now()-(i.revisado||0)>HORA) pide(yt,false);   // al abrir, si hace rato: se revisa sola
   }
-  function cierra(){ if(gal)gal.classList.remove('on'); galYt=''; }
+  function cierra(){ if(gal)gal.classList.remove('on'); galYt=''; galVid=''; }
   function grande(src){ const d=document.createElement('div'); d.className='pab-grande'; d.innerHTML='<img src="'+src+'" alt="">'; d.onclick=()=>d.remove(); document.body.appendChild(d); }
   function guardaEnFotos(src,nom){
     try{ const rs=getCovResources(); if(rs.some(r=>r.src===src)){ toast('Esa portada ya está en Mis fotos','ok'); return; }
@@ -6796,6 +6837,8 @@ window.__signOut=async()=>{
   renderBoard=function(){ rb.apply(this,arguments); try{ decora(); sincroniza(); }catch(e){} };
   const om=openModal;
   openModal=function(){ modalYt=''; om.apply(this,arguments); try{ montaModal(); pintaModal();
+    montaPropias(); const ve=(typeof editId!=='undefined'&&editId)?getPVids(plat).find(x=>x.id===editId):null;
+    abLista=((ve&&ve.abPropias)||[]).map(x=>({id:x.id||uid(),src:x.src})).slice(0,MAX_AB-1); pintaPropias();
     const c=(typeof curCover==='object'&&curCover)?curCover:null, yt=AB.deImg[imgDe(c)];
     if(yt&&!AB.videos[yt]) pide(yt,false,true); }catch(e){} };
   /* «Obtener portada» con un link: además de la portada, se revisa su prueba A/B */
@@ -6813,6 +6856,92 @@ window.__signOut=async()=>{
     const r=await pide(yt,false);
     if(r&&r.ab) toast(r.portadas.length>1?'Este video tiene prueba A/B: '+r.portadas.length+' portadas guardadas':'Este video está probando '+r.titulos.length+' títulos','ok');
   };
+  /* ══ TUS PORTADAS A/B (24 nov 2026) ══
+     Diego: «permíteles a los usuarios cargar pruebas A/B también, si tienen más portadas, no
+     solamente una». En el video: A = su portada de siempre; B y C = las variantes que vaya a
+     probar en YouTube (Test & Compare deja 3). Se guardan EN el video (`abPropias`, lista de
+     {id, src}); las imágenes salen solas a su fila al guardar (aligera/sacaImagenes), como la
+     portada. La tarjeta lleva «A/B · N portadas» y abre la misma galería. */
+  const MAX_AB=3;
+  let abLista=[];
+  let abInput=null;
+  function abSube(i){
+    if(!abInput){ abInput=document.createElement('input'); abInput.type='file'; abInput.accept='image/*'; abInput.style.display='none';
+      document.body.appendChild(abInput);
+      abInput.addEventListener('change',()=>{ const f=abInput.files&&abInput.files[0]; const pos=+abInput.dataset.i; abInput.value=''; if(!f)return;
+        if(f.size>5*1024*1024){ toast('La imagen pesa más de 5 MB','err'); return; }
+        const r=new FileReader(); r.onload=e=>{ const it={id:uid(),src:e.target.result}; if(abLista[pos])abLista[pos]=it; else abLista.push(it); pintaPropias(); }; r.readAsDataURL(f); }); }
+    abInput.dataset.i=String(i); abInput.click();
+  }
+  function pintaPropias(){
+    const caja=document.getElementById('pmAbPropias'); if(!caja) return;
+    const c=(typeof curCover==='object'&&curCover)?curCover:{type:'none'};
+    const hayA=c.type&&c.type!=='none';
+    const casilla=(i)=>{
+      if(i===0) return '<div class="pap-it a"><span class="pap-letra">A</span>'+(hayA?'<div class="pap-cov">'+coverInner(c)+'</div>':'<div class="pap-vacio">Tu portada principal (súbela arriba)</div>')+'</div>';
+      const it=abLista[i-1];
+      if(!it) return (i-1===abLista.length)?'<div class="pap-it"><button type="button" class="pap-mas" data-pap="sube" data-i="'+(i-1)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar portada '+'ABC'[i]+'<small>JPG · PNG · WebP</small></button></div>':'<div class="pap-it"><span class="pap-letra">'+'ABC'[i]+'</span><div class="pap-vacio">Después de la '+'ABC'[i-1]+'</div></div>';
+      return '<div class="pap-it"><span class="pap-letra">'+'ABC'[i]+'</span><img src="'+(typeof pmMini==='function'?pmMini(it.src,480):it.src)+'" alt="Portada '+'ABC'[i]+'">'
+        +'<div class="pap-acc">'
+        +'<button type="button" data-pap="principal" data-i="'+(i-1)+'" aria-label="Hacer principal la portada '+'ABC'[i]+'" title="Hacer principal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg><span>Hacer principal</span></button>'
+        +'<button type="button" data-pap="cambia" data-i="'+(i-1)+'" aria-label="Cambiar la portada '+'ABC'[i]+'" title="Cambiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.9L4 9M4 4v5h5M4 13a8 8 0 0 0 14.9 3.9L20 15M20 20v-5h-5"/></svg><span>Cambiar</span></button>'
+        +'<button type="button" class="q" data-pap="quita" data-i="'+(i-1)+'" aria-label="Quitar la portada '+'ABC'[i]+'" title="Quitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Quitar</span></button></div></div>';
+    };
+    caja.innerHTML='<div class="pap-cab"><b>Prueba A/B</b><span>'+(abLista.length?'Tu prueba lleva '+(abLista.length+1)+' portadas: así las ve tu equipo.':'¿Vas a probar varias portadas en YouTube? Sube aquí las demás (hasta 3).')+'</span></div>'
+      +'<div class="pap-fila">'+[0,1,2].map(casilla).join('')+'</div>';
+  }
+  function montaPropias(){
+    if(document.getElementById('pmAbPropias')) return;
+    const ref=document.getElementById('pmAbModal')||document.querySelector('#tab-info .uz-yt'); if(!ref) return;
+    const d=document.createElement('div'); d.id='pmAbPropias'; ref.parentNode.insertBefore(d,ref.nextSibling);
+    d.addEventListener('click',e=>{ const b=e.target.closest('[data-pap]'); if(!b)return; e.preventDefault(); e.stopPropagation();
+      const i=+b.dataset.i, a=b.dataset.pap;
+      if(a==='sube'||a==='cambia') return abSube(i);
+      if(a==='quita'){ abLista.splice(i,1); pintaPropias(); return; }
+      if(a==='principal'){ const it=abLista[i]; if(!it)return;
+        if(typeof curCover==='object'&&curCover&&curCover.type==='image'){ const viejo=curCover.value; curCover={type:'image',value:it.src}; abLista[i]={id:it.id,src:viejo}; }
+        else { curCover={type:'image',value:it.src}; abLista.splice(i,1); }
+        try{ refreshCoverPreview(); }catch(er){} pintaPropias(); toast('Ahora es tu portada principal','ok'); }
+    });
+  }
+  /* Al guardar el video, su prueba va con él. saveVideo arma el video por dentro: aquí se le
+     pone la lista justo después (setPVids es const y no se puede envolver). */
+  const sv=saveVideo;
+  saveVideo=function(){
+    const id=(typeof editId!=='undefined')?editId:null, lista=abLista.map(x=>({id:x.id,src:x.src}));
+    const antes=new Set(getPVids(plat).map(v=>v.id));
+    sv.apply(this,arguments);
+    const ov=document.getElementById('overlay'); if(ov&&ov.classList.contains('open')) return;   // faltó el título: no se guardó
+    const vids=getPVids(plat), v=id?vids.find(x=>x.id===id):vids.find(x=>!antes.has(x.id));
+    if(!v) return;
+    const prev=JSON.stringify(v.abPropias||[]);
+    if(lista.length) v.abPropias=lista; else delete v.abPropias;
+    if(JSON.stringify(v.abPropias||[])!==prev){ setPVids(plat,vids); try{ render(); }catch(e){} }
+  };
+  /* La galería de TU prueba (desde la tarjeta) */
+  function abrePropias(vid){
+    const v=todos().find(x=>x.id===vid); if(!v) return;
+    if(!gal) abre('','');
+    galYt=''; galVid=vid;
+    gal.classList.add('on'); pintaPropiasGal();
+  }
+  function pintaPropiasGal(){
+    const v=todos().find(x=>x.id===galVid); if(!v||!gal) return;
+    const items=[{letra:'A',cov:v.cover,principal:true}].concat((v.abPropias||[]).map((x,i)=>({letra:'ABC'[i+1],src:x.src,i})));
+    gal.innerHTML='<div class="pab-caja"><div class="pab-cab"><div><div class="pab-k">Tu prueba A/B</div><h3>'+items.length+' portadas para «'+esc(v.title||'Sin título')+'»</h3>'
+      +'<p>La A es la principal. Para cambiar cuál va primero, toca «Hacer principal»; para agregar o quitar, abre el video.</p></div><button class="pab-x" aria-label="Cerrar">✕</button></div>'
+      +'<div class="pab-grid">'+items.map(it=>{
+        const src=it.principal?(it.cov&&it.cov.type==='image'?it.cov.value:''):it.src;
+        const caja=src?'<button type="button" class="pab-img" data-src="'+src+'" aria-label="Ver en grande la portada '+it.letra+'"><img src="'+(typeof pmMini==='function'?pmMini(src,640):src)+'" alt="" loading="lazy"></button>'
+          :'<div class="pab-img">'+coverInner(it.cov)+'</div>';
+        return '<figure class="pab-it'+(it.principal?' principal':'')+'">'+caja+'<figcaption><b>Portada '+it.letra+(it.principal?' · principal':'')+'</b>'
+          +(it.principal?'':'<span class="pab-acc"><button type="button" data-pab="hazA" data-i="'+it.i+'">Hacer principal</button></span>')+'</figcaption></figure>'; }).join('')+'</div>'
+      +'<div class="pab-pie"><span>Se guardan con el video: todo el equipo ve las mismas.</span><button type="button" class="pab-rev" data-pab="editar">Abrir el video</button></div></div>';
+  }
+  let galVid='';
+  /* la A sigue a la portada principal: si se sube o se cambia arriba, se repinta */
+  const rcp=refreshCoverPreview;
+  refreshCoverPreview=function(){ rcp.apply(this,arguments); try{ pintaPropias(); }catch(e){} };
   window.pmAbAbre=abre;
   try{ if(document.querySelector('#boardWrap .video-card')){ decora(); sincroniza(); } }catch(e){}
 })();
