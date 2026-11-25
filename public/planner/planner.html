@@ -6140,7 +6140,7 @@ function setStatus(msg,err){ if(statusEl){ statusEl.textContent=msg||''; statusE
 
 const PANEL_DE = window.__PANEL_DE || '';
 /* La versión de esta herramienta. Si el servidor dice que hay una más nueva, se recarga sola. */
-const VERSION_PLANNER = 12;   // 12 = portadas en prueba A/B (24 nov 2026) · 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
+const VERSION_PLANNER = 13;   // 13 = «Principal anterior» en las pruebas A/B · 12 = portadas en prueba A/B (24 nov 2026) · 11 = Árbol que solo quita del Árbol + Ctrl+Z/Ctrl+Y · 10 = publicados aparte, por fecha · 9 = clic derecho en las portadas · 8 = el día de hoy marcado en el calendario · 7 = calendario con portadas que se arrastran (23 nov 2026)
 async function call(action,payload){
   const r=await fetch('/api/planner',{
     method:'POST',
@@ -6664,7 +6664,8 @@ window.__signOut=async()=>{
   const fecha=t=>{ try{ return new Date(t).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ''; } };
   const hace=t=>{ const m=Math.round((Date.now()-t)/6e4); if(m<1)return 'hace un momento'; if(m<60)return 'hace '+m+' min';
     const h=Math.round(m/60); if(h<24)return 'hace '+h+' h'; const d=Math.round(h/24); return 'hace '+d+(d===1?' día':' días'); };
-  const nombre=p=>{ const cs=p.claves||[p.clave]; if(cs.includes('default'))return 'Principal';
+  /* La principal de hoy es «Principal»; si el creador la cambió, la de antes queda como «Principal anterior» */
+  const nombre=p=>{ const cs=p.claves||[p.clave]; if(cs.includes('default'))return p.enPrueba?'Principal':'Principal anterior';
     if(cs.includes('rescatada'))return 'Rescatada'; const n=cs.map(c=>+String(c).replace(/\D/g,'')).filter(Boolean).sort()[0]; return n?'Variante '+n:'Variante'; };
   const todos=()=>{ try{ return Object.keys(PLATS).flatMap(k=>getPVids(k)||[]); }catch(e){ try{ return getPVids(plat)||[]; }catch(er){ return []; } } };
 
