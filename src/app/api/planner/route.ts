@@ -96,7 +96,7 @@ const VERSION_HERRAMIENTA = 3;
  * abierta trae una más vieja, se recarga sola (11 nov 2026: César veía otra cosa en YT
  * porque tenía abierta la de antes).
  */
-const HERRAMIENTA_PUBLICADA = 14; // 14 = tus portadas A/B (B y C en el video) + todas del mismo tamaño (24 nov 2026) · 13 = «Principal anterior» en las pruebas A/B (24 nov 2026) · 12 = portadas en prueba A/B (24 nov 2026) · 11 = el Árbol solo quita del Árbol + Ctrl+Z/Ctrl+Y (23 nov 2026) · 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
+const HERRAMIENTA_PUBLICADA = 15; // 15 = al pegar un link se llena solo el título del video (26 nov 2026) · 14 = tus portadas A/B (B y C en el video) + todas del mismo tamaño (24 nov 2026) · 13 = «Principal anterior» en las pruebas A/B (24 nov 2026) · 12 = portadas en prueba A/B (24 nov 2026) · 11 = el Árbol solo quita del Árbol + Ctrl+Z/Ctrl+Y (23 nov 2026) · 10 = publicados aparte, por fecha (23 nov 2026) · 9 = clic derecho en las portadas (23 nov 2026) · 8 = el día de hoy marcado en el calendario (23 nov 2026) · 7 = calendario con portadas que se arrastran (23 nov 2026) · 6 = miniaturas ligeras (?w=) · 5 = imágenes aparte y guardar sin pisar a nadie (11 nov 2026)
 
 type Permiso = "ver" | "editar";
 /** Lo que se guarda por persona: también «no», para quitar a alguien de un «todos». */
@@ -274,6 +274,21 @@ async function portadaYT(id: string): Promise<string | null> {
     }
   }
   return null;
+}
+
+/** El título actual de un video, con el oEmbed público de YouTube (sin clave). Vacío si no contesta. */
+async function tituloYT(id: string): Promise<string> {
+  try {
+    const r = await fetch(
+      `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent("https://www.youtube.com/watch?v=" + id)}`,
+      { cache: "no-store", signal: AbortSignal.timeout(5000) }
+    );
+    if (!r.ok) return "";
+    const j = (await r.json()) as { title?: unknown };
+    return typeof j.title === "string" ? j.title.trim().slice(0, 300) : "";
+  } catch {
+    return "";
+  }
 }
 
 /** Apunta de qué video salió una portada (si ya estaba, no escribe). */
@@ -754,12 +769,15 @@ export async function POST(req: Request) {
       );
     }
     const id = m[1];
-    const dataUrl = await portadaYT(id);
+    /* El título del video va junto con la portada (26 nov 2026, Diego: «cuando pegue un
+       link captura inmediatamente el título que tiene el video original, para solamente yo
+       cambiarlo»). Si YouTube no lo da, la portada sale igual. */
+    const [dataUrl, titulo] = await Promise.all([portadaYT(id), tituloYT(id)]);
     if (dataUrl) {
       /* La portada queda ligada a su video (ver PRUEBAS A/B): así la tarjeta que la use
          sabe de qué video de YouTube salió, sin guardar nada más en la tarjeta. */
       if (YT_ID.test(id)) await apuntaDe(huella(dataUrl), id, yo);
-      return respuesta({ ok: true, dataUrl, yt: YT_ID.test(id) ? id : "" });
+      return respuesta({ ok: true, dataUrl, yt: YT_ID.test(id) ? id : "", titulo });
     }
     return respuesta(
       { ok: false, error: "No se pudo obtener la portada de ese video — revisa el link." },
